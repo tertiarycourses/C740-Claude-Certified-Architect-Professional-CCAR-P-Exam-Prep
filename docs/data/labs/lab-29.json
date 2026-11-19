@@ -1,0 +1,51 @@
+{
+ "id": 29,
+ "task": "5.4",
+ "task_title": "Ensure compliance with regulations (e.g., GDPR, HIPAA, FedRAMP)",
+ "topic": 5,
+ "topic_name": "Governance, Safety & Risk Management",
+ "sim": 3,
+ "title": "The whole record went to the model and the log: send the minimum",
+ "stem": "Meridian Health's referral-drafting prototype sends each patient's full record to Claude and copies every prompt and response to a third-party log service for debugging. Before go-live, the compliance lead asks for a design that meets HIPAA's minimum-necessary standard and produces evidence for audits. Which design best meets the requirement?",
+ "options": {
+  "A": "Keep sending the full record so that letters stay accurate, sign a BAA with the model provider, and restrict log access with role-based permissions.",
+  "B": "Send only the fields each purpose needs with identifiers tokenised, restore them in code after the call, and log metadata plus an audit record.",
+  "C": "Tell Claude in the system prompt to ignore identifiers it does not need and never to repeat them, and encrypt the log store at rest.",
+  "D": "Move the workload to a FedRAMP High authorised cloud region, and keep the full prompts in its logs, since that authorisation covers them."
+ },
+ "answer": "B",
+ "why": "Minimum necessary is decided before the call: an allow-list per purpose controls which fields leave, identifiers become tokens that only your code maps back, and the log keeps metadata instead of PHI. The audit record (user, purpose, fields sent and withheld) is the evidence that the control ran. The other options leave the full record flowing to the model or the log.",
+ "wrong": {
+  "A": "A BAA is needed, but it doesn't make sending the whole record 'minimum necessary', and the third-party log still holds full PHI.",
+  "C": "By the time the model reads the instruction the PHI has already been disclosed; encrypting the log doesn't reduce what it holds.",
+  "D": "FedRAMP authorises cloud services for US federal agencies; it doesn't satisfy HIPAA's minimum-necessary standard or cover a third-party log."
+ },
+ "fix": "Allow-list fields per purpose, tokenise identifiers, log metadata only and write an audit record of what was sent and why.",
+ "see": "Phase 1 sends 9 identifiers and 3 unneeded history items and logs them; Phase 2 sends none and logs metadata plus an audit record.",
+ "explain": "The lab scans the exact request body each phase sent. In Phase 1 the full record reaches Claude: name, MRN, date of birth, address, phone, email, SSN, insurance id and next of kin, plus sensitive history a diabetes referral doesn't need, and the debug log keeps a full copy. In Phase 2 an allow-list keeps six fields for this purpose, the name and MRN become [PATIENT] and [MRN], and code puts them back after the call. The letter still has HbA1c 9.1%, metformin and gliclazide. The log holds request id, field names, token counts and a fingerprint, and the audit record lists who sent which fields, for which purpose, and which were withheld.",
+ "exam_tip": "Compliance answers are usually about what data reaches which processor, and what evidence you keep. Prefer the option that removes data before the call (minimisation, tokenisation) and leaves an audit trail, over options that rely on the model ignoring data, on encryption alone, or on a certification meant for a different regime.",
+ "source": "Original question written for C740",
+ "headline": "Allow-list the fields. Log metadata. Keep the evidence.",
+ "concepts": [
+  {
+   "t": "Minimum necessary",
+   "b": "HIPAA's standard: use or disclose only the PHI needed for the purpose. Write it per purpose as an allow-list in code, so every field that leaves is a visible decision."
+  },
+  {
+   "t": "Every hop is in scope",
+   "b": "The model provider, the log service and any trace store that receives PHI must sit inside the agreements that cover it (a BAA for HIPAA). A debug log is a hop."
+  },
+  {
+   "t": "Tokenise, then re-identify",
+   "b": "Replace direct identifiers with tokens such as [PATIENT] before the call, and map them back in your own code afterwards. Claude still writes the letter; it never sees the name."
+  },
+  {
+   "t": "Log metadata; keep audit evidence",
+   "b": "Operations need request ids, token counts and field names, not prompt text. An audit record of user, purpose, fields sent and fields withheld shows the control ran."
+  },
+  {
+   "t": "Frameworks differ",
+   "b": "HIPAA covers US health data, GDPR the personal data of people in the EU, FedRAMP cloud services for US federal agencies. One certification doesn't satisfy another regime."
+  }
+ ]
+}

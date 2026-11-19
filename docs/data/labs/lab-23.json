@@ -1,0 +1,51 @@
+{
+ "id": 23,
+ "task": "4.4",
+ "task_title": "Diagnose system issues (prompt failure, hallucinations, model mismatch)",
+ "topic": 4,
+ "topic_name": "Evaluation, Testing & Optimization",
+ "sim": 2,
+ "title": "Confident, cited and stale after a re-index: inspect retrieval first",
+ "stem": "A RAG system suddenly returns confident but incorrect answers after a document refresh, while latency and model version are unchanged. What is the most likely first place to investigate?",
+ "options": {
+  "A": "The model weights have silently changed.",
+  "B": "The retrieval/indexing step is returning irrelevant or stale chunks.",
+  "C": "The temperature setting is too low.",
+  "D": "The context window has shrunk."
+ },
+ "answer": "B",
+ "why": "Confident-but-wrong answers following a document refresh, with model and latency unchanged, point to retrieval feeding the model poor context, for example a broken re-index or mismatched embeddings. The other options would not be triggered specifically by a document refresh. In the lab, the assistant cites LEND-07 and HR-09 correctly but quotes last week's figures, because the re-index kept the old chunks; a stricter prompt changes nothing, and re-indexing fixes both answers.",
+ "wrong": {
+  "A": "The model version is unchanged, and a pinned model does not change underneath you; nothing ties it to the document refresh.",
+  "C": "A low temperature makes answers more consistent, not wrong, and the setting did not change with the document refresh.",
+  "D": "The context window is a property of the model, which is unchanged; a document refresh does not shrink it."
+ },
+ "fix": "Log each answer's retrieved chunk ids, versions and index dates, compare them with the library manifest, and re-index what is behind.",
+ "see": "Both prompts quote 60% and 2 days from stale LEND-07 v3 and HR-09 v5 chunks; after re-indexing, the original prompt answers 55% and 3 days.",
+ "explain": "This is the exam guide's sample question 3 on the Northwind policy assistant. Since the 17 Nov re-index, staff get confident, cited answers with last week's figures; the model is still claude-haiku-5-5 and latency is unchanged. Phase 1 tries the tempting fix, a stricter prompt ('use only the latest version, double-check numbers'): the answers stay at 60% (S$5,400) and 2 days a week, because the model can only use the chunks it is given. Phase 2 inspects what retrieval served: LEND-07#1 and HR-09#1 were embedded from v3 and v5 on 10 Nov, while the manifest says v4 and v6. Claude, given that evidence as structured input, names the retrieval index as the first place to look. Re-indexing the two documents fixes both answers with the original prompt: 55% (S$4,950) and 3 days. The lasting fix is a check that fails the indexing job when an indexed version falls behind the manifest.",
+ "exam_tip": "Tie the symptom to what changed. A document refresh changes the index, not the model, the temperature or the context window, so look at what retrieval returns first: chunk ids, versions and dates.",
+ "source": "Official exam guide, sample question 3",
+ "headline": "Wrong after a refresh? Check what retrieval served.",
+ "concepts": [
+  {
+   "t": "Where RAG answers come from",
+   "b": "The model answers from the chunks retrieval puts in its context. If those chunks are stale or irrelevant, a fluent, cited and wrong answer is the expected result."
+  },
+  {
+   "t": "Correlate the symptom with the change",
+   "b": "Ask what changed when the failures started. A document refresh points at indexing; a model upgrade points at the model; a prompt edit points at the prompt."
+  },
+  {
+   "t": "Retrieval observability",
+   "b": "Log every answer's retrieved chunk ids, scores, source versions and index dates. Without them a retrieval fault looks exactly like a hallucination."
+  },
+  {
+   "t": "Silent re-index failures",
+   "b": "An embedding job that times out and keeps old vectors, or a new embedding model with an old query encoder, still returns results. Only a version check against the source catches it."
+  },
+  {
+   "t": "A prompt cannot add missing facts",
+   "b": "Stricter instructions change how the model uses its context, not what is in it. When the right text never reaches the model, fix the pipeline, not the wording."
+  }
+ ]
+}

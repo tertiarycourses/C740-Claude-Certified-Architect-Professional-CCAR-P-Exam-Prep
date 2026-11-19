@@ -1,0 +1,6 @@
+[project]
+name = "northwind-assistant"
+version = "0.1.0"
+description = "Northwind Bank's policy assistant (C740 Day 2, Lab 39)"
+requires-python = ">=3.10"
+dependencies = ["anthropic>=2.10.0", "python-dotenv>=1.2.4"]

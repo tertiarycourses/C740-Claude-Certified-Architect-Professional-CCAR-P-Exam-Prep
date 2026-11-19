@@ -1,0 +1,51 @@
+{
+ "id": 32,
+ "task": "6.2",
+ "task_title": "Communicate architectural decisions and trade-offs",
+ "topic": 6,
+ "topic_name": "Stakeholder Communication & Lifecycle Management",
+ "sim": 5,
+ "title": "A memo that sells the pick can't be approved: write the record",
+ "stem": "You have chosen Claude Haiku 5.5 with retrieval for Lumen's assistant over Claude Sonnet 5.5 with retrieval and over a larger human hotline. Grace Lim (COO) must approve the budget and Hannah Koh (IT security lead) must approve the data flow before the build starts. How should you communicate the decision?",
+ "options": {
+  "A": "Send both leaders the same one-page summary explaining why the chosen option is the best fit for Lumen, with the architecture diagram attached for reference.",
+  "B": "Write a decision record with the options, their measured accuracy, latency and cost, the risks and a reversal trigger, then brief each leader in their own terms.",
+  "C": "Present the full benchmark tables, the token-level cost model and the retrieval settings to both leaders so they can weigh every detail and reach their own conclusion.",
+  "D": "Present only the recommended option at the steering meeting, and keep the analysis of the alternatives in reserve in case one of the leaders challenges it."
+ },
+ "answer": "B",
+ "why": "A stakeholder can act on a decision only when they can see what was traded away, in their own units, and what would change it. The decision record holds the options with measured accuracy, latency and cost, the risks with their controls, and the reversal trigger; each brief restates the same facts for its reader: money and service for the COO, data and controls for IT security.",
+ "wrong": {
+  "A": "One summary that only argues for the pick hides the trade-offs and speaks to neither reader's question: the COO's cost comparison or IT security's data flow.",
+  "C": "Raw benchmarks and token maths hand the architect's analysis to the leaders without a recommendation, in units neither of them works in.",
+  "D": "Holding the alternatives back takes the trade-off decision away from the people accountable for it and invites the doubt it tries to avoid."
+ },
+ "fix": "Record the options, measured trade-offs, risks and reversal trigger, and brief each stakeholder in their own terms from that one record.",
+ "see": "Phase 1's readers can answer only a few of their 6 questions; Phase 2's readers answer all 6 from their brief and the record.",
+ "explain": "Both phases answer the same request. Phase 1 is built from the pick alone, so the memo can only praise Option A. Phase 2 is built from the decision record: Options A, B and C with their measured accuracy, p95 latency and monthly cost, the risks and controls, the data flow, and the reversal trigger (weekly graded accuracy below 90% for two weeks), plus one brief for the COO and one for IT security. Two reader calls that see only the document then answer the questions each reader needs to act on, and code counts the answers.",
+ "exam_tip": "Look for the option that shows alternatives, measured trade-offs and a reversal condition, tailored per audience. Answers that hide alternatives, send everyone the same summary, or pass raw technical detail to executives are distractors.",
+ "source": "Original question written for C740",
+ "headline": "Show what you traded away, in their units.",
+ "concepts": [
+  {
+   "t": "The architect owns the options",
+   "b": "Measure each option on the client's own eval data. The accountable stakeholder owns the choice, so they must see the alternatives, not only the pick."
+  },
+  {
+   "t": "Trade-offs in the reader's units",
+   "b": "The COO thinks in money, staff time and service; IT security in data, access and controls. Same facts, different order and units."
+  },
+  {
+   "t": "A decision record outlives the meeting",
+   "b": "Context, options, decision, consequences and status, written down. A newcomer can then see why, instead of accepting or reversing it blindly."
+  },
+  {
+   "t": "Name the reversal trigger",
+   "b": "A measured result that would change the decision, such as weekly accuracy below 90% for two weeks. It turns a debate into a monitor."
+  },
+  {
+   "t": "Effort in proportion to reversibility",
+   "b": "A model swap behind a stable interface is cheap to undo. Data-residency or write-access decisions are not, and get the full analysis and sign-off."
+  }
+ ]
+}

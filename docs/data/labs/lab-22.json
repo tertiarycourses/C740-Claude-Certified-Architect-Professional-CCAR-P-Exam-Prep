@@ -1,0 +1,51 @@
+{
+ "id": 22,
+ "task": "4.3",
+ "task_title": "Conduct A/B testing and iterative improvements",
+ "topic": 4,
+ "topic_name": "Evaluation, Testing & Optimization",
+ "sim": 6,
+ "title": "v2 won the demo and missed SEV1 pages: A/B it on the same alerts",
+ "stem": "Kestrel's platform team owns the prompt that triages production alerts into SEV1, SEV2 and SEV3. An engineer rewrote it as v2 and demonstrated it on a staging alert that v1 had wrongly paged as SEV1; v2 got it right, and the team wants to ship v2 today. Which approach best decides whether v2 should replace v1?",
+ "options": {
+  "A": "Ship v2 for all alerts and collect on-call feedback for a week, rolling back if complaints about wrong pages start to rise.",
+  "B": "Run v1 and v2 on the same labelled eval alerts with the same grader, and apply a decision rule agreed before the run.",
+  "C": "Run v2 on twenty new alerts picked by its author, and compare its accuracy with the score v1 achieved last quarter.",
+  "D": "Ask Claude to read both prompts side by side and choose the one that it judges to be clearer and more complete."
+ },
+ "answer": "B",
+ "why": "A demo shows the case the change was written to fix. An A/B comparison runs both prompts on the same labelled items with the same grader, so the only difference is the prompt, and a decision rule fixed before the run (a primary metric plus guardrails that may not regress) turns the result into a decision. In the lab, v2 fixes the staging alert but drops two small checkout and payment failures from SEV1 to SEV2, and the guardrail rejects it.",
+ "wrong": {
+  "A": "Shipping first makes on-call engineers the test set, and a missed SEV1 page is found by customers, not by the feedback channel.",
+  "C": "Different items and a quarter-old score compare two datasets, not two prompts, and the author chose the items.",
+  "D": "Claude judging which prompt reads better measures the prompt's wording, not how it labels real alerts."
+ },
+ "fix": "Run both prompts on the same labelled eval set with the same grader and let a decision rule written beforehand decide.",
+ "see": "v2 wins the demo; on the same 8 labelled alerts it misses the 2.1% checkout and 1.4% payment SEV1s, and the rule rejects it.",
+ "explain": "Phase 1 compares v1 and v2 on the author's demo alert, checkout 500s in staging: v1 pages it as SEV1, v2 correctly says SEV3, so the demo says ship. Phase 2 writes the decision rule down first (v2's accuracy must be at least v1's, and v2 may miss no gold SEV1), then runs both prompts on the same eight alerts with gold labels from the on-call leads, twice each, with structured output so every label is scored in code. v2 keeps its staging fix but its new 'error rate above 5%' SEV1 wording drops two real customer-impacting failures to SEV2. Eight items run twice prove nothing statistically, and the lab says so; they are enough to find a specific regression you can read item by item. After an offline pass, the next step would be a small canary on the same metrics.",
+ "exam_tip": "A/B means the same items, the same graders and a rule agreed in advance, with guardrail metrics that may not regress. Comparing different datasets, shipping and watching feedback, or asking a model which prompt is better are the distractors.",
+ "source": "Original question written for C740",
+ "headline": "Same items, same grader, rule written first.",
+ "concepts": [
+  {
+   "t": "A demo is not evidence",
+   "b": "The author picks the example that shows the change working. It says nothing about the cases the change might break."
+  },
+  {
+   "t": "Hold everything but the change",
+   "b": "Run both variants on the same fixed items with the same grader and settings, so any difference in the score comes from the change alone."
+  },
+  {
+   "t": "Primary metric and guardrails",
+   "b": "Decide before the run what must improve (the primary metric) and what may not get worse (guardrails such as SEV1 recall), and what result ships the change."
+  },
+  {
+   "t": "Noise and sample size",
+   "b": "Model outputs vary between runs. Repeat runs to see the spread, and do not claim significance from a few items: small sets find specific regressions, large sets measure rates."
+  },
+  {
+   "t": "Iterate, then canary",
+   "b": "Fix what the eval found, re-run the same set, and only then expose the change to a small share of live traffic with the same metrics before a full rollout."
+  }
+ ]
+}

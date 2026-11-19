@@ -1,0 +1,77 @@
+Kestrel on-call · PAGE · order-summary: error rate 6.1% (baseline 0.2%) since Tue 14:10. Customers see "Order summary unavailable" on the confirmation page. Ticket SUP-2291: "My order went through but the summary page says unavailable."
+== Phase 1 · guess from symptoms: the page and the ticket, no tools
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: {"hypotheses":[{"cause":"max_tokens_truncation","status":"untested","evidence":"No traces or logs provided. Truncated model output would fail parsing and show 'unavailable'; check stop_reason=max_tokens on failing requests since Tue 14:10."},{"cause":"tool_timeout","status":"untested","evidence":"No tool latency or timeout data provided. Check whether the summary depends on a tool call that began timing out after 14:10."},{"cause":"prompt_regression","status":"untested","evidence":"No deploy or prompt diff provided. Check for a prompt or config change deployed near Tue 14:10 that correlates w…
+Phase 1 diagnosis: unknown · fix: Before changing anything, pull error traces since Tue 14:10 and group them by stop_reason, error type, and tool latency. If a deploy or prompt change landed at… · traces cited that exist: 0
+
+== PAUSE · Phase 1 finished: a diagnosis from the symptoms
+   outcome: From the symptoms alone Claude **cannot name a root cause**; its "fix" is a to-do list or a mitigation: "Before changing anything, pull error traces since Tue 14:10 and group them by stop_reason, error type, and tool latency…". **No log, trace or deploy was read and nothing was reproduced**, so the on-call engineer still doesn't know what to change.
+   proceed: Phase 2: the same page, with read-only logs, traces and deploys, a staging replay, and the debugging loop
+
+== Phase 2 · structured debugging loop: gather evidence, isolate, one hypothesis at a time, reproduce, verify
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> search_logs({})
+  <- result: {"service":"order-summary","window":"Mon 00:00 to Wed 18:00","groups":[{"message":"order_summary_failed: JSONDecodeError: Unterminated string startin…
+  -> list_traces({"failed_only":true})
+  <- result: [{"trace_id":"tr-a131","at":"Tue 15:20","items_in_order":17,"stop_reason":"max_tokens","app_result":"error"},{"trace_id":"tr-a157","at":"Wed 09:12","…
+  -> list_deploys({})
+  <- result: [{"at":"Mon 10:12","service":"inventory-service","change":"v3.1: new stock cache"},{"at":"Tue 13:40","service":"order-summary","change":"prompt v17: …
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> get_trace({"trace_id":"tr-a131"})
+  <- result: {"trace_id":"tr-a131","at":"Tue 15:20","items_in_order":17,"service":"order-summary","model":"claude-haiku-5-5","config_version":"v42","prompt_versio…
+  -> get_trace({"trace_id":"tr-a157"})
+  <- result: {"trace_id":"tr-a157","at":"Wed 09:12","items_in_order":14,"service":"order-summary","model":"claude-haiku-5-5","config_version":"v42","prompt_versio…
+  -> get_trace({"trace_id":"tr-9f19"})
+  <- result: {"trace_id":"tr-9f19","at":"Tue 12:31","items_in_order":5,"inventory_timeout":true,"service":"order-summary","model":"claude-haiku-5-5","config_versi…
+Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> rerun_request({"trace_id":"tr-a131"})
+  <- result: {"trace_id":"tr-a131","max_tokens":1024,"stop_reason":"max_tokens","output_tokens":1024,"summary_json_valid":false}
+  -> list_traces({})
+  <- result: [{"trace_id":"tr-9e41","at":"Mon 11:02","items_in_order":3,"stop_reason":"end_turn","app_result":"ok"},{"trace_id":"tr-9e77","at":"Mon 15:40","items_…
+Turn 4: POST /v1/messages · model claude-haiku-5-5 · 7 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> rerun_request({"trace_id":"tr-a131","max_tokens":2048})
+  <- result: {"trace_id":"tr-a131","max_tokens":2048,"stop_reason":"end_turn","output_tokens":1370,"summary_json_valid":true}
+  -> rerun_request({"trace_id":"tr-a188","max_tokens":2048})
+  <- result: {"trace_id":"tr-a188","max_tokens":2048,"stop_reason":"end_turn","output_tokens":1510,"summary_json_valid":true}
+Turn 5: POST /v1/messages · model claude-haiku-5-5 · 9 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: {"hypotheses":[{"cause":"max_tokens_truncation","status":"confirmed","evidence":"Config v42 at Tue 14:05 cut max_tokens 2048 to 1024. All failing traces (tr-a131, tr-a157, tr-a188) show stop_reason max_tokens with output_tokens 1024 and JSONDecodeError. Replaying tr-a131 at its original 1024 reproduced the truncation (summary_json_valid false). Replaying tr-a131 and tr-a188 at max_tokens 2048 with nothing else changed gave end_turn, 1370 and 1510 output tokens, and valid JSON. Before 14:05 the JSONDecodeError group count was 0."},{"cause":"prompt_regression","status":"ruled_out","evidence":"P…
+  confirmed max_tokens_truncation: Config v42 at Tue 14:05 cut max_tokens 2048 to 1024. All failing traces (tr-a131, tr-a157, tr-a188) show stop_reason max_tokens with output…
+  ruled_out prompt_regression: Prompt v17 (Tue 13:40) is a contributing factor, not the root cause. It makes summaries longer (about 1370 to 1510 output tokens on the fai…
+  ruled_out tool_timeout: get_inventory timeouts (tr-9f19, tr-a142) are logged as 19 since 14:05 versus 21 before, so they are baseline. They fall back to cached sto…
+  ruled_out api_overload: Anthropic 529 overloaded events are 2 since 14:05 versus 3 before, all retried OK, and none appear in failing traces.
+  ruled_out model_regression: No model or deploy change appears in list_deploys for claude-haiku-5-5. The failing traces all use the same model, and raising max_tokens a…
+  ruled_out unknown: The failure signature is fully explained by the max_tokens truncation: stop_reason max_tokens, output at cap, invalid JSON, and fixed by ra…
+Loop: search_logs → list_traces → list_deploys → get_trace(tr-a131) → get_trace(tr-a157) → get_trace(tr-9f19) → rerun(tr-a131, 1024) → max_tokens → list_traces → rerun(tr-a131, 2048) → end_turn → rerun(tr-a188, 2048) → end_turn
+
+== Turns
+turn 1: stop_reason=end_turn
+turn 1: stop_reason=tool_use tools=search_logs,list_traces,list_deploys
+turn 2: stop_reason=tool_use tools=get_trace,get_trace,get_trace
+turn 3: stop_reason=tool_use tools=rerun_request,list_traces
+turn 4: stop_reason=tool_use tools=rerun_request,rerun_request
+turn 5: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the diagnosis cites no real failing trace and nothing was reproduced
+PASS  Phase 2: Claude read logs or traces before its first re-run, and checked the deploy history
+PASS  Phase 2: a re-run of a failing request with its original max_tokens reproduced stop_reason max_tokens
+PASS  Phase 2: a re-run with a higher max_tokens returned end_turn and valid summary JSON (fix verified)
+PASS  Phase 2: root cause max_tokens_truncation, citing a real failing trace, with the tool timeout ruled out
+
+== Side by side
+[trap] Phase 1: guess from symptoms: **No root cause**: with only the page and the ticket, Claude can list what to look at or suggest a mitigation, but **no trace, log or reproduction** stands behind any cause.
+[fix] Phase 2: structured debugging loop: Evidence first, then isolation: failing traces stop at **stop_reason max_tokens, 1,024 tokens**, after config v42 halved max_tokens. A replay reproduced it at 1024 and **verified the fix at 2048**; the get_inventory timeout was ruled out.
+  Evidence read | none (bad) | search_logs, list_traces, list_deploys, get_trace (good)
+  Root cause named | unknown (bad) | max_tokens_truncation (good)
+  Failing traces cited (exist in the store) | 0 (bad) | tr-a131, tr-a157, tr-a188 (good)
+  Reproduced in staging | no (bad) | yes: max_tokens at 1024 (good)
+  Fix verified by a re-run | no (bad) | yes: end_turn, valid JSON at 2048 (good)
+  Red herring (get_inventory timeout) | — | ruled out with evidence (good)
+
+6 Claude calls · 18628 in / 3223 out tokens · about US$0.0035 · 21.8 s

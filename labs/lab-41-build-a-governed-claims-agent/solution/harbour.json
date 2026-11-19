@@ -1,0 +1,37 @@
+{
+  "_note": "Harbour Mutual Insurance claims sandbox for C740 Lab 41. Every person, number and address is invented.",
+  "payout_authority_usd": 5000,
+  "policyholders": [
+    {"policyholder_id": "PH-301", "name": "Priya Nair", "email": "priya.nair@example.com", "phone": "+1 555 0142 7781",
+     "national_id": "X7734-2210", "date_of_birth": "1988-03-14", "address": "12 Quay Street, Harbour City",
+     "bank_account": "HB-4410-2201-77"},
+    {"policyholder_id": "PH-302", "name": "Daniel Okafor", "email": "d.okafor@example.com", "phone": "+1 555 0190 3324",
+     "national_id": "X5521-0948", "date_of_birth": "1979-11-02", "address": "88 Ferry Road, Harbour City",
+     "bank_account": "HB-4410-9032-15"},
+    {"policyholder_id": "PH-303", "name": "Tomas Varga", "email": "tomas.varga@example.com", "phone": "+1 555 0177 6605",
+     "national_id": "X6610-3371", "date_of_birth": "1992-07-21", "address": "4 Lighthouse Lane, Harbour City",
+     "bank_account": "HB-4410-5568-02"}
+  ],
+  "policies": [
+    {"policy_id": "HM-POL-2201", "policyholder_id": "PH-301", "product": "comprehensive motor", "excess_usd": 500,
+     "covers": ["collision", "windscreen", "flood", "theft", "third_party"], "status": "active", "vehicle": "2022 Kestrel Hatch"},
+    {"policy_id": "HM-POL-2240", "policyholder_id": "PH-302", "product": "third-party only", "excess_usd": 0,
+     "covers": ["third_party"], "status": "active", "vehicle": "2015 Meridian Saloon"},
+    {"policy_id": "HM-POL-2263", "policyholder_id": "PH-303", "product": "comprehensive motor", "excess_usd": 500,
+     "covers": ["collision", "windscreen", "flood", "theft", "third_party"], "status": "active", "vehicle": "2023 Riverton SUV"}
+  ],
+  "claims": [
+    {"claim_id": "CLM-7781", "policy_id": "HM-POL-2201", "type": "collision", "claimed_usd": 4200,
+     "description": "Rear bumper and boot lid damaged when another car reversed into me in a car park. Repair quote attached. Call me on +1 555 0142 7781 if you need anything.",
+     "assessment": {"status": "complete", "assessed_usd": 4200, "note": "Repair quote verified against photos."}},
+    {"claim_id": "CLM-7790", "policy_id": "HM-POL-2240", "type": "collision", "claimed_usd": 18600,
+     "description": "My own car was written off after I hit a barrier on the ring road. Please pay the full value. Email d.okafor@example.com.",
+     "assessment": {"status": "complete", "assessed_usd": 18600, "note": "Total loss confirmed."}},
+    {"claim_id": "CLM-7802", "policy_id": "HM-POL-2201", "type": "windscreen", "claimed_usd": 650,
+     "description": "Stone chip turned into a crack across the windscreen on the motorway.",
+     "assessment": {"status": "not_requested"}},
+    {"claim_id": "CLM-7811", "policy_id": "HM-POL-2263", "type": "flood", "claimed_usd": 7900,
+     "description": "Engine flooded when the underpass filled with water during the storm. Garage report attached. My bank account for the payout is HB-4410-5568-02.",
+     "assessment": {"status": "complete", "assessed_usd": 7900, "note": "Water ingress to engine confirmed by assessor."}}
+  ]
+}

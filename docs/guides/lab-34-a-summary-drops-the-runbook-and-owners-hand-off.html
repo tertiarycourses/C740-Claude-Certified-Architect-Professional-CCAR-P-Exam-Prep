@@ -1,0 +1,129 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 34: A summary drops the runbook and owners: hand off an ADR and a guide</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 34: A summary drops the runbook and owners: hand off an ADR and a guide</h1>
+<blockquote>
+<p>Day 2 · Topic 6: Stakeholder Communication &amp; Lifecycle Management · Task statement 6.4 · Simulator 5: Lumen Retail Engagement · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 6.4: <strong>Document architectures and provide implementation guidance.</strong> You answer one exam-style question, then run the Lumen Retail Engagement simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=34">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=34</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 34</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-34.js">docs/sims/lab-34.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>You are the Claude solution architect engaged by Lumen Retail, a 300-store retailer, to deliver an AI product-support assistant. You run discovery with the sponsor, store operations, IT security and legal; agree the service levels; record architecture decisions; hand the build to Lumen's own team; and run the system through monitoring and iteration after go-live. Claude helps you with each step.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>Architecture Decision Records.</strong> Title, context, decision, status, consequences, and the alternatives that lost. A superseded ADR is marked, not deleted, so the history stays readable.</li>
+<li><strong>Behaviour lives outside the code.</strong> In a Claude system the model ID, prompts, tools, retrieval corpus and evals shape behaviour. Each must be versioned and documented, not only the code.</li>
+<li><strong>Pin and record the model ID.</strong> Name the exact model ID and the file it is set in. A change of model is a release, gated by the eval suite like any prompt change.</li>
+<li><strong>Runbooks with thresholds and steps.</strong> "Escalation rate above 12% for two days: check index freshness, re-run evals, roll back if below 92%" can be acted on. "Monitor quality" cannot.</li>
+<li><strong>A named owner per component.</strong> Prompt and evals, retrieval index, on-call, and the decision itself. Without owners, a handoff becomes a question nobody can answer.</li>
+</ul>
+<h2>The question</h2>
+<p>Your engagement with Lumen Retail ends in three weeks. Lumen's in-house team will then run the product-support assistant and change its prompts, retrieval and model on their own. Which documentation best prepares them to do that without you?</p>
+<ul>
+<li><strong>A.</strong> An ADR per key decision with its context, consequences and rejected alternatives, plus an implementation guide with interfaces, the pinned model ID, runbooks and owners.</li>
+<li><strong>B.</strong> The final steering-committee slide deck with the architecture diagram, the business case and the pilot results, saved on the shared drive where the team can find it later.</li>
+<li><strong>C.</strong> Recorded walkthrough sessions in which the architect explains the code, prompts and retrieval set-up, so the team can replay them whenever a question comes up after handoff.</li>
+<li><strong>D.</strong> Thorough comments throughout the code, prompts and configuration files, so the documentation lives next to the implementation and stays in step with every future change.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=34">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=34</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 34
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: The summary has none of the nine sections and the newcomer can answer few questions; ADR-007 and the guide have all nine and the newcomer answers all five.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Lumen Retail · The engagement ends in three weeks. Write the architecture handoff document for Lumen's in-house dev team, who will run and change the product-support as…
+== Phase 1 · architecture summary: a high-level handoff in prose
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: The Lumen product-support assistant answers store staff and customer questions through a single `POST /assist` endpoint, using Claude Haiku 5.5 (pinned in `confi…
+    (Phase 1 reader: new Lumen developer) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (Phase 1 reader: new Lumen developer) answer: {&quot;answers&quot;:[{&quot;q&quot;:1,&quot;found&quot;:false,&quot;answer&quot;:&quot;The document names the model as Claude Haiku 5.5 and says it is pinned in c…
+
+== PAUSE · Phase 1 finished: the high-level summary
+   outcome: The summary reads well, but it has **0 of 9** handoff sections and the new developer could answer **0 of 5** questions from it (Q1, Q2, Q3, Q4, Q5 missing).…
+   proceed: Phase 2: the same notes as ADR-007 plus an implementation guide with interfaces, runbook and owners
+
+== Phase 2 · ADR-007 + implementation guide: context, decision, consequences, alternatives; interfaces, runbook, owners
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: # ADR-007: Use Claude Haiku 5.5 with catalogue retrieval for the product-support assistant ## Context Lumen's product-support assistant answers customer product …
+    (Phase 2 reader: new Lumen developer) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (Phase 2 reader: new Lumen developer) answer: {&quot;answers&quot;:[{&quot;q&quot;:1,&quot;found&quot;:true,&quot;answer&quot;:&quot;The assistant uses model ID claude-haiku-5-5, pinned in config/assistant.yam…
+  Q1 ✓ The assistant uses model ID claude-haiku-5-5, pinned in config/assistant.yaml.
+  Q2 ✓ Request fields are store_id, session_id, and question (POST /assist). Response fields are answer, sources[], and escalate. When escalate is…
+  Q3 ✓ The runbook's first step is to open the Assistant health dashboard and confirm the escalation rate has been above 12% for two days. Since t…
+  Q4 ✓ Arun Pillai, Lumen AI team, owns the prompt and eval suite.
+  Q5 ✓ Sonnet 5.5 was rejected because its p95 latency of 3.6 s breaks the 3-second requirement, despite 95.0% accuracy, and it costs about US$9,6…
+
+== Turns
+turn 1: stop_reason=end_turn
+(Phase 1 reader: new Lumen developer) turn 1: stop_reason=end_turn
+turn 1: stop_reason=end_turn
+(Phase 2 reader: new Lumen developer) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the summary (a real reply, not empty) leaves the new developer unable to answer at least 2 of the 5 handoff questions
+PASS  Phase 2: ADR-007 has Context, Decision, Status, Consequences and Alternatives considered
+PASS  Phase 2: the implementation guide has Interfaces, Configuration, Runbook and Owners
+PASS  Phase 2: the new developer answered all 5 handoff questions with the right facts (model ID, fields, index check, Arun, Sonnet)
+
+== Side by side
+[trap] Phase 1: high-level architecture summary: Accurate and readable, but **0 of 9 sections**, and the newcomer answered **0 of 5** handoff questions. The model ID fi…
+[fix] Phase 2: ADR-007 + implementation guide: All nine sections present, and the newcomer answered **all five questions** from the document alone: the pinned model, th…
+  Document shape | prose summary | ADR (why) + implementation guide (how, who) (good)
+  Sections found by heading | 0/9 (bad) | 9/9 (good)
+  Q1: Which exact model ID does the assistant use, and in which f… | not found (bad) | answered (good)
+  Q2: What are the request and response fields of the assistant's… | not found (bad) | answered (good)
+  Q3: The dashboard confirms the escalation rate has been above 1… | not found (bad) | answered (good)
+  Q4: Who owns the prompt and the eval suite? | not found (bad) | answered (good)
+  Q5: Which alternatives were rejected, and why? | not found (bad) | answered (good)
+
+4 Claude calls · 4688 in / 4740 out tokens · about US$0.0028 · 22.6 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: A.</strong> A receiving team needs the why, the how and the who. Architecture Decision Records keep the context, the consequences and the alternatives that lost, so a later change is made knowingly. The implementation guide keeps the exact interfaces, the pinned model ID and where it is set, numbered runbook steps with thresholds, and a named owner for each part.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>B.</strong> A steering deck is written for executives: it carries the business case, not the interfaces, runbook steps or owners an engineer needs at 2 a.m.</li>
+<li><strong>C.</strong> Recordings cannot be searched or versioned, and they still leave decisions, thresholds and owners for the team to dig out of hours of video.</li>
+<li><strong>D.</strong> Code comments explain local behaviour; they cannot hold why alternatives were rejected, the runbook, or who owns the prompt and the eval suite.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Both phases document the same working notes for the same team. A high-level summary is the usual handoff, and it loses exactly what the receiving team needs when the architect is gone: the pinned model ID, the interface fields, the runbook threshold and first step, the owners, and why the alternatives lost. Phase 2 splits the knowledge into an Architecture Decision Record (context, decision, status, consequences, alternatives), which keeps the why, and an implementation guide (interfaces, configuration, runbook, owners), which keeps the how and the who. Code checks the sections by heading, and a newcomer who sees only the document shows whether the handoff survives the architect's absence.</p>
+<h2>Exam tip</h2>
+<p>When the question is about handoff to another team, pick the answer that records decisions with their alternatives and gives actionable implementation detail: interfaces, configuration, runbooks and owners. Decks, recordings and code comments each cover only part of it.</p>
+<h2>Try this next</h2>
+<p>Delete the Owners heading from ADR in this lab and run it again: watch question 4 fail even though the notes name Arun Pillai. Then add a sixth question of your own, such as "what score must a prompt change reach before release?", and see which document answers it.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

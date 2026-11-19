@@ -1,0 +1,47 @@
+{
+ "id": 3,
+ "task": "1.3",
+ "task_title": "Select appropriate architectural patterns (workflow, agentic, augmented LLM)",
+ "topic": 1,
+ "topic_name": "Solution Design & Architecture",
+ "sim": 1,
+ "title": "An eight-step claims procedure run as an agent: make it a workflow",
+ "stem": "Harbour Mutual's motor claims follow a fixed, documented procedure: get the claim and policy, check cover, request an assessment above $2,000, check the description against the assessment, compute the payout, approve or escalate, and write the letter. The current build is a fully autonomous agent holding all six tools. Cost per claim is several times the forecast, and auditors cannot list the paths it may take. Which pattern best fits?",
+ "options": {
+  "A": "Keep the agent but list the procedure as numbered steps in its system prompt and lower its turn limit, so that it follows the documented order at a lower cost per claim.",
+  "B": "Move to a multi-agent design in which a supervisor agent checks each step the claims agent takes against the procedure before it lets the next step run.",
+  "C": "Upgrade to the most capable Claude model, so that the agent plans the whole procedure in fewer turns and makes fewer mistakes in the order of its tool calls.",
+  "D": "Run the procedure as a workflow in code and call Claude only at the judgement steps: checking the description against the assessment, and writing the letter."
+ },
+ "answer": "D",
+ "why": "Anthropic distinguishes workflows, where code orchestrates the model and tools along predefined paths, from agents, where the model directs its own steps. A procedure you can write down needs no autonomy. The workflow makes every path enumerable and auditable, keeps the arithmetic and the $5,000 authority rule in code, and uses Claude as an augmented LLM only where judgement over language is needed. In the lab it used two Claude calls and a small fraction of the agent's input tokens for the same payout.",
+ "wrong": {
+  "A": "The prompt makes the order more likely, but the model still owns the control flow, so cost varies and the paths still cannot be listed in advance.",
+  "B": "A supervisor adds calls and cost to police a sequence that code could simply run.",
+  "C": "A larger model costs more per token and still chooses its path at run time; it fixes neither cost nor auditability."
+ },
+ "fix": "Write the fixed procedure as code and call Claude only for the consistency judgement and the letter.",
+ "see": "The workflow ran the eight steps in order with two Claude calls and a small fraction of the agent's input tokens.",
+ "explain": "In Phase 1 the claims agent works through the procedure itself, one or two tools per turn, re-reading the whole conversation every turn. It reaches the right payout, but it takes about six Claude calls, the most input tokens, and a path that is known only after the run. In Phase 2 the procedure is code: lookups, the cover check, the assessment request, the payout arithmetic and the authority gate never vary. Claude is called twice, once to judge whether the customer's description is consistent with the assessment and once to write the letter from facts the code computed. The audit trail lists the same eight steps on every run.",
+ "exam_tip": "\"Fixed\", \"documented\" or \"known sequence\" in a stem points to a workflow. Keep agents for tasks whose steps you cannot write down in advance.",
+ "source": "Original question written for C740",
+ "headline": "If you can write the steps down, code runs them.",
+ "concepts": [
+  {
+   "t": "Workflow or agent: who owns the path",
+   "b": "In a workflow, code decides the next step, so every path can be listed and tested. In an agent, Claude decides at run time, so its behaviour varies between runs."
+  },
+  {
+   "t": "The augmented LLM",
+   "b": "A model with retrieval, tools and memory is the building block of both patterns. A workflow can call one at just the steps that need judgement."
+  },
+  {
+   "t": "Autonomy is a purchase",
+   "b": "An agent buys coverage of paths you cannot write down. You pay in tokens (each turn re-reads the conversation), latency, variance and auditability."
+  },
+  {
+   "t": "Rules and arithmetic in code",
+   "b": "Payout = the lower of quote and assessed cost, minus the excess; approve only within $5,000. Code computes and enforces these the same way every time."
+  }
+ ]
+}

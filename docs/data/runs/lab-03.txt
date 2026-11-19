@@ -1,0 +1,73 @@
+Harbour Mutual · CLM-7781: Priya Nair, rear bumper, quote $4,200, policy HM-POL-2201 (comprehensive, excess $500).
+== Phase 1 · fully agentic: the claims agent chooses every step and tool in its own loop
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+  -> get_claim({"claim_id":"CLM-7781"})
+  <- result: {"claim_id":"CLM-7781","policy_id":"HM-POL-2201","claimant":"Priya Nair","type":"own_damage","incident_date":"2026-10-28","description":"Reversing ou…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+  -> get_policy({"policy_id":"HM-POL-2201"})
+  <- result: {"policy_id":"HM-POL-2201","holder":"Priya Nair","cover":"comprehensive","excess":500,"status":"active","start":"2025-03-01","wording":"Comprehensive…
+Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+  Claude: The policy is active and comprehensive cover includes accidental damage. The repair quote is $4,200, which is over $2,000, so I need an independent assessment.
+  stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+  -> request_assessment({"claim_id":"CLM-7781"})
+  <- result: {"assessment_id":"AS-3302","claim_id":"CLM-7781","assessor":"Coastline Loss Assessors","assessed_cost":4150,"findings":"Rear bumper cover cracked, le…
+Turn 4: POST /v1/messages · model claude-haiku-5-5 · 7 messages (tool results appended)
+  Claude: The assessment matches the claim: cracked bumper, a damaged sensor bracket, and paint transfer consistent with a reversing impact. Payout is the lower of the q…
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> approve_payout({"claim_id":"CLM-7781","amount":3650})
+  <- result: {"approved":true,"claim_id":"CLM-7781","amount":3650}
+  -> draft_letter({"claim_id":"CLM-7781","text":"Dear Priya Nair, your claim CLM-7781 for rear bumper and parking sensor damage has been …)
+  <- result: {"saved":true}
+Turn 5: POST /v1/messages · model claude-haiku-5-5 · 9 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: Claim CLM-7781 is processed and the payout of $3,650 is approved. - **Policy:** HM-POL-2201 is active with comprehensive cover, which includes accidental damage. The $500 excess applies. - **Assessment (AS-3302, Coastline Loss Assessors):** The assessed cost is $4,150. The cracked bumper, broken sensor bracket and paint transfer match the claimant's description of a reversing impact. - **Payout:** The lower of the $4,200 quote and the $4,150 assessed cost is $4,150. Less the $500 excess, that gives $3,650. This is within the $5,000 limit and nothing is inconsistent, so no escalation was neede…
+Phase 1: 5 Claude turns, 8,023 input tokens; path get_claim → get_policy → request_assessment → approve_payout → draft_letter; paid $3,650
+
+== PAUSE · Phase 1 finished: the agent ran the procedure
+   outcome: The agent took **5 turns** and **8,023 input tokens** (each turn re-reads the whole conversation) to run a sequence that was written down in advance, and paid $3,650. Its path, get_claim → get_policy → request_assessment → approve_payout → draft_letter, was chosen at run time: an auditor can read it only afterwards.
+   proceed: Phase 2: the procedure in code, Claude only at the two judgement steps
+
+== Phase 2 · workflow: the procedure in code, Claude only at the judgement steps
+Step 1 · get_claim: CLM-7781, quote $4,200
+Step 2 · get_policy: HM-POL-2201, comprehensive, excess $500
+Step 3 · check_cover: covered
+Step 4 · request_assessment: AS-3302: assessed $4,150
+    (judgement: consistency) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (judgement: consistency) answer: {"consistent": true, "concerns": []}
+Step 5 · judge_consistency: Claude: consistent true
+Step 6 · compute_payout: min(4200, 4150) - 500 = $3,650
+Step 7 · approve_or_escalate: approved $3,650 (within $5,000)
+    (judgement: letter) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (judgement: letter) answer: {"letter": "Dear Priya Nair,\n\nWe are pleased to let you know that claim CLM-7781 has been approved. Your payout is $3,650. This is the assessed repair cost of $4,150, less your $500 excess.\n\nIf you have any question…
+Step 8 · draft_letter: Dear Priya Nair, We are pleased to let you know that claim CLM-7781 has been approved. Your payout is $3,650. This is the assessed repair c…
+
+== Turns
+turn 1: stop_reason=tool_use tools=get_claim
+turn 2: stop_reason=tool_use tools=get_policy
+turn 3: stop_reason=tool_use tools=request_assessment
+turn 4: stop_reason=tool_use tools=approve_payout,draft_letter
+turn 5: stop_reason=end_turn
+(judgement: consistency) turn 1: stop_reason=end_turn
+(judgement: letter) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the agent chose its own path over 4 or more Claude turns
+PASS  Phase 2: the eight documented steps ran in order, with Claude called only at the two judgement steps
+PASS  Phase 2 used under half the input tokens of Phase 1
+PASS  Phase 2: code computed and approved the $3,650 payout, and the letter states it
+
+== Side by side
+[trap] Phase 1: fully agentic: 5 turns and 8,023 input tokens for a fixed procedure; paid $3,650. The path was decided at run time.
+[fix] Phase 2: workflow, Claude at the judgement steps: 8 steps in documented order, 2 Claude calls, 728 input tokens (9% of Phase 1); paid $3,650.
+  Who chooses the next step | Claude, every turn (bad) | code (the procedure) (good)
+  Steps or tools, in order | get_claim → get_policy → request_assessment → approve_payout → draft_letter | get_claim → get_policy → check_cover → request_assessment → judge_consistency → compute_payout → approve_or_escalate → draft_letter
+  Claude calls | 5 (bad) | 2 (good)
+  Input tokens | 8,023 (bad) | 728 (good)
+  Payout | $3,650 | $3,650
+  Path known before the run (auditable) | no (bad) | yes (good)
+
+7 Claude calls · 8751 in / 1425 out tokens · about US$0.0016 · 10.8 s

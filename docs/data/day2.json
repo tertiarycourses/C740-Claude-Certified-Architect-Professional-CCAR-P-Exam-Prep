@@ -1,0 +1,45 @@
+[
+ {
+  "id": 39,
+  "slug": "lab-39-build-a-rag-policy-assistant",
+  "title": "Vibe-code a RAG policy assistant that cites its sources",
+  "tasks": [
+   "3.5",
+   "3.6",
+   "2.2"
+  ],
+  "short": "RAG pipeline with citations",
+  "core": true,
+  "group": "A",
+  "prompts": "lab-39.html"
+ },
+ {
+  "id": 40,
+  "slug": "lab-40-evaluate-and-a-b-test-the-assistant",
+  "title": "Vibe-code an evaluation harness and A/B test two configurations",
+  "tasks": [
+   "4.1",
+   "4.2",
+   "4.3"
+  ],
+  "short": "Eval harness and A/B test",
+  "core": true,
+  "group": "A",
+  "prompts": "lab-40.html"
+ },
+ {
+  "id": 41,
+  "slug": "lab-41-build-a-governed-claims-agent",
+  "title": "Vibe-code a governed claims agent: least privilege, approval gate, audit log",
+  "tasks": [
+   "3.1",
+   "5.1",
+   "5.3",
+   "4.6"
+  ],
+  "short": "Governed agent with HITL and audit",
+  "core": true,
+  "group": "B",
+  "prompts": "lab-41.html"
+ }
+]

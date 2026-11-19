@@ -1,0 +1,51 @@
+{
+ "id": 31,
+ "task": "6.1",
+ "task_title": "Conduct structured discovery and requirement gathering",
+ "topic": 6,
+ "topic_name": "Stakeholder Communication & Lifecycle Management",
+ "sim": 5,
+ "title": "A design from the COO's one line misses legal: interview every group",
+ "stem": "Lumen Retail's COO, Grace Lim, emails you: \"We want an AI assistant in all 300 stores that answers product questions for staff and customers. Live by early March. Can you send me the solution design by Friday?\" Store operations, IT security and legal have not yet been consulted. What should you do first?",
+ "options": {
+  "A": "Draft a reference design from the COO's brief by Friday, then refine it in review sessions with each team once they have something concrete to react to and comment on.",
+  "B": "Build a quick proof of concept on the product catalogue so that every stakeholder can react to a working assistant before any of the requirements are written down.",
+  "C": "Interview each stakeholder group against a checklist of users, volumes, data, constraints, risks, success measures and SLAs, and log conflicts for the sponsor.",
+  "D": "Send every stakeholder a short requirements questionnaire, and where their answers conflict, design to the view that most of the groups share."
+ },
+ "answer": "C",
+ "why": "The sponsor's email covers users and a deadline, nothing more. Structured discovery against a fixed checklist turns volumes, data, risks, success measures and service levels from guesses into traced requirements, and it is the only step that surfaces conflicts such as store operations wanting transcripts kept while legal forbids storing them. The architect records the conflict with both sources and leaves the decision to the accountable owner.",
+ "wrong": {
+  "A": "A design drafted first anchors everyone on assumptions, and conflicts such as the legal ban on stored transcripts surface late, after the design depends on them.",
+  "B": "A proof of concept before success measures and constraints are known has nothing to be judged against, and it can be built on data legal will not allow.",
+  "D": "A legal obligation is not outvoted by the majority: conflicts must go to the accountable owner, and a questionnaire cannot probe answers the way an interview can."
+ },
+ "fix": "Interview every stakeholder group against a checklist, trace each requirement to what someone said, and log conflicts for the sponsor to decide.",
+ "see": "Phase 1 assumes five of seven items; Phase 2 traces all seven and finds the transcript conflict between store operations and legal.",
+ "explain": "Both phases start from the same email. Drafted from it alone, only users and a deadline trace to anything a stakeholder said; volumes, data, risks, success measures and SLAs are the architect's guesses, and no conflict can be found. With discovery, Claude interviews the sponsor, store operations, IT security and legal through ask_stakeholder, cites the INT record behind each requirement, and logs that store operations (INT-06) wants transcripts kept for 90 days while legal (INT-10) forbids storing them. Code checks every citation against what the record covers, so an unsupported requirement counts as an assumption.",
+ "exam_tip": "When a scenario starts from a sponsor's one-line request, the answer is discovery across all stakeholder groups before design or a proof of concept. Conflicts are recorded and escalated to the accountable owner; they are never settled by a majority vote or by the architect alone.",
+ "source": "Original question written for C740",
+ "headline": "Ask every group before you design. Trace or label it.",
+ "concepts": [
+  {
+   "t": "Discovery output is a requirements trace",
+   "b": "Each requirement cites who said it. Anything nobody said is labelled an assumption, so the sponsor can see what the design rests on."
+  },
+  {
+   "t": "A checklist, not a conversation",
+   "b": "Users, volumes, data, constraints, risks, success measures and SLAs. A fixed list makes gaps visible: an empty row is a question still to ask."
+  },
+  {
+   "t": "Every stakeholder group, not the sponsor",
+   "b": "The sponsor owns the goal; store operations, IT security and legal own constraints the sponsor may not know. Each holds a veto the design must respect."
+  },
+  {
+   "t": "Log conflicts; don't settle them",
+   "b": "When two groups want incompatible things, record both sources and the person who decides. A legal obligation outranks an operational wish."
+  },
+  {
+   "t": "Success measures before any build",
+   "b": "A measurable target (30% less staff time, satisfaction 4.2 or better) is what a pilot is later judged against. Without it a proof of concept proves nothing."
+  }
+ ]
+}

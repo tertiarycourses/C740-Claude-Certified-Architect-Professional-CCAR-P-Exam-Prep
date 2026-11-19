@@ -1,0 +1,51 @@
+{
+ "id": 15,
+ "task": "3.4",
+ "task_title": "Analyze observability challenges and select monitoring strategies at scale",
+ "topic": 3,
+ "topic_name": "Integration",
+ "sim": 6,
+ "title": "Grep blames the prompt; traces show inventory_lookup's p95 spike",
+ "stem": "After 14:00, p95 response time for Kestrel's Claude-powered checkout assistant more than doubled. The on-call engineer spent an hour grepping service logs that record each request's total duration, model API calls and retries, but nothing that links lines to a request or times the steps inside it, and suspected a prompt change made at 14:10. Which monitoring strategy best addresses this class of incident at scale?",
+ "options": {
+  "A": "Raise every service to DEBUG logging during incidents so each tool call and model call appears as its own line in the raw logs.",
+  "B": "Alert on the service's mean response time per hour, with a dashboard comparing each hour against last week.",
+  "C": "Store the full text of every prompt and completion so that engineers can replay and read the slowest conversations after an incident.",
+  "D": "Emit one trace per request with a span per model and tool call, carrying trace_id, tokens, latency and stop_reason."
+ },
+ "answer": "D",
+ "why": "The question during an LLM incident is which step inside a request moved. A trace per request, correlated by trace_id, with a span for every model call and tool call carrying latency, tokens, stop_reason and the versions that can change, answers it with one grouped query. In the lab, grouping p95 latency by span shows model calls flat and inventory_lookup rising from about 250 ms to about 5,080 ms, and the prompt change ruled out because requests on the old prompt were already slow.",
+ "wrong": {
+  "A": "DEBUG logs add volume and cost but still lack a trace_id to correlate lines and per-step timings to aggregate, and they only exist once an incident has started.",
+  "B": "A mean hides the slow tail and an alert only says that something is slow, not which span; the incident was already detected.",
+  "C": "Full prompt and completion logs add privacy risk and storage cost without timing a single span; reading conversations cannot show where the time went."
+ },
+ "fix": "Instrument every request as a trace with spans for each model and tool call, carrying trace_id, versions, tokens, latency and stop_reason, and query percentiles by span.",
+ "see": "Grepping raw logs, Claude blamed a coincidence (the 429 retries or the 14:10 prompt reload); querying traces, it grouped p95 by span, found tool:inventory_lookup at 250 ms before and about 5,080 ms after 14:00, and cited real trace_ids.",
+ "explain": "Both phases investigate the same 480 synthetic requests with the same prompt and file the finding with the same tool. The raw logs show request durations jumping at 14:00 and two coincidences, a prompt reload at 14:10 and a few more 429 retries, but no line ties events to a request or times a tool, so Claude can only blame a coincidence. The trace store holds the same afternoon as one trace per request with a span per model call and tool call. One query, p95 latency_ms grouped by span before and after 14:00, separates the flat model calls from the inventory_lookup spike, and the slowest trace_ids become the evidence.",
+ "exam_tip": "For observability at scale, prefer structured, correlated traces (trace_id, a span per step, tokens, latency, stop_reason, versions) queried by percentile. More log volume, mean-based dashboards and full-content logging are distractors.",
+ "source": "Original question written for C740",
+ "headline": "Trace every step. Then ask which span moved.",
+ "concepts": [
+  {
+   "t": "LLM failures often return 200 OK",
+   "b": "A slow, truncated or wrong answer still succeeds at the HTTP level. Uptime and error-rate dashboards miss it; you need per-step latency, tokens, stop_reason and quality signals."
+  },
+  {
+   "t": "One trace, a span per step",
+   "b": "Each request gets a trace_id; each model call, tool call, retrieval and subagent gets a span with its latency, tokens and status, so a slow request can be taken apart."
+  },
+  {
+   "t": "Version everything that can change",
+   "b": "Put the prompt version, model id, effort, index build and tool schema version on each trace, so a regression can be tied to the change that caused it."
+  },
+  {
+   "t": "Percentiles, grouped by dimension",
+   "b": "Compare p95 by span, version or stop_reason before and after a change. Means hide the slow tail that users and SLAs feel."
+  },
+  {
+   "t": "Metadata always, content sampled",
+   "b": "Keep ids, timings, sizes and versions for every request; keep prompt and completion text only when sampled, access-controlled and time-limited."
+  }
+ ]
+}

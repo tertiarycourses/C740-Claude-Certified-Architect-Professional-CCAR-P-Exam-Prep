@@ -1,0 +1,75 @@
+Northwind Policy Assistant · Monday 17 Nov 2026 re-index · since then staff report confident, cited, wrong answers
+Unchanged since last week: model claude-haiku-5-5, p50 latency 1.9 s, the production prompt.
+== Phase 1 · fix the prompt: the production prompt, then a stricter one ("use the latest version, double-check numbers")
+QA · retrieved LEND-07#1 (v3, indexed 2026-11-10), LEND-04#1 (v7, indexed 2026-11-17)
+    Production prompt QA · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 327 in / 103 out · 1175 ms
+      Production prompt QA: The maximum total monthly debt repayments, including the new mortgage, is **S$5,400** (60% of S$9,000 gross monthly income). This limit applies to applications from 1 January 2025 [LEND-07].
+QB · retrieved HR-09#1 (v5, indexed 2026-11-10), HR-09#2 (v6, indexed 2026-11-17)
+    Production prompt QB · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 226 in / 234 out · 1517 ms
+      Production prompt QB: Eligible staff may work from home up to 2 days a week with their manager's approval [HR-09]. Branch-based roles, such as tellers, are not eligible, and the extracts don't say whether a credit officer role counts as branch-based, so please confirm your eligibi…
+QA · retrieved LEND-07#1 (v3, indexed 2026-11-10), LEND-04#1 (v7, indexed 2026-11-17)
+    Patched prompt QA · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 365 in / 196 out · 1521 ms
+      Patched prompt QA: The maximum total monthly debt repayments, including the new mortgage, are **S$5,400** (60% of S$9,000 gross monthly income) [LEND-07]. This limit applies to applications from 1 January 2025, so confirm the application date falls within that period.
+QB · retrieved HR-09#1 (v5, indexed 2026-11-10), HR-09#2 (v6, indexed 2026-11-17)
+    Patched prompt QB · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 264 in / 309 out · 1933 ms
+      Patched prompt QB: Eligible staff may work from home up to 2 days a week with their manager's approval [HR-09]. The extracts exclude only branch-based roles, including tellers, so if your credit officer role is not branch-based, it may be eligible, but confirm this with HR. I c…
+  QA: STALE (60% → S$5,400)
+  QB: STALE (2 days)
+  QA: STALE (60% → S$5,400)
+  QB: STALE (2 days)
+
+== PAUSE · Phase 1 finished: the prompt was fixed, the answers were not
+   outcome: With the stricter prompt: **QA: 60% → S$5,400 (last week's policy)**, **QB: 2 days (last week's policy)**. Each answer cites the right document id. Look at the retrieved chunk versions in the live output: the stricter prompt cannot state a number that is not in its context.
+   proceed: Phase 2: inspect what retrieval served, diagnose, fix the index
+
+== Phase 2 · inspect retrieval: chunk ids, versions and index dates against the library manifest, then fix the index
+  LEND-07#1: indexed v3 on 2026-11-10 · manifest v4 (updated 2026-11-14)  ← BEHIND
+  LEND-04#1: indexed v7 on 2026-11-17 · manifest v7 (updated 2026-03-01)
+  HR-09#1: indexed v5 on 2026-11-10 · manifest v6 (updated 2026-11-14)  ← BEHIND
+  HR-09#2: indexed v6 on 2026-11-17 · manifest v6 (updated 2026-11-14)
+    Diagnosis · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 820 in / 774 out · 4305 ms
+      Diagnosis: {"first_place":"retrieval_index","evidence":["Symptom began exactly at the 2026-11-17 weekly refresh and re-index, while model, prompt, and latency are unchanged, so the change is in what the model is given.","Chunk LEND-07#1 has doc_version 3 indexed 2026-11…
+Re-indexed LEND-07, HR-09 from the current library text (indexed 2026-11-19). Asking again with the ORIGINAL production prompt.
+QA · retrieved LEND-07#1 (v4, indexed 2026-11-19), LEND-04#1 (v7, indexed 2026-11-17)
+    After re-index QA · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 327 in / 149 out · 1186 ms
+      After re-index QA: The maximum total monthly debt repayments, including the new mortgage, are **S$4,950** (55% of S$9,000 gross monthly income) [LEND-07]. This limit applies to applications from 1 November 2026. The extracts do not say how the rule applies to applications befor…
+QB · retrieved HR-09#1 (v6, indexed 2026-11-19), HR-09#2 (v6, indexed 2026-11-19)
+    After re-index QB · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 226 in / 238 out · 1625 ms
+      After re-index QB: Eligible staff may work from home up to 3 days a week, with their manager's approval [HR-09]. The extracts exclude branch-based roles such as tellers, but they don't say whether credit officers are eligible, so please confirm your eligibility with HR or your …
+  QA: current (55% → S$4,950)
+  QB: current (3 days)
+
+== Turns
+Production prompt QA turn 1: stop_reason=end_turn
+Production prompt QB turn 1: stop_reason=end_turn
+Patched prompt QA turn 1: stop_reason=end_turn
+Patched prompt QB turn 1: stop_reason=end_turn
+Diagnosis turn 1: stop_reason=end_turn
+After re-index QA turn 1: stop_reason=end_turn
+After re-index QB turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: both prompts answered from last week's policy (60% / 2 days), never the current figures
+PASS  Phase 2: the retrieved chunks were behind the manifest (LEND-07 and HR-09)
+PASS  Phase 2: Claude's structured diagnosis chose the retrieval index as the first place to look
+PASS  Phase 2: after re-indexing, every retrieved chunk matched the manifest version
+PASS  Phase 2: the original prompt now answers 55% (S$4,950) and 3 days
+
+== Side by side
+[trap] Phase 1: fix the prompt: Still wrong: **QA 60% → S$5,400; QB 2 days**. The prompt changed, the context did not.
+[fix] Phase 2: inspect retrieval, fix the index: Chunks were **LEND-07, HR-09 behind the manifest**. Re-indexed: **QA 55% → S$4,950; QB 3 days** with the original prompt.
+  What changed | the prompt (stricter wording) | the index (re-embedded stale docs)
+  Model / latency | claude-haiku-5-5 · 1.7 s avg | claude-haiku-5-5 · 1.4 s avg
+  Chunks served | LEND-07#1 v3, LEND-04#1 v7, HR-09#1 v5, HR-09#2 v6 | LEND-07#1 v4, LEND-04#1 v7, HR-09#1 v6, HR-09#2 v6
+  Claude's diagnosis (first place) | - | retrieval_index (good)
+  QA (want 55% → S$4,950) | 60% → S$5,400 (bad) | 55% → S$4,950 (good)
+  QB (want 3 days) | 2 days (bad) | 3 days (good)
+
+7 Claude calls · 2555 in / 2003 out tokens · about US$0.0013 · 13.3 s

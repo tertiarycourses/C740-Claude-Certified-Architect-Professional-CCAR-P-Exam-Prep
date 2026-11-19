@@ -1,0 +1,51 @@
+{
+ "id": 14,
+ "task": "3.3",
+ "task_title": "Evaluate accuracy-latency trade-offs and justify configuration decisions",
+ "topic": 3,
+ "topic_name": "Integration",
+ "sim": 4,
+ "title": "Max effort everywhere breaks the 4 s chat budget: route by request",
+ "stem": "Riverton's resident-services assistant answers live-chat questions about bins and permits, and also pre-screens BEN-HOUSING rent-support forms for caseworkers. To maximise accuracy, the team set effort to max on every request. Chat replies now often take over 5 seconds against a 4-second p95 budget, and one pre-screen ran out of tokens while thinking. Which configuration decision is best justified?",
+ "options": {
+  "A": "Route chat to low effort and pre-screens to a high-effort path, confirmed by each path's p95 and accuracy on a labelled set.",
+  "B": "Set low effort on every request, because each pre-screen is only advisory and a caseworker confirms the outcome anyway.",
+  "C": "Keep max effort on every request and stream each reply, so residents see the first words long before the answer completes.",
+  "D": "Move every request to a larger model at medium effort, which should reach the accuracy of max effort with less thinking time."
+ },
+ "answer": "A",
+ "why": "Effort sets how many output tokens Claude spends, thinking included, and output tokens are most of a reply's latency. Chat questions are already answered correctly at low effort, so max effort only adds delay, while a pre-screen is consequential and has a longer budget of its own. A router in code that sends each request class to its own effort level, justified by measured p95 against each budget and accuracy on a labelled set, takes the most accurate configuration that fits each moment.",
+ "wrong": {
+  "B": "Low effort everywhere gives up the margin on the consequential path to save time it does not need to save; that a caseworker confirms is no reason to send them more errors.",
+  "C": "Streaming shortens the perceived wait for chat but not the total time, the thinking tokens or the cost, and it does nothing for replies cut off at max_tokens.",
+  "D": "Larger tiers are slower and cost more per token, not faster, and the claim is asserted rather than measured on Riverton's own requests."
+ },
+ "fix": "Set a latency budget per user moment, route each request class to its own effort level in code, and justify the split with measured p95 and accuracy.",
+ "see": "At effort max, chat p95 went over 4 s and a pre-screen could spend all 4,096 tokens thinking; routed (low for chat, high for pre-screens), chat p95 was about 2 s, all six answers were correct, and the run used a fraction of the output tokens.",
+ "explain": "Both phases send the same six labelled requests (chat questions in Malay, English, Chinese and Tamil, and two BEN-HOUSING pre-screens near the eligibility thresholds) with the same prompt. Phase 1 runs all six at effort max: the answers that complete are right, but hundreds to thousands of thinking tokens push chat p95 over its budget, and a pre-screen can run out of tokens before it answers. Phase 2 routes in code: chat at low effort, pre-screens at high. The run measures each path's p95 against its own budget, grades every answer, and counts output tokens, and those numbers are the justification for the configuration.",
+ "exam_tip": "For accuracy-latency questions, pick the answer that sets the budget from the user's moment, configures per request class, and justifies the choice with measured latency and accuracy. 'Maximum everywhere' and 'minimum everywhere' are both distractors.",
+ "source": "Original question written for C740",
+ "headline": "Budget per moment, effort per request, numbers as proof.",
+ "concepts": [
+  {
+   "t": "Several latency dials, not one",
+   "b": "Model tier, effort, retrieval depth, verification passes and agent turns all trade accuracy for time, and they compound. Tune the one that dominates your requests."
+  },
+  {
+   "t": "Effort controls output tokens",
+   "b": "output_config.effort (low to max) sets how many tokens Claude spends, thinking and tool calls included. Fewer output tokens means a faster, cheaper reply."
+  },
+  {
+   "t": "The budget comes from the moment",
+   "b": "Live chat is judged in seconds, a form result can show a 'checking' page for longer, and an overnight job can use batch. Budget on p95, not the mean."
+  },
+  {
+   "t": "Route by request class in code",
+   "b": "A deterministic router (channel, form type, intent) sends routine requests to a fast path and consequential ones to a careful path, rather than one setting for all."
+  },
+  {
+   "t": "Justify with your own evals",
+   "b": "A configuration is justified by measured accuracy on a labelled set and p95 against the budget for each path. Settings carried over from another model prove nothing."
+  }
+ ]
+}

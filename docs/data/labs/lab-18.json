@@ -1,0 +1,51 @@
+{
+ "id": 18,
+ "task": "3.7",
+ "task_title": "Evaluate connection protocols and select the appropriate integration mechanism (MCP, API/CLI, agent-to-agent)",
+ "topic": 3,
+ "topic_name": "Integration",
+ "sim": 6,
+ "title": "Two hand-built clients, two answers: put the service behind MCP",
+ "stem": "Kestrel's release-calendar service records change freezes. The CI release gate, the on-call agent and 40 engineers' Claude Code sessions all need to check it, and today each team has written its own client from its own copy of the API notes, with its own credential. Which integration mechanism should the platform team choose for the release-calendar service?",
+ "options": {
+  "A": "Expose the service once as an MCP server with typed tools and a server-held credential, registered in the shared .mcp.json.",
+  "B": "Give each agent a generic HTTP tool and put the current OpenAPI specification in its context, so it can build its own requests.",
+  "C": "Wrap the service as an autonomous agent behind an agent-to-agent protocol, so other agents delegate freeze checks to it as tasks.",
+  "D": "Publish a small command-line tool for the service and have every agent call it through a shell tool in its own pipeline."
+ },
+ "answer": "A",
+ "why": "A shared internal capability that many AI hosts call is the case MCP was designed for. The platform team writes one server; every host discovers the same typed tools through tools/list; the credential stays in the server; and a change to the API is made once. Direct API or CLI calls suit a one-off scripted step one pipeline owns, and agent-to-agent protocols suit delegating a whole goal to another team's autonomous agent.",
+ "wrong": {
+  "B": "Every host still builds its own requests and holds a credential in context, and the specification costs tokens on every call while each copy drifts.",
+  "C": "A freeze check is a typed function call, not a goal to delegate; agent-to-agent protocols are for another team's opaque autonomous agent.",
+  "D": "A CLI suits a scripted step in one place; across many hosts each still wires its own shell tool, credential handling and output parsing."
+ },
+ "fix": "Write one MCP server for the shared service, register it in .mcp.json, and keep the credential in the server.",
+ "see": "Bespoke clients call v1 and v2 and disagree about FRZ-118, with keys in prompts; behind one MCP server both agents find FRZ-118 and no key reaches a model.",
+ "explain": "Both phases run the same two agents on the same tasks at the same moment. With each team's own client, the CI release gate follows notes written in June to the retired /v1/freeze-check endpoint, which still answers from a calendar copy last synced on 31 October, gets frozen: false and says DEPLOY into the FRZ-118 freeze, while the on-call agent's newer notes reach /v2 and find FRZ-118. A team API key and an engineer's personal token sit in the prompts and tool inputs. With one release-calendar MCP server, both agents get mcp__release-calendar__check_freeze from tools/list, the server calls v2 with its own credential, and both agents report FRZ-118.",
+ "exam_tip": "Pick the mechanism by the boundary. Many AI hosts reusing one capability: MCP. One application calling a service it owns in a fixed step: direct API or CLI. Handing a goal to another organisation's autonomous agent: agent-to-agent (A2A). Subagents inside your own system are orchestration, not A2A.",
+ "source": "Original question written for C740",
+ "headline": "Many hosts, one service: one MCP server.",
+ "concepts": [
+  {
+   "t": "Direct API or CLI",
+   "b": "Your code decides exactly what to call. Right for a fixed workflow one application owns, such as tagging a release with an existing CLI in one pipeline."
+  },
+  {
+   "t": "MCP: one server, many hosts",
+   "b": "A server exposes tools, resources and prompts over a standard protocol. Claude Code, CI agents and your own apps discover the same typed tools through tools/list."
+  },
+  {
+   "t": "Agent-to-agent: delegate a goal",
+   "b": "Protocols such as A2A hand a whole task to another team's autonomous agent and get results back, without seeing its tools or reasoning."
+  },
+  {
+   "t": "Bespoke clients drift",
+   "b": "Each hand-built copy encodes the API as it was when written. One copy calling a retired endpoint can return a stale answer that looks valid."
+  },
+  {
+   "t": "Keep credentials out of context",
+   "b": "An MCP server holds the service credential itself, so no API key or personal token appears in a prompt, a tool input or a trace."
+  }
+ ]
+}

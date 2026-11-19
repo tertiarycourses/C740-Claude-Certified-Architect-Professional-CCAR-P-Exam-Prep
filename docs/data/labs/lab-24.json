@@ -1,0 +1,51 @@
+{
+ "id": 24,
+ "task": "4.5",
+ "task_title": "Optimize token usage, latency, and cost-performance trade-offs",
+ "topic": 4,
+ "topic_name": "Evaluation, Testing & Optimization",
+ "sim": 1,
+ "title": "Right answers, 3,000 output tokens each: cache, trim, cap, re-test",
+ "stem": "Harbour Mutual's claims triage runs on Claude Sonnet 5.5. Each request sends the claim's full email history, then the claim, then 2,000 tokens of policy wording that is identical on every call, and asks for a detailed analysis and a letter. Adjusters agree the decisions are right, but cost per claim and latency are both over budget. Which change best reduces both while holding decision quality?",
+ "options": {
+  "A": "Switch every claim to Claude Haiku 5.5 at once, since its input and output prices are a twentieth of Sonnet 5.5's.",
+  "B": "Truncate the policy wording to its first 800 tokens, so that every request carries far less input text to process.",
+  "C": "Send every claim through the Message Batches API, which halves the price of each request for exactly the same output tokens.",
+  "D": "Put the cached static policy first, send only the claim fields, ask for a short JSON decision, and re-run the eval set."
+ },
+ "answer": "D",
+ "why": "Static content first lets the identical policy wording become a cached prefix that later calls read at a tenth of the input price. Sending only the fields the decision needs drops the email history, and asking for a short JSON decision removes most of the output tokens, which drive both cost and latency. Re-running the eval set proves the decisions stayed right. In the lab the same three decisions come back as schema-valid JSON with cache reads on calls 2 and 3, and output, cost and latency per claim all fall sharply.",
+ "wrong": {
+  "A": "A blind switch to a cheaper tier changes quality with no evidence, and still pays for the history and long output.",
+  "B": "Cutting the policy wording removes clauses the decision depends on, such as excess and authority rules, so quality is no longer held.",
+  "C": "Batches halve the price but return results within 24 hours, which breaks latency for a live claims desk."
+ },
+ "fix": "Put static content first and cache it, send only the fields that decide, ask for a short structured output, cap max_tokens, and re-run the eval set.",
+ "see": "Phase 1 decides all three claims right at about 3,000 output tokens each; phase 2 gives the same decisions in about 300, with cache reads on claims 2 and 3.",
+ "explain": "Both phases run Haiku 5.5 on the same three claims, so only the request shape changes, and quality is checked in code against the gold decisions (approve US$3,700, decline, approve US$650). Phase 1 is today's request: the six-email history, the claim, then the policy wording, and a request for an analysis and a letter. Every decision is right, but each claim costs about 3,000 output tokens and over ten seconds, and nothing is cached because no two requests share a prefix. Phase 2 puts the rules and policy first in a system block with cache_control, sends nine claim fields, and asks for a JSON decision through output_config with max_tokens 1024. The decisions are the same; cache_read_input_tokens is above zero from the second call; output falls by about 90%, and cost and latency follow. The page also prices the same token counts at Sonnet 5.5 list prices, the stem's model tier.",
+ "exam_tip": "Look for the option that cuts tokens without cutting information the task needs, and that re-checks quality. Blind model swaps, truncating required context and the Batch API for live traffic are the classic distractors.",
+ "source": "Original question written for C740",
+ "headline": "Cache what repeats, send what decides, ask for less.",
+ "concepts": [
+  {
+   "t": "Where the money and time go",
+   "b": "Cost is input tokens × input price plus output tokens × output price, and output is five times dearer on every tier. Latency grows mostly with output tokens generated."
+  },
+  {
+   "t": "Prompt caching",
+   "b": "Mark a static prefix (tools, system, long documents) with cache_control. Later calls with the identical prefix read it at 0.1× the input price; the first call writes it at 1.25×."
+  },
+  {
+   "t": "Static first, dynamic last",
+   "b": "The cache matches from the start of the request. Anything that changes per call, such as a claim or a timestamp, must come after the cached block or the prefix never matches."
+  },
+  {
+   "t": "Ask for less output",
+   "b": "A short structured output (JSON with a schema) replaces an essay. max_tokens caps the worst case, and stop_reason max_tokens tells you when the cap cut an answer."
+  },
+  {
+   "t": "Hold quality while you optimise",
+   "b": "Run the same eval set before and after. A cheaper design that changes decisions is a regression, not an optimisation."
+  }
+ ]
+}

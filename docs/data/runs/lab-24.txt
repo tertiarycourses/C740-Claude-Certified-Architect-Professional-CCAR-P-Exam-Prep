@@ -1,0 +1,58 @@
+Harbour Mutual Claims Desk · triage CLM-7781, CLM-7790, CLM-7802 · gold: approve US$3,700 · decline · approve US$650
+== Phase 1 · today's request: full email history re-sent, policy wording after the claim, long free-text analysis and letter
+    Verbose CLM-7781 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 2619 in / 3697 out · 17518 ms
+      → CLM-7781: approve · US$3700 (1151 words written)
+    Verbose CLM-7790 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 2628 in / 2910 out · 13926 ms
+      → CLM-7790: decline · US$0 (1027 words written)
+    Verbose CLM-7802 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 2590 in / 3725 out · 17444 ms
+      → CLM-7802: approve · US$650 (1159 words written)
+Phase 1 per claim: 2612 input / 3444 output tokens · 16296 ms · US$0.00198 on Haiku 5.5 (US$0.0397 at Sonnet 5.5 prices) · quality 3/3
+
+== PAUSE · Phase 1 finished: right decisions, expensive requests
+   outcome: All **3 of 3** decisions are right, at **2,612 input and 3,444 output tokens per claim**, 16.3 s each. Nothing was cached: each request starts with a different email history, so no two share a prefix.
+   proceed: Phase 2: cached static prefix, claim fields only, capped JSON
+
+== Phase 2 · optimised request: rules + policy as a cached system prefix, claim fields only, capped JSON decision
+    Optimised CLM-7781 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 176 in / 419 out · cache write 0 / read 1992 · 2969 ms
+      Optimised CLM-7781: {"claim_id":"CLM-7781","decision":"approve","payout_usd":3700,"clause":"2.1, 3.1, 4.1, 4.2, 4.4, 5.1","reason":"Comprehensive accidental damage from a reversing third-party vehicle; approved repairer quote US$4,200 (under US$5,000, photos consistent) less US$…
+    Optimised CLM-7790 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 175 in / 94 out · cache write 0 / read 1992 · 1073 ms
+      Optimised CLM-7790: {"claim_id":"CLM-7790","decision":"decline","payout_usd":0,"clause":"2.3","reason":"Third-party only cover does not pay for loss of or damage to the insured vehicle, including a total loss, and no third-party injury or property damage is involved."}
+    Optimised CLM-7802 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 161 in / 132 out · cache write 0 / read 1992 · 1240 ms
+      Optimised CLM-7802: {"claim_id":"CLM-7802","decision":"approve","payout_usd":650,"clause":"Section 2.1, Section 3.2, Section 4.4, Section 4.5","reason":"Comprehensive windscreen claim with no excess under Section 3.2, licensed policyholder driving, notified within 30 days, and t…
+Phase 2 per claim: 2163 input (cache reads 5976 in total) / 215 output tokens · 1761 ms · US$0.00014 on Haiku 5.5 (US$0.0029 at Sonnet 5.5 prices) · quality 3/3
+Three claims give exact token counts but only a rough latency figure: measure p95 on a few hundred claims before committing to an SLA.
+
+== Turns
+Verbose CLM-7781 turn 1: stop_reason=end_turn
+Verbose CLM-7790 turn 1: stop_reason=end_turn
+Verbose CLM-7802 turn 1: stop_reason=end_turn
+Optimised CLM-7781 turn 1: stop_reason=end_turn
+Optimised CLM-7790 turn 1: stop_reason=end_turn
+Optimised CLM-7802 turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the verbose design decided all 3 claims correctly (quality was not the problem)
+PASS  Phase 2: the same 3 decisions and payouts, each as schema-valid JSON
+PASS  Phase 2: claims 2 and 3 read the static prefix from the cache (cache_read_input_tokens > 0)
+PASS  Phase 2: output tokens per claim fell by at least half
+PASS  Phase 2: cost and mean latency per claim are both lower than phase 1
+
+== Side by side
+[trap] Phase 1: history re-sent, policy last, essay: Right decisions (**3/3**) at **3,444 output tokens per claim** and no cache hits.
+[fix] Phase 2: cached prefix, fields only, JSON: Same quality (**3/3**), output down **94%**, cost per claim down **93%**, latency down **89%**.
+  Decisions and payouts right (checked in code) | 3 of 3 (good) | 3 of 3 (good)
+  Input tokens per claim (incl. cached) | 2,612 | 2,163
+  cache_read_input_tokens (claims 2-3) | 0 (bad) | 3984 (good)
+  Output tokens per claim | 3,444 (bad) | 215 (good)
+  Calls cut off at max_tokens | 0 | 0
+  Latency per claim (mean of 3) | 16.3 s | 1.8 s (good)
+  Cost per claim, Haiku 5.5 | US$0.00198 | US$0.00014 (good)
+  Same tokens at Sonnet 5.5 list prices | US$0.0397 | US$0.0029
+
+6 Claude calls · 8349 in / 10977 out tokens · about US$0.0063 · 54.2 s

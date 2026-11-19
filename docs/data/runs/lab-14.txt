@@ -1,0 +1,43 @@
+Eval set: 6 labelled requests · budgets: chat p95 ≤ 4.0 s, BEN-HOUSING pre-screen ≤ 15.0 s
+== Phase 1 · effort max on every request (the six run in parallel, each timed)
+  CHAT-1   Malay   effort max    2883 ms ·  427 output tokens · stop end_turn · value "Thursday" ✓
+  CHAT-2   English effort max    3292 ms ·  553 output tokens · stop end_turn · value "45" ✓
+  CHAT-3   Chinese effort max   11856 ms · 2575 output tokens · stop end_turn · value "0" ✓
+  CHAT-4   Tamil   effort max    4744 ms ·  903 output tokens · stop end_turn · value "Monday" ✓
+  BEN-0412 English effort max    7875 ms · 1849 output tokens · stop end_turn · value "not_eligible" ✓
+  BEN-0413 English effort max   16168 ms · 4096 output tokens · stop max_tokens · value "" ✘ (want eligible)
+Phase 1 result: chat p95 11.9 s (budget 4.0 s), pre-screen p95 16.2 s, accuracy 5/6, 10403 output tokens, 1 reply cut off at max_tokens while thinking.
+
+== PAUSE · Phase 1 finished: effort max on every request
+   outcome: Chat p95 **11.9 s** against a 4.0 s budget (**over budget**); accuracy **5/6**; **10403 output tokens**, most of them thinking; **1 reply spent all 4,096 tokens thinking and returned no answer**.
+   proceed: Phase 2: the same six requests through a router: chat at effort low, pre-screens at effort high
+
+== Phase 2 · router in code: chat -> effort low (fast path), BEN-HOUSING -> effort high (careful path)
+  CHAT-1   Malay   effort low    1728 ms ·   71 output tokens · stop end_turn · value "Thursday" ✓
+  CHAT-2   English effort low    1821 ms ·   47 output tokens · stop end_turn · value "45" ✓
+  CHAT-3   Chinese effort low    1875 ms ·   96 output tokens · stop end_turn · value "0" ✓
+  CHAT-4   Tamil   effort low    1612 ms ·   81 output tokens · stop end_turn · value "Monday" ✓
+  BEN-0412 English effort high   3121 ms ·  498 output tokens · stop end_turn · value "not_eligible" ✓
+  BEN-0413 English effort high   2567 ms ·  341 output tokens · stop end_turn · value "eligible" ✓
+Phase 2 result: chat p95 1.9 s, pre-screen p95 3.1 s, accuracy 6/6, 1134 output tokens (11% of Phase 1).
+
+== Turns
+
+== Checks
+PASS  Phase 1: effort max put chat p95 over the 4 s budget
+PASS  Phase 2: the router sent all 4 chat questions at effort low and both BEN-HOUSING pre-screens at effort high
+PASS  Phase 2: chat p95 within the 4 s budget and pre-screens within 15 s
+PASS  Phase 2: accuracy on the labelled set is 6/6 and no lower than Phase 1
+PASS  Phase 2 used under a third of Phase 1's output tokens
+
+== Side by side
+[trap] Phase 1: effort max on every request: Chat p95 **11.9 s**, over the 4 s budget, accuracy 5/6, 10403 output tokens, 1 answer lost to thinking past max_tokens. The extra thinking bought no accuracy on the chat questions: low effort got all four right.
+[fix] Phase 2: routed, low for chat, high for pre-screens: Chat p95 **1.9 s** within budget, pre-screens 3.1 s, accuracy 6/6, 1134 output tokens (11% of Phase 1). Each number is this run's own measurement.
+  Effort per request | max × 6 | low × 4 chat · high × 2 forms (good)
+  Chat p95 (budget 4.0 s) | 11.9 s (bad) | 1.9 s (good)
+  Pre-screen p95 (budget 15.0 s) | 16.2 s (bad) | 3.1 s (good)
+  Accuracy on the labelled set | 5/6 (bad) | 6/6 (good)
+  Output tokens (thinking included) | 10403 | 1134
+  Replies cut off at max_tokens | 1 (bad) | 0 (good)
+
+12 Claude calls · 9076 in / 11537 out tokens · about US$0.0067 · 19.3 s

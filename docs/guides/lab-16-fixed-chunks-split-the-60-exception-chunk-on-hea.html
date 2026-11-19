@@ -1,0 +1,124 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 16: Fixed chunks split the 60% exception: chunk on headings, cite</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 16: Fixed chunks split the 60% exception: chunk on headings, cite</h1>
+<blockquote>
+<p>Day 1 · Topic 3: Integration · Task statement 3.5 · Simulator 2: Northwind Policy Assistant · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 3.5: <strong>Design a RAG pipeline with appropriate chunking and indexing strategies.</strong> You answer one exam-style question, then run the Northwind Policy Assistant simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=16">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=16</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 16</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-16.js">docs/sims/lab-16.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>Northwind Bank's 4,000 staff ask an internal assistant about lending, compliance and HR policy. The answers come from a retrieval-augmented generation (RAG) pipeline over the bank's policy library, which is re-indexed every week as policies change. Wrong answers carry regulatory risk, so every answer must cite its source, and questions the library does not cover must be declined.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>Chunking decides what retrieval can find.</strong> Claude reasons only over the chunks it receives. A clause split across two chunks, or separated from its heading, can be lost before Claude is ever called.</li>
+<li><strong>Cut along the document's structure.</strong> Policies split by section and clause, tables by row with the header repeated, code by function. Fixed-size windows ignore all of these and cut mid-sentence.</li>
+<li><strong>Index more than text.</strong> Each chunk carries its document id, section, revision, effective date and access roles. Filters on these run in code before ranking, and they make citations possible.</li>
+<li><strong>Heading paths make short chunks findable.</strong> Prefixing 'LEND-07 Mortgage Affordability › 7 Exceptions' gives a short clause the words a query will use. Contextual Retrieval applies the same idea with a generated summary.</li>
+<li><strong>Citations make answers checkable.</strong> Document blocks with citations enabled return the exact span behind each claim, so a reviewer or an evaluation can check the answer against its source.</li>
+</ul>
+<h2>The question</h2>
+<p>Northwind Bank's policy assistant splits every policy into fixed 200-character chunks with no metadata and retrieves the top 3 for each question. Credit officers report answers that state a rule but miss the exception written two paragraphs later, and the answers cannot say which policy section they rest on. Which change to the pipeline best fixes both problems?</p>
+<ul>
+<li><strong>A.</strong> Raise top-k from 3 to 20 so that more neighbouring chunks reach the model and the exception is more likely to be among them.</li>
+<li><strong>B.</strong> Chunk each policy along its headings, store document id, section and effective date with every chunk, and answer with citations.</li>
+<li><strong>C.</strong> Switch to a larger embedding model so that the chunk holding the exception scores closer to the chunk holding the rule it modifies.</li>
+<li><strong>D.</strong> Add a system prompt rule telling Claude to look for exceptions in the passages and to name the source policy document in every answer.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=16">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=16</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 16
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: Fixed chunks lose both the 55% limit and the 60% exception; section chunks retrieve LEND-07 §3 and §7 and the answer cites them.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Teller (role: teller) asks: &quot;A first-time buyer has a debt-servicing ratio of 58% and a guarantor. Can the mortgage be approved, and who signs it off?&quot;
+== Phase 1 · fixed 200-character chunks, no metadata: retrieve the top 3 and answer
+  retrieved chunk-006 (score 12.35): &quot;t variable income such as bonuses and commission at 70% of the two-year average. 3 Debt-servicing ratio. The …&quot;
+  retrieved chunk-008 (score 9.5): &quot;oints or 5.5% a year. 5 Guarantors for mortgages. A mortgage guarantor must be an immediate family member wit…&quot;
+  retrieved chunk-003 (score 6.65): &quot; be approved by a credit officer and signs the guarantee deed at the branch. One person may guarantee at most…&quot;
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: **Cannot confirm approval.** The retrieved passages don't state the maximum allowed debt-servicing ratio, so I can't say whether 58% is acceptable [chunk-006]. T…
+
+== PAUSE · Phase 1 finished: fixed 200-character chunks
+   outcome: The top 3 chunks were **chunk-006, chunk-008, chunk-003**. None held the 55% limit and **none held the 60% first-home exception**: the window boundaries cut…
+   proceed: Phase 2: the same library cut one section per chunk, with metadata, answered with citations
+
+== Phase 2 · one chunk per section with heading path and metadata, role filter, citations enabled
+  retrieved LEND-07§3 (score 12.9) · LEND-07 Mortgage Affordability › 3 Debt-servicing ratio · effective 2026-07-01
+  retrieved LEND-07§5 (score 9.31) · LEND-07 Mortgage Affordability › 5 Guarantors for mortgages · effective 2026-07-01
+  retrieved LEND-07§7 (score 7.68) · LEND-07 Mortgage Affordability › 7 Exceptions · effective 2026-07-01
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: **Possibly, but only a credit officer can approve it.** The first-home limit rises to 60% where a guarantor approved under section 5 signs the deed; only a credi…
+  cited: LEND-07§7 Exceptions (rev 2026-07, effective 2026-07-01)
+  cited: LEND-07§5 Guarantors for mortgages (rev 2026-07, effective 2026-07-01)
+
+== Turns
+turn 1: stop_reason=end_turn
+turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the 3 fixed chunks retrieved held neither the 55% limit nor the 60% first-home exception
+PASS  Phase 2: section retrieval returned both the rule (LEND-07 §3) and its exception (LEND-07 §7)
+PASS  Phase 2: the response carried citations to LEND-07 document blocks
+PASS  Phase 2: the answer gives the 60% limit with credit officer approval
+
+== Side by side
+[trap] Phase 1: fixed 200-character chunks: Retrieved chunk-006, chunk-008, chunk-003: **neither the 55% limit nor the 60% exception**. chunk-003 is from LEND-04 Person…
+[fix] Phase 2: section chunks, metadata, citations: Retrieved LEND-07§3, LEND-07§5, LEND-07§7. The answer gives the **60% first-home limit with a guarantor, approved by…
+  How the library is cut | 200-character windows | one chunk per section, heading path kept (good)
+  Metadata on each chunk | chunk id only | doc id, section, revision, effective date, roles (good)
+  Retrieved (k = 3) | chunk-006, chunk-008, chunk-003 | LEND-07§3, LEND-07§5, LEND-07§7
+  Where those chunks really came from (the trap's index does not know) | chunk-006: LEND-07 Mortgage Affordability; chunk-008: LEND-07 Mortgage Affordability; chunk-003…
+  55% rule in what Claude saw | no (bad) | yes (good)
+  60% first-home exception in what Claude saw | no (bad) | yes (good)
+  Citations returned | 0 (plain text, no citations) | 4 (LEND-07§7, LEND-07§5) (good)
+
+2 Claude calls · 1926 in / 931 out tokens · about US$0.0007 · 5.0 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: B.</strong> Both symptoms start at index time. Fixed windows cut a rule away from its number and an exception away from its condition, and a chunk with no metadata cannot be traced to a policy. Cutting along the policy's own sections keeps each clause whole, the heading path makes short clauses findable, and metadata (document id, section, effective date, roles) lets the pipeline filter and lets Claude cite the exact span with citations enabled.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>A.</strong> More chunks add noise and cost, still carry no document id to cite, and an exception split from its condition is still split.</li>
+<li><strong>C.</strong> A better embedding cannot rejoin text that the chunker cut apart, and it adds no metadata for citations.</li>
+<li><strong>D.</strong> Claude cannot find an exception or cite a section that retrieval never gave it; a prompt cannot repair the index.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Chunking decides what the retriever can ever find. Fixed windows cut wherever the character count lands, so a rule is separated from its number and an exception from its condition, and a chunk knows nothing about the document it came from. Cutting along the policy's own headings keeps each clause whole; prefixing the heading path (LEND-07 › 7 Exceptions) makes a short clause findable; and metadata (document id, section, revision, effective date, roles) lets the pipeline filter by role and date and lets Claude cite the exact section. With citations enabled on document blocks, the API returns the cited span with each claim, so a reviewer can check every answer against its source.</p>
+<h2>Exam tip</h2>
+<p>When answers miss an exception or cannot cite their source, look at chunking and indexing first. Structure-aware chunks with metadata and citations beat a bigger k, a bigger embedding model or a stronger prompt, because none of those can recover what the index split or never stored.</p>
+<h2>Try this next</h2>
+<p>Change K to 4 in this lab's code and run it: Phase 1 now also retrieves the chunk holding "rises to 60%", but without the words "For a first home" that sit in the chunk before it. Then change fixedChunks' size to 400: the cuts move, and a different rule loses its condition. A bigger window moves the problem; it does not remove it.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

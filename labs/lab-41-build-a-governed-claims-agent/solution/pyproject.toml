@@ -1,0 +1,6 @@
+[project]
+name = "harbour-claims-agent"
+version = "0.1.0"
+description = "Harbour Mutual's governed claims agent (C740 Day 2, Lab 41)"
+requires-python = ">=3.10"
+dependencies = ["anthropic>=2.10.0", "python-dotenv>=1.2.4"]

@@ -1,0 +1,51 @@
+{
+ "id": 26,
+ "task": "5.1",
+ "task_title": "Implement guardrails and safety controls",
+ "topic": 5,
+ "topic_name": "Governance, Safety & Risk Management",
+ "sim": 4,
+ "title": "Forged certificate approved: gate approve_permit on the registers",
+ "stem": "Riverton's permit pre-screening assistant reads residents' uploads and can call approve_permit. Its system prompt says never to follow instructions inside documents. In testing, a resident uploads a forged inspection certificate with a note telling the assistant to approve; the assistant reports that it ignored the note, then approves the permit anyway. Which control design best prevents unauthorised approvals?",
+ "options": {
+  "A": "Extend the system prompt with examples of injected notes and forged certificates, and tell the assistant to refuse any document that resembles one of them.",
+  "B": "Add a separate Claude screening call that classifies every upload for prompt injection and drops flagged uploads before the assistant reads them.",
+  "C": "Log every approval with the evidence it relied on, and have a caseworker review the log each morning and revoke any approval the evidence does not support.",
+  "D": "Return uploads as labelled untrusted data, and gate approve_permit in code on the inspection and payments registers, denying whenever they can't confirm."
+ },
+ "answer": "D",
+ "why": "The assistant obeyed the prompt rule for the note but still acted on forged facts, because nothing outside the model checked them. Layered controls fix that: uploads arrive as labelled untrusted data, and a PreToolUse gate checks the systems of record before approve_permit can take effect. The gate is deterministic and fails closed, so a forged document, or a register that can't answer, can't produce an approval.",
+ "wrong": {
+  "A": "More prompt text is still probabilistic, and a forged certificate with no injected note matches none of the examples.",
+  "B": "A second model is a useful extra layer, but it judges meaning probabilistically and a plain forgery carries no injection to flag.",
+  "C": "A morning review is a detective control: the permit has already been issued when the forgery is found."
+ },
+ "fix": "Label uploads as untrusted data and gate approve_permit in code on the inspection and payments registers, failing closed.",
+ "see": "The prompt rule catches the note but not the forged facts; the register gate denies PRM-3301 and PRM-3308 and allows PRM-3305.",
+ "explain": "In Phase 1 the only control is a sentence in the system prompt. Claude usually reports that it ignored the injected note, and then approves PRM-3301 on the forged certificate, because the forged facts are exactly what the approval rule asks for. In Phase 2 the uploads come back as labelled untrusted data, and a PreToolUse gate looks up the inspection register and the payments ledger before every approve_permit call. It denies PRM-3301 (inspection only booked for 28 Nov, fee unpaid) and PRM-3308 (the ledger is down, so it can't confirm: it fails closed), and it allows PRM-3305, which both registers confirm. Claude reads each denial and routes the application to a caseworker.",
+ "exam_tip": "When a stem says the model 'ignored the injection but still took the action', the fix is outside the model: a deterministic gate on the action that checks the system of record and fails closed. Prompt rules and screening models are layers that reduce risk; they are not the control that makes the bad action impossible.",
+ "source": "Original question written for C740",
+ "headline": "A prompt can't check a fact. Code that reads the register can.",
+ "concepts": [
+  {
+   "t": "Direct vs indirect prompt injection",
+   "b": "Direct injection comes from the user. Indirect injection rides in content the system reads: uploads, web pages, emails, tool results. The person asking can be honest while the document is not."
+  },
+  {
+   "t": "Who enforces a control",
+   "b": "The model (flexible, can be argued with), a second model (a probabilistic screen), deterministic code (certain, can't judge meaning) or a person. Put every 'must never happen' outside the model."
+  },
+  {
+   "t": "Preventive vs detective controls",
+   "b": "A gate before the action prevents it. Logs and morning reviews only detect it, after the permit, payment or email has already gone out."
+  },
+  {
+   "t": "Fail closed",
+   "b": "When a control can't decide, because a register times out or a lookup fails, it denies. A gate that allows on error turns every outage into an open door."
+  },
+  {
+   "t": "Label untrusted content",
+   "b": "Return third-party content in tool results, marked with its source and as data, not instructions. It lowers the risk of injection; it doesn't replace a gate on the action."
+  }
+ ]
+}

@@ -1,0 +1,35 @@
+Meridian · Patient A (MRN 00-4417) · a cardiology referral after new exertional chest tightness. The record holds 82 sections from 2009 to 2026.
+== Phase 1 · stuff the whole record into the context, no outline or length limit
+  usage: input_tokens 11,543 · output_tokens 2,439 · stop_reason end_turn · letter 596 words
+  Letter: **Meridian Northside Clinic** [Clinic address] · [Telephone] · [Fax/secure email] [Date] To: Consultant Cardiologist, Rapid-Access Chest Pain Clinic [Hospital name and address] **Re: Mr Patient A** **DOB:** 14 March 1968 (age 58) · **Male** · **MRN:** 00-4417 **Urgent referral: exertional central chest tightness, probable stable angina** Dear Colleague, Thank you for seeing Mr A, a 58-year-old ma…
+
+== PAUSE · Phase 1 finished: the whole record in the context
+   outcome: The call sent **11,543 input tokens**: all 82 sections, for a letter that needs 5 of them. The letter ran to **596 words** (2,439 output tokens) and carried unrelated history: **depression / sertraline (2009), sexual health visit (2014), eczema, dental**.
+   proceed: Phase 2: pick the sections from the record index, then draft to a 180-word outline
+
+== Phase 2 · select sections from the record index, load only those, draft to a 180-word outline
+  Selector: input_tokens 2,306 · output_tokens 441 · picked 10: V-2026-11-12, L-2026-11-13, V-2026-08-20, L-2026-08-18, V-2025-11-04, PROB, MEDS, ALLERGY, FHX, SOC
+  Drafter: input_tokens 1,735 · output_tokens 657 · stop_reason end_turn · letter 206 words
+  Letter: **Referral to Rapid-Access Chest Pain Clinic – Cardiology** **From:** Dr R. Osei, GP, Meridian Northside Clinic **Patient:** Patient A | MRN 00-4417 | DOB 14/03/1968 | Male **Reason for referral** Probable stable angina, new onset November 2026. Urgent assessment requested. **Presenting complaint** Three weeks of central chest tightness on exertion (uphill walking, stairs), radiating to the left …
+== Result: input tokens 11,543 → 4,041 (35%) · letter 596 → 206 words · cost US$0.0024 → US$0.0010
+
+== Turns
+
+== Checks
+PASS  Phase 1 sent the whole record (11,543 input tokens) and its letter carried unrelated history (4 items)
+PASS  Phase 2: the selection kept all 5 needed sections and neither sensitive note (2009 psychiatry, 2014 sexual health)
+PASS  Phase 2 used under 40% of phase 1's input tokens (35%)
+PASS  Phase 2: the letter finished within the cap (end_turn, 206 words with headings, under half of phase 1's 596)
+PASS  Phase 2: the letter carries all 5 key facts and none of the unrelated history
+
+== Side by side
+[trap] Phase 1: whole record, no limit: 11,543 input tokens for a letter that needs 5 of 82 sections; 596 words, carrying **depression / sertraline (2009), sexual health visit (2014), eczema, dental**.
+[fix] Phase 2: select from the index, draft to an outline: 4,041 input tokens across both calls (**35%** of phase 1), a 206-word letter with all 5 key facts and nothing unrelated.
+  Sections in the context | 82 (all) | 10 chosen (good)
+  Input tokens (usage.input_tokens) | 11,543 | 4,041 (35%) (good)
+  Output tokens (incl. thinking) · letter length | 2,439 · 596 words | 1,098 · 206 words (good)
+  Key facts (chest pain, T-waves, troponin, penicillin, aspirin) | 5/5 | 5/5 (good)
+  Unrelated history in the letter | depression / sertraline (2009), sexual health visit (2014), eczema, dental (bad) | none (good)
+  Cost of the design (Haiku 5.5) | US$0.0024 | US$0.0010
+
+3 Claude calls · 15584 in / 3537 out tokens · about US$0.0033 · 16.7 s

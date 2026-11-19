@@ -1,0 +1,72 @@
+Kestrel · 2026-11-19T06:30:00Z · two agents need the release calendar for kestrel/checkout-service in prod
+== Phase 1 · each team's own client: a generic HTTP tool plus that team's API notes and credential
+    CI release gate Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+      -> call_release_api({"method":"POST","path":"/v1/freeze-check","headers":{"X-Api-Key":"rk_ci_4f9a2c"},"body":{"service":"checkout-service",…)
+      <- result: {"status":200,"service":"checkout-service","environment":"prod","frozen":false}
+    CI release gate Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    CI release gate answer: DEPLOY. The release calendar freeze check for checkout-service in prod returned frozen: false, so it is clear to deploy. This check covers the freeze status only, and I did not verify PR #482's CI result myself.
+    On-call agent Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+      -> call_release_api({"method":"POST","path":"/v2/freezes/check","headers":{"Authorization":"Bearer pat_dlee_88c1"},"body":{"service":"kestr…)
+      <- !! error: {"isError":true,"status":404,"error":"unknown service 'kestrel/checkout-service'. Known services: checkout-service, payments-service, search-service,…
+    On-call agent Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+      Claude: The API doesn't recognize "kestrel/checkout-service," so I'll retry with the registered name "checkout-service."
+      stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+      -> call_release_api({"method":"POST","path":"/v2/freezes/check","headers":{"Authorization":"Bearer pat_dlee_88c1"},"body":{"service":"check…)
+      <- result: {"status":200,"frozen":true,"freeze_id":"FRZ-118","service":"checkout-service","env":"prod","start":"2026-11-19T00:00:00Z","end":"2026-11-21T23:59:00…
+    On-call agent Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    On-call agent answer: Yes, prod is frozen for checkout-service at 2026-11-19T06:30:00Z under freeze FRZ-118 (Payments ledger migration, running 2026-11-19 00:00 to 2026-11-21 23:59 UTC). Exceptions must be approved by the Payments squad lead…
+
+== PAUSE · Phase 1 finished: each team's own client
+   outcome: CI release gate called **/v1/freeze-check** and was told **frozen: false**, so it said **DEPLOY**. On-call agent called **/v2/freezes/check** and found **FRZ-118**. Credentials in prompts or tool inputs: **rk_ci_4f9a2c, pat_dlee_88c1**.
+   proceed: Phase 2: both agents connected to one release-calendar MCP server
+
+== Phase 2 · one release-calendar MCP server: the same typed tool for both agents, credential held by the server
+  .mcp.json: {"mcpServers":{"release-calendar":{"type":"http","url":"https://mcp.kestrel.internal/release-calendar"}}}
+  tools/list → check_freeze (each host sees mcp__release-calendar__check_freeze)
+    CI release gate Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+      -> mcp__release-calendar__check_freeze({"service":"checkout-service","env":"prod","at":"2026-11-19T06:30:00Z"})
+      <- result: {"frozen":true,"freeze_id":"FRZ-118","service":"checkout-service","env":"prod","start":"2026-11-19T00:00:00Z","end":"2026-11-21T23:59:00Z","reason":"…
+    CI release gate Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    CI release gate answer: HOLD. Production for checkout-service is under change freeze FRZ-118 (Payments ledger migration) from 2026-11-19T00:00Z to 2026-11-21T23:59Z, so the deploy at 06:30Z is blocked. Any exception would need approval from th…
+    On-call agent Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+      -> mcp__release-calendar__check_freeze({"service":"checkout-service","env":"prod","at":"2026-11-19T06:30:00Z"})
+      <- result: {"frozen":true,"freeze_id":"FRZ-118","service":"checkout-service","env":"prod","start":"2026-11-19T00:00:00Z","end":"2026-11-21T23:59:00Z","reason":"…
+    On-call agent Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    On-call agent answer: Yes, prod is in a change freeze for checkout-service at 2026-11-19T06:30:00Z: freeze FRZ-118 (Payments ledger migration), running 2026-11-19 00:00 to 2026-11-21 23:59 UTC. Exceptions must be approved by the Payments squ…
+
+== Turns
+CI release gate turn 1: stop_reason=tool_use tools=call_release_api
+CI release gate turn 2: stop_reason=end_turn
+On-call agent turn 1: stop_reason=tool_use tools=call_release_api(error)
+On-call agent turn 2: stop_reason=tool_use tools=call_release_api
+On-call agent turn 3: stop_reason=end_turn
+CI release gate turn 1: stop_reason=tool_use tools=mcp__release-calendar__check_freeze
+CI release gate turn 2: stop_reason=end_turn
+On-call agent turn 1: stop_reason=tool_use tools=mcp__release-calendar__check_freeze
+On-call agent turn 2: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the two hand-built clients called different endpoints of the same service
+PASS  Phase 1: the CI client read the retired v1 calendar (frozen: false) and its reply missed FRZ-118
+PASS  Phase 1: a credential travelled in a prompt or tool input
+PASS  Phase 2: both agents called the same MCP tool and got FRZ-118, with no credential in any prompt or tool input
+PASS  Phase 2: both replies name FRZ-118 and the CI gate says HOLD
+
+== Side by side
+[trap] Phase 1: each team's own client: CI: frozen: false → DEPLOY · on-call: FRZ-118. **Two agents, one service, opposite answers**: the CI client still calls the retired v1 endpoint, which answers from a stale copy and says nothing about it. Credentials in context: rk_ci_4f9a2c, pat_dlee_88c1.
+[fix] Phase 2: one release-calendar MCP server: CI: FRZ-118 → HOLD · on-call: FRZ-118. Both agents called the **same typed tool** from tools/list; the server held the credential, so **no key reached either model**.
+  Integration | generic HTTP tool + each team's notes | mcp__release-calendar__check_freeze from tools/list (good)
+  Endpoints actually called | /v1/freeze-check, /v2/freezes/check (bad) | the server calls /v2/freezes/check
+  What each agent was told | CI: frozen: false → DEPLOY · on-call: FRZ-118 (bad) | CI: FRZ-118 → HOLD · on-call: FRZ-118 (good)
+  Credentials in prompts or tool inputs | rk_ci_4f9a2c, pat_dlee_88c1 (bad) | none (good)
+  Cost of a third consumer | another client, another key, another copy of the notes | add the server to its .mcp.json (good)
+
+9 Claude calls · 7787 in / 1265 out tokens · about US$0.0014 · 10.6 s

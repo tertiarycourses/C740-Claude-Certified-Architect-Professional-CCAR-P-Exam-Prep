@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 31: A design from the COO&#x27;s one line misses legal: interview every group</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 31: A design from the COO's one line misses legal: interview every group</h1>
+<blockquote>
+<p>Day 2 · Topic 6: Stakeholder Communication &amp; Lifecycle Management · Task statement 6.1 · Simulator 5: Lumen Retail Engagement · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 6.1: <strong>Conduct structured discovery and requirement gathering.</strong> You answer one exam-style question, then run the Lumen Retail Engagement simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=31">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=31</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 31</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-31.js">docs/sims/lab-31.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>You are the Claude solution architect engaged by Lumen Retail, a 300-store retailer, to deliver an AI product-support assistant. You run discovery with the sponsor, store operations, IT security and legal; agree the service levels; record architecture decisions; hand the build to Lumen's own team; and run the system through monitoring and iteration after go-live. Claude helps you with each step.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>Discovery output is a requirements trace.</strong> Each requirement cites who said it. Anything nobody said is labelled an assumption, so the sponsor can see what the design rests on.</li>
+<li><strong>A checklist, not a conversation.</strong> Users, volumes, data, constraints, risks, success measures and SLAs. A fixed list makes gaps visible: an empty row is a question still to ask.</li>
+<li><strong>Every stakeholder group, not the sponsor.</strong> The sponsor owns the goal; store operations, IT security and legal own constraints the sponsor may not know. Each holds a veto the design must respect.</li>
+<li><strong>Log conflicts; don't settle them.</strong> When two groups want incompatible things, record both sources and the person who decides. A legal obligation outranks an operational wish.</li>
+<li><strong>Success measures before any build.</strong> A measurable target (30% less staff time, satisfaction 4.2 or better) is what a pilot is later judged against. Without it a proof of concept proves nothing.</li>
+</ul>
+<h2>The question</h2>
+<p>Lumen Retail's COO, Grace Lim, emails you: "We want an AI assistant in all 300 stores that answers product questions for staff and customers. Live by early March. Can you send me the solution design by Friday?" Store operations, IT security and legal have not yet been consulted. What should you do first?</p>
+<ul>
+<li><strong>A.</strong> Draft a reference design from the COO's brief by Friday, then refine it in review sessions with each team once they have something concrete to react to and comment on.</li>
+<li><strong>B.</strong> Build a quick proof of concept on the product catalogue so that every stakeholder can react to a working assistant before any of the requirements are written down.</li>
+<li><strong>C.</strong> Interview each stakeholder group against a checklist of users, volumes, data, constraints, risks, success measures and SLAs, and log conflicts for the sponsor.</li>
+<li><strong>D.</strong> Send every stakeholder a short requirements questionnaire, and where their answers conflict, design to the view that most of the groups share.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=31">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=31</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 31
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: Phase 1 assumes five of seven items; Phase 2 traces all seven and finds the transcript conflict between store operations and legal.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Lumen Retail · BRIEF-01: Grace Lim (COO), by email: &quot;We want an AI assistant in all 300 stores that answers product questions for staff and customers. Live by early Mar…
+== Phase 1 · design from the sponsor's ask: requirements drafted from BRIEF-01 alone
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: {&quot;requirements&quot;:[{&quot;item&quot;:&quot;users&quot;,&quot;finding&quot;:&quot;Store staff and customers are the intended users of an AI assistant answering product questions across all 300 stores…
+Phase 1 trace: 2/7 items backed by a record that covers them (users, constraints); assumed: volumes, data, risks, success_measures, slas. Conflicts with two real source…
+
+== PAUSE · Phase 1 finished: requirements from the sponsor's one line
+   outcome: Only **2 of 7** checklist items trace to something a stakeholder said (users, constraints); **5 are the architect's guesses** (volumes, data, risks, success…
+   proceed: Phase 2: the same ask, with structured discovery: interview each group against the checklist
+
+== Phase 2 · structured discovery: interview sponsor, store ops, IT security and legal against the checklist
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -&gt; CONTINUE: run the tools, append the results, call Claude again
+  -&gt; ask_stakeholder({&quot;stakeholder&quot;:&quot;sponsor&quot;,&quot;question&quot;:&quot;Who are the users (staff and customers), expected volumes (stores, daily queries, …)
+  &lt;- result: {&quot;stakeholder&quot;:&quot;Grace Lim, COO (sponsor)&quot;,&quot;records&quot;:[{&quot;id&quot;:&quot;INT-01&quot;,&quot;topic&quot;:&quot;success_measures&quot;,&quot;says&quot;:&quot;Success means store staff spend 30% less time …
+  -&gt; ask_stakeholder({&quot;stakeholder&quot;:&quot;store_ops&quot;,&quot;question&quot;:&quot;How do store staff and customers would use an AI product-question assistant: who…)
+  &lt;- result: {&quot;stakeholder&quot;:&quot;Farid Rahman, store operations lead&quot;,&quot;records&quot;:[{&quot;id&quot;:&quot;INT-03&quot;,&quot;topic&quot;:&quot;users&quot;,&quot;says&quot;:&quot;2,400 store staff on store tablets, plus custo…
+  -&gt; ask_stakeholder({&quot;stakeholder&quot;:&quot;it_security&quot;,&quot;question&quot;:&quot;Constraints for an AI assistant across 300 stores: systems and product data so…)
+  &lt;- result: {&quot;stakeholder&quot;:&quot;Hannah Koh, IT security lead&quot;,&quot;records&quot;:[{&quot;id&quot;:&quot;INT-07&quot;,&quot;topic&quot;:&quot;data&quot;,&quot;says&quot;:&quot;It may use the product catalogue, stock levels and the…
+  -&gt; ask_stakeholder({&quot;stakeholder&quot;:&quot;legal&quot;,&quot;question&quot;:&quot;Legal and compliance constraints for an AI assistant answering product questions for…)
+  &lt;- result: {&quot;stakeholder&quot;:&quot;Ravi Menon, legal counsel&quot;,&quot;records&quot;:[{&quot;id&quot;:&quot;INT-10&quot;,&quot;topic&quot;:&quot;constraints&quot;,&quot;says&quot;:&quot;Chat transcripts that contain customer details mus…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: {&quot;requirements&quot;:[{&quot;item&quot;:&quot;users&quot;,&quot;finding&quot;:&quot;About 2,400 store staff use store tablets, and staff access must sit behind single sign-on.&quot;,&quot;evidence&quot;:[&quot;INT-03&quot;,&quot;IN…
+CONFLICT: Store operations wants all chat transcripts kept for 90 days for quality review. Legal says transcripts containing customer details must not be stored after t…
+
+== Turns
+turn 1: stop_reason=end_turn
+turn 1: stop_reason=tool_use tools=ask_stakeholder,ask_stakeholder,ask_stakeholder,ask_stakeholder
+turn 2: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: at most 2 of the 7 checklist items trace to a record (the sponsor's ask covers users and a deadline only)
+PASS  Phase 2: Claude interviewed all four stakeholder groups with ask_stakeholder
+PASS  Phase 2: every checklist item cites a record that really covers it (7/7)
+PASS  Phase 2: the transcript conflict is logged with both sources, INT-06 and INT-10
+
+== Side by side
+[trap] Phase 1: design from the ask: **5 of 7 items are assumptions** (volumes, data, risks, success_measures, slas). No stakeholder was asked, so no conflict with two …
+[fix] Phase 2: structured discovery: Four groups interviewed; **all 7 items trace to a record**, and the clash between INT-06 (keep transcripts 90 days) and INT-10 (nev…
+  Stakeholder groups interviewed | 0 (sponsor's email only) | 4: sponsor, store_ops, it_security, legal (good)
+  Checklist items traced to a record | 2/7 (bad) | 7/7 (good)
+  Trace by item (✓ traced, ? assumed) | ✓ users · ? volumes · ? data · ✓ constraints · ? risks · ? success_measures · ? slas | ✓ users · ✓ volumes · ✓ data · ✓ constrai…
+  Conflicts backed by two stakeholders' records | 0 | 2
+  Transcripts: keep 90 days vs never store | not found (bad) | found (good)
+
+3 Claude calls · 5684 in / 5297 out tokens · about US$0.0032 · 26.4 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: C.</strong> The sponsor's email covers users and a deadline, nothing more. Structured discovery against a fixed checklist turns volumes, data, risks, success measures and service levels from guesses into traced requirements, and it is the only step that surfaces conflicts such as store operations wanting transcripts kept while legal forbids storing them. The architect records the conflict with both sources and leaves the decision to the accountable owner.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>A.</strong> A design drafted first anchors everyone on assumptions, and conflicts such as the legal ban on stored transcripts surface late, after the design depends on them.</li>
+<li><strong>B.</strong> A proof of concept before success measures and constraints are known has nothing to be judged against, and it can be built on data legal will not allow.</li>
+<li><strong>D.</strong> A legal obligation is not outvoted by the majority: conflicts must go to the accountable owner, and a questionnaire cannot probe answers the way an interview can.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Both phases start from the same sponsor email. A design drafted from it can only trace what the sponsor wrote: users and a deadline. Volumes, data, risks, success measures and service levels become the architect's guesses, and the most expensive finding of the engagement, that store operations wants every transcript kept while legal forbids storing them, never comes up. Structured discovery interviews each stakeholder group against a fixed checklist, traces each requirement to what someone actually said, and writes conflicts down with both sources for the accountable owner to resolve. Code checks the trace, so a requirement that cites a record which does not cover it counts as an assumption.</p>
+<h2>Exam tip</h2>
+<p>When a scenario starts from a sponsor's one-line request, the answer is discovery across all stakeholder groups before design or a proof of concept. Conflicts are recorded and escalated to the accountable owner; they are never settled by a majority vote or by the architect alone.</p>
+<h2>Try this next</h2>
+<p>Remove legal from the ask_stakeholder enum and run Phase 2 again: the transcript conflict disappears, and the design would ship a privacy breach. Then add a fifth checklist item, such as accessibility, and see whether any stakeholder record backs it.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

@@ -1,0 +1,67 @@
+One case, four messages: a household of 3, $2,150 a month, 4 years in Riverton. V1 English, Emma Clarke · V2 English, Nurul Aini binte Hassan · V3 Malay, Nurul Aini binte Hassan · V4 Chinese, Nurul Aini binte Hassan. Rules: BEN-R1 The applicant has lived in Riverton for at least 1 year. BEN-R2 Monthly household income per person is $800 or less.
+== Phase 1 · as signed off: facts from English keyword patterns, a reply from Claude told to treat everyone equally
+  V1 (English) patterns: {"household_size":3,"monthly_household_income":2150,"years_in_riverton":4} -> likely eligible ($716.67 per person)
+  V2 (English) patterns: {"household_size":3,"monthly_household_income":2150,"years_in_riverton":4} -> likely eligible ($716.67 per person)
+  V3 (Malay) patterns: {"household_size":null,"monthly_household_income":null,"years_in_riverton":null} -> need more information (missing: household_size, monthly_household_income, years_in_riverton)
+  V4 (Chinese) patterns: {"household_size":null,"monthly_household_income":null,"years_in_riverton":null} -> need more information (missing: household_size, monthly_household_income, years_in_riverton)
+    V1 reply: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+    V2 reply: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+    V3 reply: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+    V4 reply: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  pair V1↔V2 (name): likely eligible vs likely eligible -> same
+  pair V2↔V3 (language: English → Malay): likely eligible vs need more information -> FLIP
+  pair V2↔V4 (language: English → Chinese): likely eligible vs need more information -> FLIP
+Phase 1 result: the same household is "likely eligible" in English and "need more information" in Malay. The English spot-check passed, and the prompt asked for equal treatment; the patterns never read the Malay or Chinese facts. Replies naming a rule: 0 of 4.
+
+== PAUSE · Phase 1 finished: the counterfactual pairs disagree
+   outcome: **2 of 3 pairs flip.** Same household, same facts: "likely eligible" in English, "need more information" in Malay and "need more information" in Chinese. The name pair matches, so the gap is the language. The prompt said to treat everyone equally; the facts never reached the rules.
+   proceed: Phase 2: Claude extracts the facts from any language, the rules decide in code, every decision is explained by its rule, and the pairs gate the release
+
+== Phase 2 · counterfactual gate: extract the facts with Claude (any language), decide by the rules in code, explain by the rule, release only on 0 flips
+    V1 extract: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  V1 (English) facts: {"household_size":3,"monthly_household_income":2150,"years_in_riverton":4} -> likely eligible ($716.67 per person)
+    V2 extract: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  V2 (English) facts: {"household_size":3,"monthly_household_income":2150,"years_in_riverton":4} -> likely eligible ($716.67 per person)
+    V3 extract: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  V3 (Malay) facts: {"household_size":3,"monthly_household_income":2150,"years_in_riverton":4} -> likely eligible ($716.67 per person)
+    V4 extract: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  V4 (Chinese) facts: {"household_size":3,"monthly_household_income":2150,"years_in_riverton":4} -> likely eligible ($716.67 per person)
+    explain: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  V1 explanation (English): Your pre-screening result is likely eligible. Rule BEN-R1 is met: you have lived in Riverton for 4 years, more than the 1 year required. Rule BEN-R2 is met: your household of 3 has income of $2,150 a…
+  V2 explanation (English): Your pre-screening result is likely eligible. Rule BEN-R1 is met: you have lived in Riverton for 4 years, more than the 1 year required. Rule BEN-R2 is met: your household of 3 has income of $2,150 a…
+  V3 explanation (Malay): Keputusan pra-saringan anda ialah kemungkinan layak. Peraturan BEN-R1 dipenuhi: anda tinggal di Riverton selama 4 tahun, melebihi 1 tahun yang diperlukan. Peraturan BEN-R2 dipenuhi: isi rumah 3 orang…
+  V4 explanation (Chinese): 您的预筛查结果为可能符合资格。规则BEN-R1已满足：您在Riverton居住4年，超过所需的1年。规则BEN-R2已满足：您的家庭3人，每月收入$2,150，人均$716.67，低于$800的上限。
+  gate · pair V1↔V2 (name): likely eligible vs likely eligible -> same
+  gate · pair V2↔V3 (language: English → Malay): likely eligible vs likely eligible -> same
+  gate · pair V2↔V4 (language: English → Chinese): likely eligible vs likely eligible -> same
+  release gate: PASS: 0 flips, every decision explained by its rule
+
+== Turns
+V1 reply turn 1: stop_reason=end_turn
+V2 reply turn 1: stop_reason=end_turn
+V3 reply turn 1: stop_reason=end_turn
+V4 reply turn 1: stop_reason=end_turn
+V1 extract turn 1: stop_reason=end_turn
+V2 extract turn 1: stop_reason=end_turn
+V3 extract turn 1: stop_reason=end_turn
+V4 extract turn 1: stop_reason=end_turn
+explain turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: a language pair flips: the same case is "likely eligible" in English and not in Malay or Chinese
+PASS  Phase 2: Claude extracted the same facts from all four messages (3 people, $2,150 a month, 4 years)
+PASS  Phase 2: all three counterfactual pairs agree, so the release gate passes
+PASS  Phase 2: every resident's explanation names BEN-R2 and the $716.67 per-person figure
+
+== Side by side
+[trap] Phase 1: as signed off: **2 of 3 pairs flip.** The Malay and Chinese messages state the same facts, but the English-only patterns can't read them, so those residents are asked for information they already gave.
+[fix] Phase 2: counterfactual gate + rule-based explanation: Claude extracted the same facts from all four messages; the rules gave all four **likely eligible** at $716.67 per person. Each resident got an explanation in their language naming the rule. **0 flips: the gate passes.**
+  V1 · English · Emma Clarke | likely eligible ($716.67 per person) (good) | likely eligible ($716.67 per person) (good)
+  V2 · English · Nurul Aini binte Hassan | likely eligible ($716.67 per person) (good) | likely eligible ($716.67 per person) (good)
+  V3 · Malay · Nurul Aini binte Hassan | need more information (missing: household_size, monthly_household_income, years_in_riverton) (bad) | likely eligible ($716.67 per person) (good)
+  V4 · Chinese · Nurul Aini binte Hassan | need more information (missing: household_size, monthly_household_income, years_in_riverton) (bad) | likely eligible ($716.67 per person) (good)
+  Counterfactual pairs that flip | 2 of 3 (bad) | 0 of 3 (good)
+  Answers that name the deciding rule | 0 of 4 (bad) | 4 of 4 (good)
+  How it was checked before release | English spot-check + "treat everyone equally" | counterfactual pairs as a release gate (good)
+
+9 Claude calls · 4737 in / 2720 out tokens · about US$0.0018 · 21.8 s

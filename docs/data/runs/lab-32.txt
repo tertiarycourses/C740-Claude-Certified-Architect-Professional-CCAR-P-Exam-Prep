@@ -1,0 +1,52 @@
+Lumen Retail · Write the communication of the assistant architecture decision for two readers: Grace Lim (COO), who approves the budget, and Hannah Koh (IT security lead), who approves the data flow.
+== Phase 1 · sell the pick: a memo built from the chosen option only
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: **Decision: Option A, Claude Haiku 5.5 with retrieval over the product catalogue** **To:** Grace Lim (COO), Hannah Koh (IT Security Lead) **From:** Architecture **Recommendation** We will build the Lumen assistant on Option A. On our 400-question evaluation, it achieved 92.5% graded accuracy and a p95 latency of 1.8 seconds, which shows strong answer quality with fast responses. **For Grace Lim: Budget** Option A costs about US$1,900 per month. Please approve this budget. **For Hannah Koh: Data flow** The assistant answers questions by retrieving information from the product catalogue. Please…
+    (Phase 1 reader: COO) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (Phase 1 reader: COO) answer: {"answers":[{"q":1,"answerable":false,"answer":"not stated"},{"q":2,"answerable":false,"answer":"The document states Option A costs about US$1,900 per month, but it gives no cost figures for the alternatives, so a compa…
+    (Phase 1 reader: IT security) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (Phase 1 reader: IT security) answer: {"answers":[{"q":1,"answerable":true,"answer":"The document states that the assistant retrieves information from the product catalogue, but it does not say whether any customer data is stored."},{"q":2,"answerable":fals…
+Phase 1 result: the readers could answer 1 of 6 questions from the memo.
+
+== PAUSE · Phase 1 finished: a memo that sells the pick
+   outcome: The memo makes the case for Option A, but its readers could answer only **1 of 6** questions: the COO 0/3, IT security 1/3. Nothing tells them what was traded away, where the data goes, or what would reverse the decision.
+   proceed: Phase 2: the same request, built from the decision record, with one brief per audience
+
+== Phase 2 · decision record + a brief per audience: options, numbers, risks, data flow, reversal
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: {"decision":"Adopt Option A: Claude Haiku 5.5 with retrieval over the product catalogue, the only option that meets store operations' 3-second p95 need at a sensible cost.","options":[{"key":"A","accuracy_pct":92.5,"p95_s":1.8,"monthly_usd":1900,"verdict":"Chosen: meets the 3-second need at 1.8 s p95 and is the lowest-cost option that does so; model cost is about US$405 a month plus about US$1,500 hosting and retrieval."},{"key":"B","accuracy_pct":95,"p95_s":3.6,"monthly_usd":9600,"verdict":"Not chosen: higher accuracy, but p95 of 3.6 s is above store operations' 3-second need, and it costs a…
+    (Phase 2 reader: COO) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (Phase 2 reader: COO) answer: {"answers":[{"q":1,"answerable":true,"answer":"Option B (Claude Sonnet 5.5, 95% accuracy, 3.6 s p95, about US$9,600/month) was not chosen because its 3.6 s p95 misses store operations' 3-second need and costs about US$7…
+    (Phase 2 reader: IT security) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (Phase 2 reader: IT security) answer: {"answers":[{"q":1,"answerable":true,"answer":"The model receives customer messages (passed through Lumen's API gateway to the Claude API) and read-only retrieval of the product catalogue, stock levels and returns polic…
+
+== Turns
+turn 1: stop_reason=end_turn
+(Phase 1 reader: COO) turn 1: stop_reason=end_turn
+(Phase 1 reader: IT security) turn 1: stop_reason=end_turn
+turn 1: stop_reason=end_turn
+(Phase 2 reader: COO) turn 1: stop_reason=end_turn
+(Phase 2 reader: IT security) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the readers could answer at most 3 of their 6 questions from the memo
+PASS  Phase 2: the record lists all 3 options with accuracy, p95 and monthly cost matching the evals
+PASS  Phase 2: the reversal trigger names a metric and a numeric threshold
+PASS  Phase 2: both readers could answer all 6 of their questions
+
+== Side by side
+[trap] Phase 1: a memo that sells the pick: Persuasive, but the readers could answer **1 of 6** questions. The COO cannot see the alternatives or what would reverse it; IT security cannot see where the data goes.
+[fix] Phase 2: decision record + a brief per audience: All three options carry the measured figures, the reversal trigger is Graded accuracy on the weekly 100-answer sample, below 90% … at 90 percent, and **both readers answered all six questions** from their own brief and the record.
+  Built from | the chosen option only | the decision record: 3 options, risks, data flow, reversal (good)
+  Options with measured accuracy, p95, cost | 1 (the pick) (bad) | 3, matching the evals (good)
+  COO: alternatives · cost · reversal | ✗ ✗ ✗ (0/3) (bad) | ✓ ✓ ✓ (3/3) (good)
+  IT security: data · risks/controls · reversal | ✓ ✗ ✗ (1/3) (bad) | ✓ ✓ ✓ (3/3) (good)
+  Reader says they can approve (COO, IT security) | no, no | yes, yes
+
+6 Claude calls · 6669 in / 5662 out tokens · about US$0.0035 · 28.7 s

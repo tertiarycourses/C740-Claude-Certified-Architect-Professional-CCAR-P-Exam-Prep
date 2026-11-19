@@ -1,0 +1,40 @@
+Dr K. Osei, Meridian Primary Care → Meridian Endocrinology Clinic · purpose: endocrinology referral: treatment intensification for type 2 diabetes. The record holds 17 fields, including 9 direct identifiers and 3 sensitive history items.
+== Phase 1 · send the whole record: the full record goes to Claude, and a third-party debug log copies every prompt and response
+    Draft the referral: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  request scan: 9/9 direct identifiers (name, MRN, date of birth, address, phone, email, SSN, insurance id, next of kin) · unneeded history: termination of pregnancy, HIV test, psychiatric admission
+  debug log: 1 entry, full prompt and letter · identifiers in the log: 9
+
+== PAUSE · Phase 1 finished: the whole record reached the model and the log
+   outcome: **The request carried 9 of 9 direct identifiers** (name, MRN, date of birth, address, phone, email, SSN, insurance id, next of kin) and 3 sensitive history items the referral does not need. The debug log now holds the same PHI outside the agreement, and nothing records why it was sent.
+   proceed: Phase 2: an allow-list for the purpose, tokenised identifiers, a metadata log and an audit record
+
+== Phase 2 · minimum necessary, with evidence: allow-list the fields, tokenise identifiers, log metadata, write an audit record
+  minimise(): sent 8 keys (patient, mrn, sex, age, problems, medications, results, visit) · withheld 10 (dob, address, phone, email, ssn, insurance_id, next_of_kin, occupation, lives, history_sensitive)
+    Draft the referral: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  request scan: 0/9 direct identifiers · unneeded history: none
+  reidentify(): [PATIENT] found and replaced · clinical facts kept: HbA1c 9.1%, metformin, gliclazide
+  debug log: {"service":"third-party debug log","request_id":"req-29-0002","purpose":"endocrinology referral","fields":["patient","mrn","sex","age","problems","medications","results","visit"],"input_tokens":746,"output_tokens":782,"stop_reason":"end_turn","fingerprint":"h13ef3ab4"}
+  audit record: {"at":"2026-11-19T10:42:00","user":"dr.k.osei","patient_ref":"MRN 00-4452","purpose":"endocrinology referral: treatment intensification for type 2 diabetes","fields_sent":["sex","age","problems","medications","results","visit"],"tokens_sent":["[PATIENT]","[MRN]"],"fields_withheld":["dob","address","phone","email","ssn","insurance_id","next_of_kin","occupation","lives","history_sensitive"],"model":"claude-haiku-5-5","store":"Meridian audit store (inside the hospital)"}
+
+== Turns
+Draft the referral turn 1: stop_reason=end_turn
+Draft the referral turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the request to Claude carried direct identifiers and sensitive history the referral does not need
+PASS  Phase 1: the third-party debug log holds a full copy, identifiers included
+PASS  Phase 2: the request carried no direct identifiers and none of the unneeded history
+PASS  Phase 2: the letter keeps the clinical facts, and the patient's name was put back in code after the call
+PASS  Phase 2: the log holds metadata only, and an audit record lists the user, purpose, fields sent and fields withheld
+
+== Side by side
+[trap] Phase 1: send the whole record: The request carried **9 direct identifiers** and 3 unneeded history items; the debug log keeps a full copy outside the agreement. No record says why.
+[fix] Phase 2: minimum necessary, with evidence: The request carried **no identifiers and no unneeded history**. The letter still has HbA1c 9.1% and both diabetes medicines; the name and MRN were put back in code. The log holds metadata; the audit record lists 6 fields sent and 10 withheld.
+  Direct identifiers in the request | 9: name, MRN, date of birth, address, phone, email, SSN, insurance id, next of kin (bad) | 0 (good)
+  Unneeded sensitive history in the request | termination of pregnancy, HIV test, psychiatric admission (bad) | none (good)
+  How the patient is named to Claude | full name and MRN | [PATIENT] and [MRN], mapped back in code (good)
+  What the debug log keeps | full prompt and letter (9 identifiers) (bad) | ids, field names, token counts, fingerprint (0 identifiers) (good)
+  Audit evidence | none (bad) | dr.k.osei · 6 sent · 10 withheld · purpose recorded (good)
+  Request size | 1864 characters | 1560 characters
+
+2 Claude calls · 1654 in / 1639 out tokens · about US$0.0010 · 8.4 s

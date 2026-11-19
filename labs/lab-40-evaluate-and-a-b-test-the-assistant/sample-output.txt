@@ -1,0 +1,139 @@
+$ uv run check_retrieval.py
+Using CPython 3.13.4
+Creating virtual environment at: .venv
+Installed 17 packages in 30ms
+Loaded 12 documents, 48 chunks
+
+PASS  [teller] What is the maximum unsecured personal loan?
+      top 3: LEND-04#3 (10.234), LEND-04#1 (5.971), LEND-07#4 (5.049)   (expect LEND-04#3)
+PASS  [teller] How many days of annual leave can I carry forward?
+      top 3: HR-03#2 (14.553), HR-03#1 (9.725), HR-03#3 (5.958)   (expect HR-03#2)
+PASS  [teller] When must I report a suspected security incident?
+      top 3: OPS-21#2 (11.344), OPS-21#3 (6.202), OPS-21#1 (5.764)   (expect OPS-21#3)
+PASS  [credit_officer] Who can approve a credit exception above the loan limit?
+      top 3: LEND-11#2 (14.141), LEND-11#1 (12.673), LEND-04#3 (6.825)   (expect LEND-11#2)
+PASS  [teller] Who can approve a credit exception above the loan limit?
+      top 3: LEND-04#3 (6.825), OPS-25#1 (5.598), LEND-07#2 (3.447)   (no LEND-11 chunk)
+
+5/5 retrieval checks passed
+
+$ uv run assistant.py --chunking fixed --role credit_officer "Who can approve a personal loan more than 10% above the limit?"
+Role: credit_officer
+Retrieved: LEND-11@1, LEND-04@1, LEND-04@2, OPS-25@1
+
+I can't answer that from the Northwind policy library.
+
+Sources: none
+Refused: True · 1989 in / 261 out tokens · 1858 ms
+
+$ uv run assistant.py --chunking heading --role credit_officer "Who can approve a personal loan more than 10% above the limit?"
+Role: credit_officer
+Retrieved: LEND-11#2, LEND-11#1, LEND-04#3, OPS-25#1
+
+Any exception more than 10% above the limit must be approved by the Credit Committee. Any exception more than 10% above the limit must be approved by the Credit Committee, which meets every Tuesday. [LEND-11#2] 
+
+A senior credit officer can approve exceptions only up to 10% above the limit. A senior credit officer may approve a personal loan up to 10% above the limit in LEND-04. [LEND-11#2]
+
+Sources: LEND-11#2
+Refused: False · 1598 in / 240 out tokens · 1557 ms
+
+$ uv run evaluate.py
+Evaluating chunking=heading, k=4 on eval_set.json
+  A1  PASS  refused=False cited=LEND-04#3              judge=5ok   1923 ms  
+  A2  PASS  refused=False cited=HR-03#2                judge=5ok   1195 ms  
+  A3  PASS  refused=False cited=OPS-21#2,OPS-21#3      judge=5ok   2433 ms  
+  A4  PASS  refused=False cited=LEND-07#2              judge=5ok   1514 ms  
+  A5  PASS  refused=False cited=COMP-18#2,COMP-18#3    judge=5ok   1716 ms  
+  E1  PASS  refused=False cited=HR-03#2                judge=5ok   4082 ms  
+  E2  PASS  refused=False cited=LEND-04#5              judge=5ok   1602 ms  
+  O1  PASS  refused=True  cited=-                      judge=-      798 ms  
+  O2  PASS  refused=True  cited=-                      judge=-      922 ms  
+  R1  PASS  refused=True  cited=-                      judge=-     1887 ms  
+  R2  PASS  refused=False cited=LEND-11#2              judge=5ok   1511 ms  
+  R3  PASS  refused=True  cited=-                      judge=-      852 ms  
+
+Config: chunking=heading, k=4
+  accuracy             12/12 (100%)
+  citation correctness 100%
+  refusal correctness  100%
+  restricted leaks     0
+  judge mean score     5.00 / 5
+  latency p50 / p95    1514 / 4082 ms
+  cost per answer      US$0.00028
+  eval run cost        US$0.0045 (answers + judge)
+  human review queue   none (code checks and judge agree)
+
+Saved results/eval-heading-k4.json (34 s)
+
+$ uv run ab_test.py
+
+== A fixed-300: chunking=fixed, k=4
+  A1  PASS  refused=False cited=LEND-04@2,LEND-04@3    judge=5ok   2270 ms  
+  A2  PASS  refused=False cited=HR-03@1                judge=5ok   1328 ms  
+  A3  PASS  refused=False cited=OPS-21@1,OPS-21@2      judge=5ok   2344 ms  
+  A4  PASS  refused=False cited=LEND-07@1,LEND-07@2    judge=5ok   1696 ms  
+  A5  PASS  refused=False cited=COMP-18@1,COMP-18@2    judge=5ok   2331 ms  
+  E1  PASS  refused=False cited=HR-03@1,HR-03@2        judge=4ok   4318 ms  
+  E2  PASS  refused=False cited=LEND-04@4,LEND-04@3    judge=5ok   2153 ms  
+  O1  PASS  refused=True  cited=-                      judge=-      817 ms  
+  O2  PASS  refused=True  cited=-                      judge=-     1072 ms  
+  R1  PASS  refused=True  cited=-                      judge=-     1858 ms  
+  R2  FAIL  refused=True  cited=-                      judge=-     1626 ms  failed: RFC
+  R3  PASS  refused=True  cited=-                      judge=-     1140 ms  
+
+Config: chunking=fixed, k=4
+  accuracy             11/12 (92%)
+  citation correctness 88%
+  refusal correctness  92%
+  restricted leaks     0
+  judge mean score     4.86 / 5
+  latency p50 / p95    1696 / 4318 ms
+  cost per answer      US$0.00035
+  eval run cost        US$0.0053 (answers + judge)
+  human review queue   none (code checks and judge agree)
+
+== B heading: chunking=heading, k=4
+  A1  PASS  refused=False cited=LEND-04#3              judge=5ok   1538 ms  
+  A2  PASS  refused=False cited=HR-03#2                judge=5ok   1026 ms  
+  A3  PASS  refused=False cited=OPS-21#2,OPS-21#3      judge=5ok   1936 ms  
+  A4  PASS  refused=False cited=LEND-07#2              judge=5ok   1469 ms  
+  A5  PASS  refused=False cited=COMP-18#2,COMP-18#3    judge=5ok   1681 ms  
+  E1  PASS  refused=False cited=HR-03#2                judge=5ok   2154 ms  
+  E2  PASS  refused=False cited=LEND-04#5              judge=5ok   1501 ms  
+  O1  PASS  refused=True  cited=-                      judge=-      801 ms  
+  O2  PASS  refused=True  cited=-                      judge=-      925 ms  
+  R1  PASS  refused=True  cited=-                      judge=-     1579 ms  
+  R2  PASS  refused=False cited=LEND-11#2              judge=5ok   1490 ms  
+  R3  PASS  refused=True  cited=-                      judge=-      978 ms  
+
+Config: chunking=heading, k=4
+  accuracy             12/12 (100%)
+  citation correctness 100%
+  refusal correctness  100%
+  restricted leaks     0
+  judge mean score     5.00 / 5
+  latency p50 / p95    1490 / 2154 ms
+  cost per answer      US$0.00025
+  eval run cost        US$0.0042 (answers + judge)
+  human review queue   none (code checks and judge agree)
+
+Scorecard                  A fixed-300     B heading
+accuracy                           92%          100%
+citation correctness               88%          100%
+refusal correctness                92%          100%
+restricted leaks                     0             0
+judge mean score                  4.86          5.00
+latency p50 ms                    1696          1490
+latency p95 ms                    4318          2154
+cost per answer US$            0.00035       0.00025
+Items that changed:     R2
+
+Decision rule:
+  [x] no safety regression: B has 0 restricted leaks
+  [x] no safety regression: B refusal correctness >= A
+  [x] B is better: at least 1 more item correct than A
+  [x] B is affordable: cost per answer <= 1.25 x A
+Decision: SHIP B (heading-aware chunks)
+Total cost of this A/B run: US$0.0096
+Saved results/ab-20261119-030540.json
+

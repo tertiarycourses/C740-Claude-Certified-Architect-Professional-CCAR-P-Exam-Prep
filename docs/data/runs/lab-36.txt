@@ -1,0 +1,73 @@
+Kestrel · Ben Okoye joined squad 2 today and installed Claude Code on a new laptop; his home folder has no ~/.claude files yet. He clones kestrel/checkout-service and runs `claude` in it. Inspect the files his session can see and report what it loads.
+== Phase 1 · personal ~/.claude: the team's rules live in Ana's home folder; Ben's session sees only the repository
+Ana's own session (her laptop): 1/5 policies; risky: Bash(*); literal secret in ~/.claude.json
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+  -> Glob({"pattern":"**/*"})
+  <- result: .env.example .gitignore README.md pyproject.toml src/checkout/cart.py tests/test_cart.py
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> Glob({"pattern":"~/.claude/**"})
+  <- result: No files match.
+  -> Glob({"pattern":"{.claude/**,.mcp.json,CLAUDE.md,~/.claude.json}"})
+  <- result: No files match.
+Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: {"instruction_files":[],"allow":[],"deny":[],"skills":[],"mcp_servers":[],"summary":"Ben's session loads no instruction files, permission rules, skills, or MCP servers: the repository has no CLAUDE.md, .claude/ folder, or .mcp.json, and his home folder has no ~/.claude/ files or ~/.claude.json, so nothing from those sources will be followed."}
+Phase 1 result: Ben's session loads 0 of 5 team policies. Claude reported: Ben's session loads no instruction files, permission rules, skills, or MCP servers: the repository has no CLAUDE.md, .claude/ folder, or .mcp.json, and his home folder has no ~/.claude/ files or ~/.claude.json, so nothing from those sources will be followed.
+
+== PAUSE · Phase 1 finished: the team's rules in one engineer's home folder
+   outcome: **Ben's first session loads 0 of 5 team policies**: no test rule, no deny on force-push or .env, no pr-review skill, no Sentry server. Meanwhile Ana's personal config allows `Bash(*)` and holds a literal Sentry token, and no review ever sees either.
+   proceed: Phase 2: the same conventions committed to the repository, with the secret moved to an environment variable
+
+== Phase 2 · committed project config: CLAUDE.md, .claude/settings.json allow/deny, .claude/skills/pr-review, .mcp.json with ${SENTRY_AUTH_TOKEN}
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+  -> Glob({"pattern":"**/*"})
+  <- result: .claude/settings.json .claude/skills/pr-review/SKILL.md .env.example .gitignore .mcp.json CLAUDE.md README.md pyproject.toml src/checkout/cart.py tes…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> Read({"path":".claude/settings.json"})
+  <- result: { "permissions": { "allow": [ "Bash(uv run pytest:*)", "Bash(uv run ruff:*)", "Bash(git diff:*)", "Bash(git status)" ], "deny": [ "Bash(git push --fo…
+  -> Read({"path":".claude/skills/pr-review/SKILL.md"})
+  <- result: --- name: pr-review description: Review a Kestrel pull request against the team checklist (KR-1..KR-4) and report findings as JSON. --- Check the dif…
+  -> Read({"path":".mcp.json"})
+  <- result: { "mcpServers": { "sentry": { "type": "http", "url": "https://sentry.kestrel.example/mcp", "headers": { "Authorization": "Bearer ${SENTRY_AUTH_TOKEN}…
+  -> Read({"path":"CLAUDE.md"})
+  <- result: # checkout-service ## Commands - Test: `uv run pytest -q`. Run it before saying a change is done. - Lint: `uv run ruff check .` ## Conventions - Bran…
+  -> Glob({"pattern":"~/.claude/**"})
+  <- result: No files match.
+Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: {"instruction_files":["CLAUDE.md"],"allow":["Bash(uv run pytest:*)","Bash(uv run ruff:*)","Bash(git diff:*)","Bash(git status)"],"deny":["Bash(git push --force:*)","Bash(rm -rf:*)","Read(./.env)"],"skills":["pr-review"],"mcp_servers":[{"name":"sentry","credential":"env_var_reference"}],"summary":"Ben's session will load the project CLAUDE.md, the project permission rules in .claude/settings.json, the pr-review skill, and the sentry MCP server from .mcp.json (token read from ${SENTRY_AUTH_TOKEN}), but no user-level ~/.claude instruction, settings, or skill files exist yet and no .claude/settin…
+Claude's report vs the loader: matches on files, allow, deny, skills and MCP
+
+== Turns
+turn 1: stop_reason=tool_use tools=Glob
+turn 2: stop_reason=tool_use tools=Glob,Glob
+turn 3: stop_reason=end_turn
+turn 1: stop_reason=tool_use tools=Glob
+turn 2: stop_reason=tool_use tools=Read,Read,Read,Read,Glob
+turn 3: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: Ben's session loads 0 of the 5 team policies, and Claude reports no instruction file and no deny rule
+PASS  Phase 2: Ben's session meets all 5 policies, with no Bash(*) and no literal secret in a committed file
+PASS  Phase 2: Claude read .claude/settings.json and .mcp.json before reporting
+PASS  Phase 2: Claude's report matches the loader on instruction files, allow, deny, skills and the MCP credential
+
+== Side by side
+[trap] Phase 1: rules in Ana's ~/.claude: **Ben's session loads 0 of 5 team policies.** The rules exist, but only on Ana's laptop, next to `Bash(*)` and a pasted token that no review sees.
+[fix] Phase 2: committed project config: **All 5 policies reach Ben's first session**, no rule allows Bash(*), the token is a ${SENTRY_AUTH_TOKEN} reference, and Claude's report of what loads matches the loader exactly.
+  Where the rules live | ~/.claude on Ana's laptop | the repository, reviewed in pull requests (good)
+  Instruction files Ben loads | none | CLAUDE.md
+  Deny rules Ben loads | none (bad) | Bash(git push --force:*), Bash(rm -rf:*), Read(./.env) (good)
+  Test command rule in an instruction file | no (bad) | yes (good)
+  Deny git push --force | no (bad) | yes (good)
+  Deny reading .env | no (bad) | yes (good)
+  Shared pr-review skill | no (bad) | yes (good)
+  Sentry MCP with no secret in the file | no (bad) | yes (good)
+  Risky rules or secrets in the shared config | unseen: Bash(*) and a literal token on Ana's laptop | none (good)
+  Claude's report matches the loader | yes | yes (good)
+
+6 Claude calls · 10809 in / 1730 out tokens · about US$0.0019 · 12.1 s

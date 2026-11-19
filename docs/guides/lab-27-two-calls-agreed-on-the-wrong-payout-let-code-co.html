@@ -1,0 +1,121 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 27: Two calls agreed on the wrong payout: let code compute it</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 27: Two calls agreed on the wrong payout: let code compute it</h1>
+<blockquote>
+<p>Day 2 · Topic 5: Governance, Safety &amp; Risk Management · Task statement 5.2 · Simulator 1: Harbour Mutual Claims Desk · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 5.2: <strong>Identify risks, limitations, and failure modes of LLM systems.</strong> You answer one exam-style question, then run the Harbour Mutual Claims Desk simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=27">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=27</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 27</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-27.js">docs/sims/lab-27.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>Harbour Mutual Insurance is replacing its first-line motor-claims triage with a Claude-based claims agent. The agent reads policies and claims, requests damage assessments, drafts customer letters, and can approve payouts or escalate to a human adjuster. Adjusters, the finance controller and the regulator all have a stake in how it is built. Claims arrive as free-text forms, photos and repair quotes.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>Fluent is not correct.</strong> An LLM produces a plausible answer to the question asked, even when the input can't support one. A required number in a schema gets filled, with or without the facts.</li>
+<li><strong>Self-consistency is not verification.</strong> Two calls of the same model share the same blind spots. Agreement shows stability, not truth; an independent check uses a different source, such as the document or code.</li>
+<li><strong>Arithmetic is a known weak spot.</strong> Long sums in one pass are error-prone, more so with thinking off. Bigger models and examples make errors rarer, not impossible. Hard arithmetic belongs in code.</li>
+<li><strong>Ground every extracted value.</strong> Check each extracted amount against the source text, and require null where the source prints nothing. A value that isn't in the document is a guess.</li>
+<li><strong>Hold on missing input.</strong> When a required input is missing, stop and fetch it; don't compute around the gap. Missing data is a reason to route the case, not to estimate.</li>
+</ul>
+<h2>The question</h2>
+<p>Harbour Mutual's claims agent calculates payouts from garage quotes and pays any amount within its US$5,000 authority. To catch errors, a second Claude call recalculates each payout, and the agent pays only when both agree. An audit finds a payout that both calls agreed on, but that silently left out an unpriced quote line, which kept it under the limit. Which change best addresses this failure mode?</p>
+<ul>
+<li><strong>A.</strong> Move the calculation step to Claude Opus 5.5, whose stronger reasoning makes arithmetic and omission errors much less likely than on a smaller model.</li>
+<li><strong>B.</strong> Add worked examples to the prompt, including a quote with an unpriced line, that show the model how to flag a gap before it calculates.</li>
+<li><strong>C.</strong> Have Claude extract each line with null for missing amounts, then compute the payout in code and hold any claim that has an unpriced line.</li>
+<li><strong>D.</strong> Add a third independent calculation call and pay only when all three agree, routing any disagreement between the calls to an adjuster.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=27">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=27</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 27
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: Both Phase 1 calls agree on about $4,810.58 and it is paid; Phase 2 holds for line 14, computes $5,340.64 and escalates.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>CLM-7815 · Priya Nair · rear-end collision, 6 Nov 2026 · 21-line quote, line 14 (paint and materials) not priced: &quot;per materials sheet to follow&quot;. With the sheet's $486…
+== Phase 1 · two calls agree, so pay: Claude calculates, a second call re-calculates, the payout system acts when they match
+    Calculate: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+    Re-calculate: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  Claude: $4,810.58 · second call: $4,810.58 · they agree
+  payout system: approve_payout($4,810.58)
+Phase 1 result: both calls agreed on $4,810.58, below the authority, so the pipeline paid it with no adjuster. The quote never priced line 14; with it, the payout is $5…
+
+== PAUSE · Phase 1 finished: two calls agreed, so the pipeline paid
+   outcome: **Both calls said $4,810.58, and the pipeline paid it without an adjuster.** Neither call could know line 14's amount: the quote doesn't print it. With the …
+   proceed: Phase 2: Claude extracts the lines; code grounds them, holds for the missing sheet, computes and routes
+
+== Phase 2 · the model copies, code decides: extract every line (null where unpriced), ground it, hold for the gap, compute in code
+    Extract: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  Claude: 21 lines extracted · null amounts on line(s) 14
+  ground(): 20 priced lines match the quote · unpriced: line 14
+  payout system: hold(CLM-7815) · line 14 unpriced · request_document(&quot;materials sheet&quot;)
+  &lt;- MS-7815: Bayside Autobody · materials sheet for CLM-7815 · line 14: Paint and materials (2K clear coat, base coat, primer, abrasives) · $486.30 excl. GST
+  compute_payout(): parts and materials $3,557.70 + GST $320.19 + labour $1,962.75 - excess $500 = $5,340.64
+  payout system: escalate_to_adjuster($5,340.64) · $5,340.64 is above the $5,000.00 authority
+
+== Turns
+Calculate turn 1: stop_reason=end_turn
+Re-calculate turn 1: stop_reason=end_turn
+Extract turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: both calls agreed on a figure that leaves out unpriced line 14, and it was paid without an adjuster
+PASS  Phase 2: all 21 lines extracted; the 20 priced amounts match the quote and line 14 came back null, not guessed
+PASS  Phase 2: code held the claim until the materials sheet arrived, then computed the payout itself
+PASS  Phase 2: $5,340.64 is above the $5,000 authority, so the claim was escalated to an adjuster
+
+== Side by side
+[trap] Phase 1: two calls agree, so pay: Both calls said **$4,810.58**: consistent, fluent and wrong. Line 14 was never priced, so the pipeline paid without an adjuster.
+[fix] Phase 2: model copies, code decides: Code saw line 14 was unpriced and **held** the claim, fetched the sheet, computed **$5,340.64** and escalated it (above $5,00…
+  What Claude was asked for | the payout, twice | the lines it can read; null where none is printed (good)
+  Line 14 (paint and materials) | silently left out (bad) | null → hold → materials sheet $486.30 (good)
+  The check | two calls agree (bad) | ground every line in the quote, compute in code (good)
+  Figure acted on | $4,810.58 (bad) | $5,340.64 (good)
+  Action | approve_payout (bad) | escalate_to_adjuster (good)
+
+3 Claude calls · 2821 in / 1938 out tokens · about US$0.0013 · 11.1 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: C.</strong> The failure mode is a fluent figure produced from input that can't support it, confirmed by a check that shares the same blind spot. The reliable fix splits the work: Claude does what it is good at (reading and copying lines, with null where nothing is printed), and deterministic code grounds each line in the quote, refuses to compute while a line is unpriced, applies the policy terms and checks the authority limit.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>A.</strong> A larger model makes errors rarer, not impossible, and it still has to guess an amount the quote doesn't print.</li>
+<li><strong>B.</strong> Examples improve the odds but leave the payout resting on the model's arithmetic and its judgement.</li>
+<li><strong>D.</strong> More calls of the same model share the same blind spot, so they can agree on the same wrong figure.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Phase 1 shows two failure modes at once. The model answers the question it was asked even when the input cannot support an answer: the quote leaves line 14 unpriced, so any payout is a guess, yet the schema asked for a number and got a fluent one. And agreement between two calls is not verification: both calls share the same blind spot, so they agree on the same wrong figure. The figure lands under the $5,000 authority, so the pipeline pays it without an adjuster, though the real payout is above the limit. The fix is to split the work by what each part does reliably. Claude reads and copies the lines, with null where the quote prints no amount. Code grounds every line against the quote, refuses to compute while any line is unpriced, fetches the missing sheet, applies the policy terms and routes on its own figure.</p>
+<h2>Exam tip</h2>
+<p>Self-consistency (ask twice, compare) and bigger models are tempting answers to an accuracy problem. When the failure is a known mode, such as arithmetic, missing input or a hard business rule, the professional answer is to move that part into deterministic code and let the model do the reading.</p>
+<h2>Try this next</h2>
+<p>Print line 14's amount in the quote (in sims/shared/d5-claims.js, set UNPRICED to 0) and rerun: Phase 1 now usually gets $5,340.64 and escalates. Then add thinking: { type: "disabled" } to the ask() call and rerun: the one-pass total drifts or comes back as 0, while Phase 2's figure doesn't move.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

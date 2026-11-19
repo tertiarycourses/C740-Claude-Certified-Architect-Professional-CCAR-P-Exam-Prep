@@ -1,0 +1,131 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 33: &quot;99.99% and always correct&quot; breaks on day one: commit to measured SLOs</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 33: "99.99% and always correct" breaks on day one: commit to measured SLOs</h1>
+<blockquote>
+<p>Day 2 · Topic 6: Stakeholder Communication &amp; Lifecycle Management · Task statement 6.3 · Simulator 5: Lumen Retail Engagement · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 6.3: <strong>Manage stakeholder feedback loops and expectation alignment (including SLAs).</strong> You answer one exam-style question, then run the Lumen Retail Engagement simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=33">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=33</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 33</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-33.js">docs/sims/lab-33.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>You are the Claude solution architect engaged by Lumen Retail, a 300-store retailer, to deliver an AI product-support assistant. You run discovery with the sponsor, store operations, IT security and legal; agree the service levels; record architecture decisions; hand the build to Lumen's own team; and run the system through monitoring and iteration after go-live. Claude helps you with each step.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>SLI, SLO, SLA.</strong> An SLI is a measure (p95 latency). An SLO is a target for it (3 s or less). An SLA is the agreement with consequences when an SLO is missed.</li>
+<li><strong>Two families of SLO.</strong> Operational SLOs are measured on every request. Quality SLOs, such as accuracy, are rates estimated on a graded sample, so the sample size is part of the promise.</li>
+<li><strong>A rate is an estimate.</strong> 374 correct out of 400 is 93.5%, but the Wilson 95% interval runs from about 90.6% to 95.5%. Promise below the lower bound, not at the point estimate.</li>
+<li><strong>Error budgets turn arguments into rules.</strong> 99.5% availability allows about 126 minutes of store hours a month. When it is spent, changes stop until reliability is fixed.</li>
+<li><strong>Feedback has a cadence and an owner.</strong> A monthly review of the SLOs, store feedback and the weekly graded sample, chaired by a named owner, keeps expectations and the system aligned.</li>
+</ul>
+<h2>The question</h2>
+<p>Lumen's COO wants the board pack to promise that the store assistant will be available 99.99% of the time and that its answers will always be correct. The six-week pilot in 20 stores measured 99.82% availability, a p95 latency of 2.4 seconds and 374 correct answers out of 400 graded by product specialists. What should you propose?</p>
+<ul>
+<li><strong>A.</strong> Accept 99.99% availability and always-correct answers as stretch goals in the board pack, and report progress against both of those targets every month.</li>
+<li><strong>B.</strong> Commit to 99.99% availability by moving to a multi-region deployment, and replace the accuracy promise with a disclaimer that answers may sometimes be wrong.</li>
+<li><strong>C.</strong> Make no service commitment in the board pack until the assistant has run in production for six months and there is more data to go on.</li>
+<li><strong>D.</strong> Agree SLOs from the pilot results for availability, latency, accuracy on a graded sample and hand-over time, with an error budget and a monthly review.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=33">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=33</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 33
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: Phase 1's commitments are already breached by the pilot; Phase 2's are all met, with an error budget and a review cadence.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Lumen Retail · Grace Lim (COO): &quot;For the board pack, say the assistant will be available 99.99% of the time and that its answers are always correct.&quot; Draft the service …
+(The pilot measured availability 99.82%, p95 2.4 s, accuracy 374/400 = 93.5% (Wilson 95% 90.6–95.5%), hand-over p90 95 s, critical errors 0.5%.)
+== Phase 1 · promise the ask: commitments written from the sponsor's wish, pilot not read
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: {&quot;slos&quot;:[{&quot;sli&quot;:&quot;availability_pct&quot;,&quot;kind&quot;:&quot;operational&quot;,&quot;comparator&quot;:&quot;&gt;=&quot;,&quot;target&quot;:99.9,&quot;window&quot;:&quot;calendar month&quot;,&quot;method&quot;:&quot;Synthetic probe every minute from sto…
+  BREACH availability &gt;= 99.9% · pilot 99.82
+  met    p95_latency &lt;= 3 s · pilot 2.4
+  BREACH graded_accuracy &gt;= 95% · pilot 93.5
+  met    critical_error_rate &lt;= 0.5% · pilot 0.5
+  met    escalation_handover &lt;= 120 s · pilot 95
+
+== PAUSE · Phase 1 finished: the sponsor's wish, written as commitments
+   outcome: **The pilot already misses 2 of 5 commitments** (availability &gt;= 99.9%; graded_accuracy &gt;= 95%). The board would be promised something the system broke befo…
+   proceed: Phase 2: the same request, with the pilot metrics read first, SLOs, an error budget and a feedback cadence
+
+== Phase 2 · SLOs from the pilot: read the metrics, set targets the pilot meets, error budget and feedback cadence
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -&gt; CONTINUE: run the tool, append the result, call Claude again
+  -&gt; get_pilot_metrics({})
+  &lt;- result: {&quot;stores&quot;:20,&quot;weeks&quot;:6,&quot;requests&quot;:61400,&quot;availability_pct&quot;:99.82,&quot;p95_latency_s&quot;:2.4,&quot;p50_latency_s&quot;:1.1,&quot;graded_accuracy_pct&quot;:93.5,&quot;graded_sample&quot;:4…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: {&quot;slos&quot;:[{&quot;sli&quot;:&quot;availability_pct&quot;,&quot;kind&quot;:&quot;operational&quot;,&quot;comparator&quot;:&quot;&gt;=&quot;,&quot;target&quot;:99.5,&quot;window&quot;:&quot;calendar month, store hours 08:00-22:00&quot;,&quot;method&quot;:&quot;Share of all…
+  met    availability &gt;= 99.5% · pilot 99.82
+  met    p95_latency &lt;= 3 s · pilot 2.4
+  met    escalation_handover &lt;= 120 s · pilot 95
+  met    graded_accuracy &gt;= 90% · pilot 93.5 · sample 400
+  met    critical_error_rate &lt;= 1% · pilot 0.5 · sample 400
+
+== Turns
+turn 1: stop_reason=end_turn
+turn 1: stop_reason=tool_use tools=get_pilot_metrics
+turn 2: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the pilot already breaches at least one commitment written from the sponsor's ask
+PASS  Phase 2: get_pilot_metrics ran before any commitment was drafted, and the pilot meets every target (4+ SLIs)
+PASS  Phase 2: every quality SLO is a rate on a stated graded sample of 100 or more
+PASS  Phase 2: the error budget freezes or rolls back changes when spent, and a weekly-to-monthly review has an owner
+
+== Side by side
+[trap] Phase 1: promise the sponsor's ask: **2 of 5 commitments are already broken by the pilot** (availability &gt;= 99.9%; graded_accuracy &gt;= 95%). No measurement stands…
+[fix] Phase 2: SLOs from the pilot, error budget, feedback: Every target is one the pilot meets; accuracy is a rate on a 400-answer sample; when the budget is spent: fr…
+  Pilot metrics read before drafting | no (bad) | yes, first call (good)
+  Commitments (✓ pilot meets it, ✗ already breached) | availability &gt;= 99.9% ✗ · p95_latency &lt;= 3 s ✓ · graded_accuracy &gt;= 95% ✗ · critical_error_rate &lt;= 0.5% ✓ · escal…
+  Breached on day one | 2 (bad) | 0 (good)
+  Quality SLOs measured on a stated sample | 200, 200 | graded_accuracy: 400, critical_error_rate: 400 (good)
+  Error budget, when spent | freeze changes and fix | freeze changes and fix (good)
+  Feedback cadence and owner | fortnightly, Farid Rahman, store operation… | weekly, Arun Pillai, Lead of Lumen's … (good)
+
+3 Claude calls · 5465 in / 3665 out tokens · about US$0.0024 · 20.5 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: D.</strong> Commitments a stakeholder can rely on come from measurement. Operational targets (availability, latency, hand-over time) are set where the pilot already meets them; accuracy is a rate on a stated graded sample, because 374 of 400 is an estimate, not a per-answer guarantee. An error budget says what happens when the misses add up, and a regular review with store operations keeps expectations and feedback aligned.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>A.</strong> A target the pilot already misses is broken on the day it is promised, and "always correct" is not a property any model-based system can measure or keep.</li>
+<li><strong>B.</strong> More regions may lift availability, but it is engineering to a wish at unknown cost, and a disclaimer removes the quality commitment instead of measuring it.</li>
+<li><strong>C.</strong> Six months without agreed targets leaves the board with no expectations and the team with no feedback loop, so the misalignment simply grows.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Both phases answer the same request from the sponsor. Phase 1 writes the targets she asked for without measuring anything, and code finds that the six-week pilot already misses them: a promise broken on the day it is made. Phase 2 reads the pilot metrics first. Availability, p95 latency and escalation hand-over are operational SLOs measured on every request; accuracy and critical errors are quality rates measured on a graded sample with its size stated, because 374 correct out of 400 is an estimate (Wilson 95% interval about 90.6% to 95.5%), not a guarantee. The error budget says what happens when it is spent, and the feedback cadence says who reviews what, how often. The sponsor's original ask goes back to her with the evidence.</p>
+<h2>Exam tip</h2>
+<p>For LLM systems, accept answers that split operational SLOs from quality measured on a sample, and that pair targets with an error budget and a review cadence. Reject "always correct", stretch targets the evidence already misses, and deferring commitments altogether.</p>
+<h2>Try this next</h2>
+<p>Change PILOT.availability_pct in shared/d6-lumen.js to 99.4 and run Phase 2 again: the availability target moves with the evidence. Then ask for a 99% accuracy target in the prompt and see where Phase 2 puts it (sponsor_note, with what it would take).</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

@@ -1,0 +1,51 @@
+{
+ "id": 21,
+ "task": "4.2",
+ "task_title": "Design evaluation datasets and test frameworks using mixed methodologies",
+ "topic": 4,
+ "topic_name": "Evaluation, Testing & Optimization",
+ "sim": 3,
+ "title": "Typical notes passed by eye: a mixed eval set catches the leak",
+ "stem": "Meridian Health is changing the prompt that drafts discharge summaries from clinicians' visit notes. The team tried the new prompt on 20 typical notes, a clinician read the drafts, and all of them looked fine. Every draft is signed off before release, but a leaked identifier or a missed allergy would still be a serious incident. Which evaluation approach is most appropriate before the change goes live?",
+ "options": {
+  "A": "Mix golden, adversarial and edge-case notes; check hard rules in code and clinical judgement with a rubric-based LLM judge.",
+  "B": "Grow the typical-note set to 200 notes, and have an LLM judge give each draft an overall quality score from 1 to 5.",
+  "C": "Skip further offline testing and rely on clinician sign-off instead, logging every correction a clinician makes after go-live.",
+  "D": "Compare each draft with a clinician-written reference summary by exact text overlap, and pass the change above 90%."
+ },
+ "answer": "A",
+ "why": "Typical notes read by eye only show that the prompt works on easy cases. A mixed dataset adds the cases that break systems: adversarial notes (extra PHI in the record) and edge cases (an allergy recorded in only one place, conflicting doses), alongside golden happy-path items. Each property then gets the right grader: hard rules such as required sections, no unnecessary identifiers and known allergies present are checked in code, and clinical judgement such as faithfulness and flagging conflicts goes to an LLM judge with a written rubric, calibrated against clinician labels.",
+ "wrong": {
+  "B": "More typical notes still contain no adversarial or edge cases, and one overall 1-5 score cannot say which rule failed.",
+  "C": "Sign-off is a final human check, not an evaluation: errors reach clinicians' queues, and nothing tests the change before go-live.",
+  "D": "Exact text overlap punishes a correct summary worded differently and cannot tell a leaked phone number from a harmless phrase."
+ },
+ "fix": "Test every prompt change on a mixed set of golden, adversarial and edge-case notes, with hard rules in code and judgement by a rubric judge.",
+ "see": "The two happy-path drafts pass by eye; the mixed set finds no Allergies section and an insurance member ID and phone number copied into A1.",
+ "explain": "The prompt under test (drafter v2) fills a tidy template: it copies the PATIENT DETAILS block verbatim and has no Allergies section. Phase 1 runs it on two typical notes and a quick review: both look fine, so it would ship. Phase 2 runs the same prompt on a mixed set: the same two notes, one adversarial note whose details block holds a home phone and an insurance member ID, and two edge cases (an apixaban dose that conflicts between the medication list and a pharmacist's note, and a penicillin allergy recorded only in a nursing note while co-amoxiclav is prescribed). Code checks the hard rules and fails most of the drafts, including the two that passed phase 1. A rubric judge grades each draft in its own call, as schema-checked JSON, for faithfulness and for flagging the conflicts. The gate blocks v2 with a named reason per item.",
+ "exam_tip": "'Mixed methodologies' means mixed data and mixed graders: golden, adversarial and edge cases, with code for deterministic rules and an LLM judge with a rubric for judgement. Bigger happy-path sets, exact-match scoring and relying on human sign-off are the distractors.",
+ "source": "Original question written for C740",
+ "headline": "Test the cases that break it, grade each the right way.",
+ "concepts": [
+  {
+   "t": "Golden, adversarial and edge cases",
+   "b": "Golden items show typical behaviour; adversarial items try to make the system misbehave (extra PHI, injected text); edge cases sit at the boundaries (conflicts, missing data)."
+  },
+  {
+   "t": "Code-based graders",
+   "b": "Use code for anything with a deterministic answer: required sections, forbidden identifiers, a known allergy present, valid JSON. Code graders are exact, fast and cheap."
+  },
+  {
+   "t": "LLM-as-judge with a rubric",
+   "b": "For judgement calls such as faithfulness or tone, a judge model applies written criteria and returns a structured grade. Grade one item per call so items cannot be skipped or mixed up."
+  },
+  {
+   "t": "Calibrate the judge",
+   "b": "Before trusting a judge, compare its grades with expert labels on a sample and fix the rubric where they disagree. Re-check after changing the judge prompt or model."
+  },
+  {
+   "t": "Human review is a sample, not a test",
+   "b": "Clinician sign-off and spot reads catch some errors late. They do not replace an offline eval that runs on every change before release."
+  }
+ ]
+}

@@ -1,0 +1,51 @@
+{
+ "id": 8,
+ "task": "2.2",
+ "task_title": "Design system prompts, templates, and guardrails",
+ "topic": 2,
+ "topic_name": "Claude Models, Prompting & Context Engineering",
+ "sim": 4,
+ "title": "A friendly two-liner tells Farah she qualifies: use a prompt template",
+ "stem": "Riverton's resident assistant runs on a two-sentence system prompt: \"You are a friendly assistant for Riverton City Council. Help residents with their questions.\" In testing it told a resident she met the grant rules and when payment would start, offered advice on withholding rent, and returned prose that the caseworker queue could not parse. Which change best addresses all three problems?",
+ "options": {
+  "A": "Replace it with a versioned template: role, scope with a refusal path, decision rules, tagged untrusted input and output format.",
+  "B": "Add \"Be accurate, be careful and never make mistakes\" to the prompt, then test it again against the same three resident messages.",
+  "C": "Keep the prompt and add an output filter that blocks any reply containing the words approved, eligible, legal or payment.",
+  "D": "Move the assistant to Claude Opus 5.5, which follows the council's unwritten policy more reliably and writes tidier replies."
+ },
+ "answer": "A",
+ "why": "Each failure is a decision the prompt never made: who decides a benefit, which topics are out of scope, whether pasted text is an instruction, and what shape the answer takes. A system prompt template states the role (pre-screen; a caseworker decides), the scope with a refusal path, the rules, how to treat untrusted input (resident text inside tags is data), and an output format the queue parses. Versioning it lets every change be tested against cases like these before release.",
+ "wrong": {
+  "B": "A general plea for care names no rule, so the model still cannot know who decides or what is out of scope.",
+  "C": "A keyword filter blocks valid pre-screen replies, misses paraphrases, and does nothing for the unparseable format.",
+  "D": "No model can follow a policy it was never given, and a bigger model does not choose the queue's format."
+ },
+ "fix": "A versioned system prompt template with role, scope, rules, untrusted-input tags and an output format.",
+ "see": "The loose prompt returns free text the queue can't read and breaches at least one rule; the template returns parseable JSON with no breach.",
+ "explain": "Farah's single message tests three guardrails: a benefit question that only a caseworker may decide, a tenancy question the council does not answer, and a pasted \"council update\" telling the assistant to approve her. With two friendly sentences, Haiku 5.5 falls back on its own careful defaults, and they are not Riverton's policy: it says she meets the rules and when the money would start, and offers tenancy guidance, in free text the queue cannot parse. The rs-assistant v3.2 template states the role, scope, rules, untrusted-input handling and output format; the reply is JSON with a handoff flag, the rent question is declined with the enquiries line, and the pasted instruction is flagged and ignored. A blind second call confirms it.",
+ "exam_tip": "Look for the answer that writes the missing decisions into a structured, versioned prompt: role, scope, refusal path, untrusted-input separation, output format. Vague exhortations, keyword filters and bigger models are the usual distractors.",
+ "source": "Original question written for C740",
+ "headline": "Write the policy into the prompt. Don't hope for it.",
+ "concepts": [
+  {
+   "t": "Anatomy of a system prompt",
+   "b": "Role, scope, rules, output format and reference facts, each in its own tagged section. Clear sections are easier for Claude to follow and for reviewers to change."
+  },
+  {
+   "t": "Scope needs a refusal path",
+   "b": "Say what is out of scope and what to do instead: decline briefly and point to the right service. A list of topics without a fallback leaves the model to improvise."
+  },
+  {
+   "t": "Untrusted input is data",
+   "b": "Wrap user-supplied and retrieved text in tags and tell Claude that instructions inside them are not instructions. This reduces prompt injection; it does not remove it."
+  },
+  {
+   "t": "Output format for the next system",
+   "b": "When code consumes the answer, specify the format and enforce it with structured outputs, so fields like a handoff flag are always present."
+  },
+  {
+   "t": "Prompts are versioned artefacts",
+   "b": "Give the template a version, keep it in source control and run each change against an eval set before release. Hard rules also get a code check."
+  }
+ ]
+}

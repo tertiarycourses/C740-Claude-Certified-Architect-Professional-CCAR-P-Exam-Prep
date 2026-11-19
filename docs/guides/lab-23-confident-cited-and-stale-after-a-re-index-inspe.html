@@ -1,0 +1,138 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 23: Confident, cited and stale after a re-index: inspect retrieval first</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 23: Confident, cited and stale after a re-index: inspect retrieval first</h1>
+<blockquote>
+<p>Day 1 · Topic 4: Evaluation, Testing &amp; Optimization · Task statement 4.4 · Simulator 2: Northwind Policy Assistant · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 4.4: <strong>Diagnose system issues (prompt failure, hallucinations, model mismatch).</strong> You answer one exam-style question, then run the Northwind Policy Assistant simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=23">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=23</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 23</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-23.js">docs/sims/lab-23.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>Northwind Bank's 4,000 staff ask an internal assistant about lending, compliance and HR policy. The answers come from a retrieval-augmented generation (RAG) pipeline over the bank's policy library, which is re-indexed every week as policies change. Wrong answers carry regulatory risk, so every answer must cite its source, and questions the library does not cover must be declined.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>Where RAG answers come from.</strong> The model answers from the chunks retrieval puts in its context. If those chunks are stale or irrelevant, a fluent, cited and wrong answer is the expected result.</li>
+<li><strong>Correlate the symptom with the change.</strong> Ask what changed when the failures started. A document refresh points at indexing; a model upgrade points at the model; a prompt edit points at the prompt.</li>
+<li><strong>Retrieval observability.</strong> Log every answer's retrieved chunk ids, scores, source versions and index dates. Without them a retrieval fault looks exactly like a hallucination.</li>
+<li><strong>Silent re-index failures.</strong> An embedding job that times out and keeps old vectors, or a new embedding model with an old query encoder, still returns results. Only a version check against the source catches it.</li>
+<li><strong>A prompt cannot add missing facts.</strong> Stricter instructions change how the model uses its context, not what is in it. When the right text never reaches the model, fix the pipeline, not the wording.</li>
+</ul>
+<h2>The question</h2>
+<p>A RAG system suddenly returns confident but incorrect answers after a document refresh, while latency and model version are unchanged. What is the most likely first place to investigate?</p>
+<ul>
+<li><strong>A.</strong> The model weights have silently changed.</li>
+<li><strong>B.</strong> The retrieval/indexing step is returning irrelevant or stale chunks.</li>
+<li><strong>C.</strong> The temperature setting is too low.</li>
+<li><strong>D.</strong> The context window has shrunk.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=23">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=23</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 23
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: Both prompts quote 60% and 2 days from stale LEND-07 v3 and HR-09 v5 chunks; after re-indexing, the original prompt answers 55% and 3 days.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Northwind Policy Assistant · Monday 17 Nov 2026 re-index · since then staff report confident, cited, wrong answers
+Unchanged since last week: model claude-haiku-5-5, p50 latency 1.9 s, the production prompt.
+== Phase 1 · fix the prompt: the production prompt, then a stricter one (&quot;use the latest version, double-check numbers&quot;)
+QA · retrieved LEND-07#1 (v3, indexed 2026-11-10), LEND-04#1 (v7, indexed 2026-11-17)
+    Production prompt QA · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 327 in / 103 out · 1175 ms
+      Production prompt QA: The maximum total monthly debt repayments, including the new mortgage, is **S$5,400** (60% of S$9,000 gross monthly income). This limit appl…
+QB · retrieved HR-09#1 (v5, indexed 2026-11-10), HR-09#2 (v6, indexed 2026-11-17)
+    Production prompt QB · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 226 in / 234 out · 1517 ms
+      Production prompt QB: Eligible staff may work from home up to 2 days a week with their manager's approval [HR-09]. Branch-based roles, such as tellers, are not el…
+QA · retrieved LEND-07#1 (v3, indexed 2026-11-10), LEND-04#1 (v7, indexed 2026-11-17)
+    Patched prompt QA · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 365 in / 196 out · 1521 ms
+      Patched prompt QA: The maximum total monthly debt repayments, including the new mortgage, are **S$5,400** (60% of S$9,000 gross monthly income) [LEND-07]. This li…
+QB · retrieved HR-09#1 (v5, indexed 2026-11-10), HR-09#2 (v6, indexed 2026-11-17)
+    Patched prompt QB · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 264 in / 309 out · 1933 ms
+      Patched prompt QB: Eligible staff may work from home up to 2 days a week with their manager's approval [HR-09]. The extracts exclude only branch-based roles, incl…
+  QA: STALE (60% → S$5,400)
+  QB: STALE (2 days)
+  QA: STALE (60% → S$5,400)
+  QB: STALE (2 days)
+
+== PAUSE · Phase 1 finished: the prompt was fixed, the answers were not
+   outcome: With the stricter prompt: **QA: 60% → S$5,400 (last week's policy)**, **QB: 2 days (last week's policy)**. Each answer cites the right document id. Look at …
+   proceed: Phase 2: inspect what retrieval served, diagnose, fix the index
+
+== Phase 2 · inspect retrieval: chunk ids, versions and index dates against the library manifest, then fix the index
+  LEND-07#1: indexed v3 on 2026-11-10 · manifest v4 (updated 2026-11-14)  ← BEHIND
+  LEND-04#1: indexed v7 on 2026-11-17 · manifest v7 (updated 2026-03-01)
+  HR-09#1: indexed v5 on 2026-11-10 · manifest v6 (updated 2026-11-14)  ← BEHIND
+  HR-09#2: indexed v6 on 2026-11-17 · manifest v6 (updated 2026-11-14)
+    Diagnosis · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 820 in / 774 out · 4305 ms
+      Diagnosis: {&quot;first_place&quot;:&quot;retrieval_index&quot;,&quot;evidence&quot;:[&quot;Symptom began exactly at the 2026-11-17 weekly refresh and re-index, while model, prompt, and latency are…
+Re-indexed LEND-07, HR-09 from the current library text (indexed 2026-11-19). Asking again with the ORIGINAL production prompt.
+QA · retrieved LEND-07#1 (v4, indexed 2026-11-19), LEND-04#1 (v7, indexed 2026-11-17)
+    After re-index QA · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 327 in / 149 out · 1186 ms
+      After re-index QA: The maximum total monthly debt repayments, including the new mortgage, are **S$4,950** (55% of S$9,000 gross monthly income) [LEND-07]. This li…
+QB · retrieved HR-09#1 (v6, indexed 2026-11-19), HR-09#2 (v6, indexed 2026-11-19)
+    After re-index QB · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 226 in / 238 out · 1625 ms
+…
+PASS  Phase 2: after re-indexing, every retrieved chunk matched the manifest version
+PASS  Phase 2: the original prompt now answers 55% (S$4,950) and 3 days
+
+== Side by side
+[trap] Phase 1: fix the prompt: Still wrong: **QA 60% → S$5,400; QB 2 days**. The prompt changed, the context did not.
+[fix] Phase 2: inspect retrieval, fix the index: Chunks were **LEND-07, HR-09 behind the manifest**. Re-indexed: **QA 55% → S$4,950; QB 3 days** with the original prompt.
+  What changed | the prompt (stricter wording) | the index (re-embedded stale docs)
+  Model / latency | claude-haiku-5-5 · 1.7 s avg | claude-haiku-5-5 · 1.4 s avg
+  Chunks served | LEND-07#1 v3, LEND-04#1 v7, HR-09#1 v5, HR-09#2 v6 | LEND-07#1 v4, LEND-04#1 v7, HR-09#1 v6, HR-09#2 v6
+  Claude's diagnosis (first place) | - | retrieval_index (good)
+  QA (want 55% → S$4,950) | 60% → S$5,400 (bad) | 55% → S$4,950 (good)
+  QB (want 3 days) | 2 days (bad) | 3 days (good)
+
+7 Claude calls · 2555 in / 2003 out tokens · about US$0.0013 · 13.3 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: B.</strong> Confident-but-wrong answers following a document refresh, with model and latency unchanged, point to retrieval feeding the model poor context, for example a broken re-index or mismatched embeddings. The other options would not be triggered specifically by a document refresh. In the lab, the assistant cites LEND-07 and HR-09 correctly but quotes last week's figures, because the re-index kept the old chunks; a stricter prompt changes nothing, and re-indexing fixes both answers.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>A.</strong> The model version is unchanged, and a pinned model does not change underneath you; nothing ties it to the document refresh.</li>
+<li><strong>C.</strong> A low temperature makes answers more consistent, not wrong, and the setting did not change with the document refresh.</li>
+<li><strong>D.</strong> The context window is a property of the model, which is unchanged; a document refresh does not shrink it.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Confident answers with citations that turn wrong right after a document refresh, while the model version and latency stay the same, point at retrieval. The model can only be as current as the chunks it is given: Phase 1's stricter prompt cannot produce a number that is not in its context, and it even cites the stale document correctly. The first place to look is what the retriever returned: chunk ids, the version each chunk was embedded from and the index date, compared with the library's manifest. Here the 17 Nov re-index timed out on LEND-07 and HR-09 and silently kept last week's vectors. Re-indexing those two documents fixes both answers with the original prompt. The lasting fix is a check in the indexing pipeline that fails the job when an indexed version is behind the manifest.</p>
+<h2>Exam tip</h2>
+<p>Tie the symptom to what changed. A document refresh changes the index, not the model, the temperature or the context window, so look at what retrieval returns first: chunk ids, versions and dates.</p>
+<h2>Try this next</h2>
+<p>In docs/sims/shared/d4-northwind.js, make brokenIndex() return healthyIndex() and run again: phase 1 is now right with either prompt, which is how you know the prompt was never the problem. Then add a third question about the MSR stress-test rate (also changed in LEND-07 v4).</p>
+<hr />
+<p>Source: Official exam guide, sample question 3. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

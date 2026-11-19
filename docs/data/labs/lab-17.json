@@ -1,0 +1,51 @@
+{
+ "id": 17,
+ "task": "3.6",
+ "task_title": "Apply retrieval strategies matched to data shape and query pattern",
+ "topic": 3,
+ "topic_name": "Integration",
+ "sim": 2,
+ "title": "One similarity search quotes a dead rate: route tables to a lookup",
+ "stem": "Northwind's assistant answers every question with one similarity search over a single index, into which the weekly re-index flattens the mortgage rate tables as text. Superseded rate sheets stay in the library because complaints about old quotes need them. Credit officers asking for today's 5-year fixed rate at 75% loan-to-value sometimes get a rate that has expired. What is the best redesign of retrieval?",
+ "options": {
+  "A": "Index each rate table row as its own small chunk and raise top-k, so that the row for the product is more likely to be among the hits.",
+  "B": "Add a reranker after the similarity search so that the chunk most relevant to the question is always placed first in the context.",
+  "C": "Delete superseded rate sheets at each re-index so that only the current rows remain for the similarity search to find.",
+  "D": "Serve rate tables through a lookup keyed on product and loan-to-value, filtered by effective date, and keep hybrid search for prose."
+ },
+ "answer": "D",
+ "why": "A rate is a row in a table, found by its keys and its effective date, not a passage that resembles the question. A structured lookup tool returns the row in force on the date asked, and hybrid search with metadata filters stays the right mechanism for prose rules. Routing each part of the question to the mechanism its data needs is the fix; tuning the similarity search is not.",
+ "wrong": {
+  "A": "Smaller chunks and a bigger k still rank rows by word overlap, and a row like '5YF,60.01-80.00,3.95' shares no words with the question.",
+  "B": "A reranker reorders what similarity search returned; it cannot surface a row that was never retrieved or tell current rates from superseded ones.",
+  "C": "Complaint handling needs the superseded sheets, and deleting them still leaves a numeric row to be found by text similarity."
+ },
+ "fix": "Match the mechanism to the data shape: a structured lookup with an effective-date filter for tables and identifiers, hybrid search with metadata filters for prose.",
+ "see": "One search returns the superseded rate sheet and the answer quotes 4.35%; lookup_rate returns 3.95% from the current sheet and search_policy finds the fee rule.",
+ "explain": "Both phases answer the same question from the same library. One similarity search over everything returns the early repayment section, the superseded LEND-11 rate sheet (rev 2026-08, written as prose) and the loan-to-value section; the current table row never comes back, so the answer quotes 4.35%, which ended on 31 October. Routed by data shape, Claude calls lookup_rate with product code 5YF, 75% and today's date and gets 3.95% from LEND-11 rev 2026-11, and calls search_policy, which returns LEND-07 §8: a 1.5% fee in years 1 and 2.",
+ "exam_tip": "When the answer is a row, an identifier or a number in a table, the exam wants a structured lookup or query exposed as a tool, with metadata filters such as effective date. Hybrid search is for prose. Bigger k, smaller chunks, rerankers and deleting history are distractors.",
+ "source": "Original question written for C740",
+ "headline": "Rows want lookups. Prose wants search.",
+ "concepts": [
+  {
+   "t": "Ask what shape the answer lives in",
+   "b": "Passages, table rows, aggregates, relationships or files. Each shape has a mechanism that can produce it; similarity search over chunks suits only passages."
+  },
+  {
+   "t": "Similarity cannot find a row by its keys",
+   "b": "A table row like '5YF,60.01-80.00,3.95' shares no words with 'five-year fixed at 75%'. A lookup keyed on product and band finds it every time."
+  },
+  {
+   "t": "Hybrid search for prose",
+   "b": "Keyword (BM25) matches exact terms, semantic search matches meaning; fusing their rankings (reciprocal rank fusion) is a strong default for policy text."
+  },
+  {
+   "t": "Metadata filters run before ranking",
+   "b": "Effective date, role and document type are filters in code. They pick the revision in force on the date asked, so history can stay in the library."
+  },
+  {
+   "t": "Expose each mechanism as a tool",
+   "b": "Clear tool descriptions ('use for any rate figure', 'rules, not rates') let Claude route each part of a question to the right mechanism."
+  }
+ ]
+}

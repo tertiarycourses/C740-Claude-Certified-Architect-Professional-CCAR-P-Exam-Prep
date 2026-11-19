@@ -1,0 +1,49 @@
+Lumen Retail · Grace Lim (COO, sponsor): "We want an AI agent that handles store product support end to end. Our competitors have agents. Can you have a design to me by Friday?"
+Price table (code): Haiku 5.5 $0.0008/answer · Sonnet 5.5 $0.0160/answer · Opus 5.5 $0.0320/answer · Fable 5.2 $0.0640/answer; about 6,448 product questions a month; today $11.40 per call.
+== Phase 1 · capability pitch: the board summary leads with what makes the solution advanced
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: **Executive summary: AI-assisted product support for store staff** Store staff currently phone head-office product support while customers wait at the counter. Lumen receives about 2,400 such calls a week from 300 stores, handled by nine agents at an average of 7.5 minutes per call and roughly $11.40 per call. At peak, 18% of calls are abandoned after five minutes. This proposal puts answers on the store tablet instead, so staff get them in seconds without a phone call. **How it works.** Staff sign in with their existing single sign-on and ask a question on the store tablet. The system search…
+    (audit: capability pitch) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (audit: capability pitch) answer: {"primary_pillar":"efficiency","commitments":[{"metric":"Share of current call types answerable by the system","kind":"service_level","target":85,"baseline":null,"measured_by":null},{"metric":"Monthly model usage cost c…
+Audit of the pitch: primary pillar efficiency · 2 commitments · 0 anchored to a discovery baseline · service levels with a number: 0/4 (none)
+
+== PAUSE · Phase 1 finished: the capability pitch
+   outcome: The audit found **0 of 4 service levels** with a number and **0 value metrics** anchored to a discovery baseline. Primary pillar: efficiency. The board would be buying a model, with little it could check afterwards.
+   proceed: Phase 2: the same solution written as a value case
+
+== Phase 2 · value case: primary pillar, metrics with baselines, four service levels, model priced per answer
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: {"primary_pillar":"efficiency","pillar_reason":"The main value is fewer head-office agent minutes per store enquiry, because about 85% of today's calls (product questions and stock or price checks) can be answered directly on the store tablet.","value_metrics":[{"metric":"Head-office support calls per week","baseline":2400,"target":1200,"unit":"calls per week","measured_by":"Weekly call volume from the head-office telephony system, split by call category and store, reported to the COO monthly"},{"metric":"Peak-hour call abandonment rate","baseline":18,"target":5,"unit":"percent of calls aband…
+Value case: pillar efficiency · 3 value metrics · 4 service levels · model Claude Sonnet 5.5
+Cost in code: Claude Sonnet 5.5 at $0.0160 per answer × 6,448 answers ≈ $103.17 a month in model spend, against $11.40 per call today.
+    (audit: value case) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (audit: value case) answer: {"primary_pillar":"efficiency","commitments":[{"metric":"Head-office support calls per week","kind":"value","target":1200,"baseline":2400,"measured_by":"Weekly call volume from the head-office telephony system, split by…
+Audit of the value case: primary pillar efficiency · 7 commitments · 3 anchored to a discovery baseline · service levels with a number: 4/4, with a measurement method: 4/4
+
+== Turns
+turn 1: stop_reason=end_turn
+(audit: capability pitch) turn 1: stop_reason=end_turn
+turn 1: stop_reason=end_turn
+(audit: value case) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1 (capability pitch): the audit finds fewer than 4 service levels with a number and fewer than 2 metrics with a discovery baseline
+PASS  Phase 2: the value case names a primary pillar and anchors at least 2 value metrics to discovery baselines
+PASS  Phase 2: all four service levels (availability, p95 latency, accuracy, escalation) have a numeric target and a measurement method
+PASS  The same audit finds more service-level commitments in the value case than in the capability pitch
+PASS  Phase 2: the chosen model is in the price table and code priced it per answer below today's $11.40 per call
+
+== Side by side
+[trap] Phase 1: capability pitch: Built around efficiency: 0/4 service levels with a number, 0 metrics anchored to a baseline. Nothing the board could hold the service to.
+[fix] Phase 2: value case: Built around efficiency: 3 metrics anchored to discovery baselines, 4/4 service levels with targets (4 with a measurement method), Claude Sonnet 5.5 at $0.0160 per answer.
+  Primary value pillar (extractor) | efficiency | efficiency (good)
+  Measurable commitments found | 2 | 7
+  Value metrics with a discovery baseline | none (bad) | Head-office support calls per week 2400→1200; Peak-hour call abandonment rate (percent of calls abandoned after 5 minutes of waiting) 18→5; Blended cost per enquiry (USD, agent time and telephony, all enquiries) 11.4→5.7 (good)
+  Service levels with a number | 0/4: availability –, p95_latency –, accuracy –, escalation – (bad) | 4/4: availability 99.5, p95_latency 10, accuracy 95, escalation 15 (good)
+  Model choice justified by | what makes it advanced | cost per answer ($0.0160) and the latency target
+
+4 Claude calls · 6462 in / 7932 out tokens · about US$0.0046 · 41.4 s

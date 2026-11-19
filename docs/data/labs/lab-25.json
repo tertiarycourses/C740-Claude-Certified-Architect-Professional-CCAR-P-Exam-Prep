@@ -1,0 +1,51 @@
+{
+ "id": 25,
+ "task": "4.6",
+ "task_title": "Monitor system performance using logging and observability tools",
+ "topic": 4,
+ "topic_name": "Evaluation, Testing & Optimization",
+ "sim": 6,
+ "title": "'Answered in 2.4s' can't say why: log every Claude call as a record",
+ "stem": "Kestrel's checkout-assistant calls Claude in production and writes free-text log lines such as 'answered customer question in 2.4s'. After a release, customers report cut-off answers and Claude spend rises 2.4 times, and the on-call engineer cannot tell why from the logs. Which change best lets the team detect and diagnose problems like this?",
+ "options": {
+  "A": "Emit one structured record per Claude call (trace_id, prompt version, tokens, cache reads, stop_reason) and alert on it.",
+  "B": "Log the full prompt and the full response of every call as free text, so the on-call engineer can read exactly what happened.",
+  "C": "Add a thumbs-down button to the feature, and page the on-call engineer whenever the rate of thumbs-down votes rises.",
+  "D": "Run the offline evaluation suite against the production prompts every night, and alert when its pass rate falls."
+ },
+ "answer": "A",
+ "why": "Cut-off answers and higher spend are explained by fields the API returns on every call: stop_reason (max_tokens), output tokens, cache_read_input_tokens, plus the prompt version and trace_id the service adds. One structured record per call makes those queryable: alert rules can watch the max_tokens and cache-miss rates, a group-by on prompt version finds the release, and each finding links to a trace. In the lab, the same incident gives a low-confidence guess from the free-text lines and a cited, two-cause diagnosis from the records.",
+ "wrong": {
+  "B": "Full prompts and responses as text are costly, risky to store and still unqueryable: no rule can count stop_reason in prose.",
+  "C": "Thumbs-down votes arrive late and say that something is wrong, not why; they cannot see cache misses or token growth.",
+  "D": "An offline suite tests fixed items, not production traffic, so it can miss a cache miss or a token-cap problem live users hit."
+ },
+ "fix": "Emit one structured record per Claude call with trace_id, model, prompt version, token usage, cache reads, latency_ms, stop_reason and tool calls, and alert on it.",
+ "see": "From free text no rule can run and the diagnosis is a guess; from 48 records both rules fire and Claude names v14's max_tokens cap and lost cache hits, with trace ids.",
+ "explain": "The same 48 calls from 10:00 to 11:00 are seen two ways. Prompt v14 shipped at 10:20: it asks for longer answers, so 13 of its 32 calls stop at the 1,024-token cap, and it moved a timestamp to the top of the system prompt, so the cached prefix never matches and cache_read_input_tokens drops from 3,200 to 0. Phase 1 has the free-text lines the feature prints today: the truncation and cache-miss rules cannot even be evaluated, and Claude's diagnosis is low confidence, cites no trace ids and lists the fields it is missing. Phase 2 has one record per call in the observability store: both rules fire in code over the last 30 minutes, a group-by on prompt_version points at v14, and Claude's diagnosis names both causes and cites real trace ids an engineer can open.",
+ "exam_tip": "For production monitoring, pick structured per-call telemetry (tokens, latency, stop_reason, cache reads, model and prompt version, trace ids) with alerts and dashboards. Verbose text logs, user feedback and offline evals are useful but cannot diagnose a live incident on their own.",
+ "source": "Original question written for C740",
+ "headline": "You can only alert on what you logged as a field.",
+ "concepts": [
+  {
+   "t": "What the API already tells you",
+   "b": "Every response carries model, stop_reason and usage (input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens). Log them on every call."
+  },
+  {
+   "t": "Add your own context",
+   "b": "Add a trace_id that links the call to the user request, the prompt version, the feature or squad, latency_ms and the number of tool calls."
+  },
+  {
+   "t": "Alert on rates, not anecdotes",
+   "b": "Simple rules on the fields catch failures early: share of max_tokens stops, cache-hit rate, p95 latency, tokens per request, error rate."
+  },
+  {
+   "t": "Slice by version",
+   "b": "A dashboard grouped by prompt version or model shows a bad deploy at a glance and supports rollback decisions."
+  },
+  {
+   "t": "Log data, mind the content",
+   "b": "Log metadata on every call; keep full prompts and responses only where policy allows, sampled, access-controlled and redacted, since they may hold personal data."
+  }
+ ]
+}

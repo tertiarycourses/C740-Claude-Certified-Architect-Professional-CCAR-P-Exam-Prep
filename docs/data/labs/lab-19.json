@@ -1,0 +1,51 @@
+{
+ "id": 19,
+ "task": "3.8",
+ "task_title": "Evaluate progressive discovery vs. monolithic context strategy",
+ "topic": 3,
+ "topic_name": "Integration",
+ "sim": 6,
+ "title": "40 tools in every request: load the runbook the incident needs",
+ "stem": "Kestrel's on-call agent is connected to 40 tools on seven MCP servers and a library of 24 runbooks, all loaded into every request. A typical incident uses one runbook and three or four tools, input tokens per request are well over the team's budget, and the catalogue is expected to triple next quarter. Which context strategy is best?",
+ "options": {
+  "A": "Keep everything loaded and turn on prompt caching for the tool definitions and runbooks, so the repeated prefix costs less on each request.",
+  "B": "Split the agent into seven subagents, one per MCP server, each loaded with all of its own server's tools and runbooks.",
+  "C": "Keep a small hot set of tools loaded, and let the agent search an index and load only the runbook and tools the incident needs.",
+  "D": "Shorten every tool description and runbook to a single line, so that the whole catalogue still fits within the budget."
+ },
+ "answer": "C",
+ "why": "Progressive discovery keeps the request close to what the task needs: a hot set that every incident uses stays loaded, and the long tail is found through a small index and loaded on demand. The request size stops growing with the catalogue, and Claude chooses among a handful of relevant tools instead of 40. The cost is an extra search turn and the risk of a search miss, which precise names and descriptions reduce.",
+ "wrong": {
+  "A": "Caching lowers the price of a repeated prefix, but every request still carries all 40 tools and 24 runbooks, and the context still grows with the catalogue.",
+  "B": "Incidents cross servers, so a router must still choose, and each subagent remains monolithic for its own share of the catalogue.",
+  "D": "One-line descriptions and runbooks lose the steps and constraints that make tool choice and the response correct."
+ },
+ "fix": "Load a small hot set up front and let the agent search an index and load only the runbook and tools the task needs.",
+ "see": "Monolithic requests carry about 8,000 input tokens each; progressive requests start with 3 tool definitions, load RB-17 and stay near 2,500, with the same correct action.",
+ "explain": "Both phases handle the same incident with the same backend. Monolithic, every request carries 40 tool definitions and all 24 runbooks, about 8,000 to 9,000 input tokens per request against a 5,000-token budget, although the incident needs one runbook and four tools. Progressive, the first request carries three tool definitions (search_catalog, load, incident_note); Claude searches the index, loads RB-17, which brings flag_history, flag_disable and metrics_query, disables checkout.new-tax-engine and does not roll back the deploy. The incident costs about a third of the input tokens, and that gap widens as the catalogue grows.",
+ "exam_tip": "Monolithic context fits a small, stable set of tools that every request uses. When the catalogue is large, grows, and each task uses a few items, the exam wants progressive discovery with a hot set. Caching, trimming descriptions and splitting by server do not stop context growing with the catalogue.",
+ "source": "Original question written for C740",
+ "headline": "Load the hot set. Search for the rest.",
+ "concepts": [
+  {
+   "t": "Context is an attention budget",
+   "b": "Every tool definition and document in the request is paid for on every turn and competes for attention. Loading things 'just in case' has a cost."
+  },
+  {
+   "t": "Monolithic: simple, and it grows",
+   "b": "Everything up front is predictable and easy to cache, but request size grows with the catalogue and tool choice gets harder as counts pass about 30 to 50."
+  },
+  {
+   "t": "Progressive: index, search, load",
+   "b": "A one-line index is searched in code; only the runbooks and tools the task needs are loaded into the request, so its size stays close to the task."
+  },
+  {
+   "t": "Keep a hot set loaded",
+   "b": "Tools every task uses (search, load, the incident note) stay in every request. Discovery is for the long tail."
+  },
+  {
+   "t": "The platform's versions",
+   "b": "The Claude API's tool search tool defers tool definitions until searched; Agent Skills load a name and description first and the body only when triggered."
+  }
+ ]
+}

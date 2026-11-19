@@ -1,0 +1,55 @@
+Meridian Health · Patient Patient A, MRN 00-4417, admitted 2026-11-10, discharged 2026-11-14. 20 notes: 8 clinical (admission, med rec, ward rounds, haematology, rash, discharge plan), 12 routine observations.
+The medication story: metformin and ramipril withheld for AKI; amoxicillin stopped for a rash (penicillin allergy); warfarin switched to apixaban; ramipril restarted at 2.5 mg; metformin stays held for the GP.
+== Phase 1 · one giant prompt: the whole discharge pack, every section's rules, in one call
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: max_tokens -> STOP: Claude has finished
+Phase 1: stop_reason max_tokens · no usable JSON · 1 problem: no usable pack (stop_reason max_tokens)
+
+== PAUSE · Phase 1 finished: one call for the whole pack
+   outcome: **stop_reason: max_tokens.** The call spent its 4,096-token budget planning six sections for three readers and returned no usable pack.
+   proceed: Phase 2: one pass per section group, then reconcile in code
+
+== Phase 2 · section passes (local), then a reconciliation step in code (global), one repair per failing section
+    (section: medications + allergies) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (section: medications + allergies) answer: {"medications":[{"drug":"Amoxicillin (IV)","dose":"1 g","frequency":"TDS","status":"stopped","reason":"Urticarial rash about 40 minutes after the 06:00 dose on day 3, consistent with amoxicillin hypersensitivity. Stoppe…
+    (section: diagnoses, course, pending) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (section: diagnoses, course, pending) answer: {"diagnoses":["Community-acquired pneumonia, right lower lobe (CURB-65 2)","Acute kidney injury stage 1, prerenal/sepsis, resolving","Supratherapeutic INR 4.8 on warfarin, due to doxycycline interaction and poor oral in…
+    (section: GP actions) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (section: GP actions) answer: {"gp_actions":["Arrange U&E (urea and electrolytes) blood test in 1 week to check renal recovery after acute kidney injury.","Use the U&E result to decide whether metformin 1 g BD can be restarted; it must not be restar…
+    (section: patient instructions) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (section: patient instructions) answer: {"patient_instructions": "Take these medicines. Doxycycline, one 100 milligram tablet two times a day, until your course ends on 15 November 2026. Apixaban, one 5 milligram tablet two times a day, is a blood thinner tha…
+Reconcile (code): patient instructions: patient_instructions is 148 words (rule: under 120)
+    (repair: patient instructions) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (repair: patient instructions) answer: {"patient_instructions":"Take these medicines. Doxycycline, a 100 milligram tablet two times a day, until 15 November 2026. Apixaban, a 5 milligram tablet two times a day, is a blood thinner. It replaces warfarin. Ramip…
+Repair patient instructions: now passes
+
+== Turns
+turn 1: stop_reason=max_tokens
+(section: medications + allergies) turn 1: stop_reason=end_turn
+(section: diagnoses, course, pending) turn 1: stop_reason=end_turn
+(section: GP actions) turn 1: stop_reason=end_turn
+(section: patient instructions) turn 1: stop_reason=end_turn
+(repair: patient instructions) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the single call did not deliver a pack that passes every section rule
+PASS  Phase 2: every section group ended with valid JSON, at most one of them needing its single repair
+PASS  Phase 2: the medication list matches the last order for all 7 drugs, and the penicillin allergy is recorded
+PASS  Phase 2: after reconciliation (at most one repair per section), every section passes its rules
+
+== Side by side
+[trap] Phase 1: one giant prompt: **stop_reason max_tokens**: the whole 4,096-token budget went on one call, and there is no pack to sign off.
+[fix] Phase 2: section passes, then reconcile: 4 passes, all end_turn; reconciliation found 1 problem, repaired patient instructions once; the pack passes every rule.
+  Claude calls | 1 | 5
+  stop_reason | max_tokens (bad) | end_turn (good)
+  What each call reads | all 20 notes and every rule | only its notes (or the meds JSON) and its own rule
+  Medications vs the last order (7 drugs) | no list (bad) | all 7 right (good)
+  Rule problems found by the validators | pack missing (bad) | 1 found, 0 left (good)
+  A failing section can be redone alone | no (bad) | yes (good)
+
+6 Claude calls · 9480 in / 12239 out tokens · about US$0.0071 · 56.1 s

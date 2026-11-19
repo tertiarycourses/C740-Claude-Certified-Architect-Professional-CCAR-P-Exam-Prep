@@ -1,0 +1,55 @@
+Aisha Rahman (branch_teller, Harbourfront): "Is Harbourfront branch on the closure list for next year? I keep hearing rumours. Also, how many days of compassionate leave do I get if my grandmother dies?"
+== Phase 1 · retrieval as the svc-policy-bot service account: reads every document, filters nothing
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> search_policies({"query":"Harbourfront branch closure list next year"})
+  <- result: {"results":[{"chunk_id":"OPS-30#2","document":"OPS-30 Branch Network Review 2027","text":"Closure list rationale: Harbourfront branch footfall fell 4…
+  -> search_policies({"query":"compassionate leave days bereavement grandmother"})
+  <- result: {"results":[{"chunk_id":"HR-03#2","document":"HR-03 Leave","text":"Compassionate leave on the death of a family member: 3 days for immediate family (…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: Yes, according to the policy library, Harbourfront is on the closure list. This isn't a rumour. - **Closure:** The 2027 Branch Network Review says the Harbourfront, Eastgate and Mill Lane branches close on 30 June 2027 [OPS-30#1]. - **Reason:** Harbourfront's footfall fell 41% in two years, and its accounts will move to the Central branch [OPS-30#2]. - **Timing:** Staff consultation opens on 2 February 2027, and branch staff are told on that date [OPS-30#1]. - **Redeployment:** Redeployment offers go to tellers first [OPS-30#2]. The library doesn't say what happens to staff beyond these point…
+  retrieval as svc-policy-bot: "Harbourfront branch closure list next year" -> OPS-30#2, OPS-30#1, HR-09#1 (allow: service account, read:all-documents, no filter)
+  retrieval as svc-policy-bot: "compassionate leave days bereavement grandmother" -> HR-03#2, HR-03#1, HR-09#1 (allow: service account, read:all-documents, no filter)
+
+== PAUSE · Phase 1 finished: one service account, no filter
+   outcome: **Restricted chunks OPS-30#2, OPS-30#1 entered Claude's context** for a branch teller, and the reply tells her about the Harbourfront closure. The retrieval layer never asked who was asking.
+   proceed: Phase 2: the same question, with Aisha's own token and an entitlement filter before ranking
+
+== Phase 2 · retrieval as Aisha: her short-lived token is validated and chunks outside her entitlements are dropped before ranking
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> search_policies({"query":"Harbourfront branch closure list next year"})
+  <- result: {"results":[{"chunk_id":"HR-09#1","document":"HR-09 Remote Work","text":"Remote work: head-office roles may work remotely up to 2 days a week with ma…
+  -> search_policies({"query":"compassionate leave days bereavement grandmother"})
+  <- result: {"results":[{"chunk_id":"HR-03#2","document":"HR-03 Leave","text":"Compassionate leave on the death of a family member: 3 days for immediate family (…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: **Branch closure:** The policy library has nothing on closure plans for Harbourfront or any other branch, so I can't confirm or rule out the rumours. Your manager or HR would be the right people to ask about that. **Compassionate leave:** A grandmother counts as a grandparent, which the policy classes as extended family. That gives you **1 day** of compassionate leave. Immediate family (spouse, child, parent, sibling) gets 3 days. You should tell your line manager on the day [HR-03#2].
+  retrieval as u-aisha: "Harbourfront branch closure list next year" -> HR-09#1, LEND-04#1, OPS-21#1 (allow: u-aisha (branch_teller), 5 chunks outside entitlements dropped before ranking)
+  retrieval as u-aisha: "compassionate leave days bereavement grandmother" -> HR-03#2, HR-03#1, HR-09#1 (allow: u-aisha (branch_teller), 5 chunks outside entitlements dropped before ranking)
+  probe: a token minted for northwind-hr-portal -> refused (401): Token audience northwind-hr-portal is not northwind-policy-search: request denied.
+
+== Turns
+turn 1: stop_reason=tool_use tools=search_policies,search_policies
+turn 2: stop_reason=end_turn
+turn 1: stop_reason=tool_use tools=search_policies,search_policies
+turn 2: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: every retrieval ran as the service account, with no user identity
+PASS  Phase 1: a restricted OPS-30 chunk entered Claude's context for a branch teller
+PASS  Phase 2: every retrieval ran under Aisha's own token for this audience, and chunks outside her entitlements were dropped
+PASS  Phase 2: no restricted chunk reached Claude, and the reply cites HR-03#2
+PASS  Phase 2 probe: a token minted for another audience was refused (fail closed)
+
+== Side by side
+[trap] Phase 1: service account, no filter: OPS-30#2, OPS-30#1 reached Claude's context for a branch teller, and the reply discloses the closure. Whatever the prompt says, the data has already crossed the boundary.
+[fix] Phase 2: delegated token + entitlement filter: The retrieval service dropped 5 chunks outside branch_teller entitlements before ranking. Claude answered the leave question from HR-03#2 and had nothing on closures to disclose.
+  Identity on each retrieval call | svc-policy-bot (read:all-documents) | u-aisha · aud northwind-policy-search · 5-min token (good)
+  Chunks that reached Claude | OPS-30#2, OPS-30#1, HR-09#1, HR-03#2, HR-03#1 | HR-09#1, LEND-04#1, OPS-21#1, HR-03#2, HR-03#1
+  Restricted chunks in Claude's context | 2 (bad) | 0 (good)
+  Reply discloses the Harbourfront closure | yes (bad) | no (good)
+  Token for another audience (probe) | not checked: no user token at all | refused (401) (good)
+
+4 Claude calls · 3788 in / 1028 out tokens · about US$0.0009 · 7.0 s

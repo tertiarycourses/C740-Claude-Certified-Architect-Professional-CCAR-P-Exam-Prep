@@ -1,0 +1,43 @@
+Kestrel · PR 512 "Partial refunds from the order page" by Dev Patel (squad 3); PR 513 "Test for cart totals"
+== Phase 1 · ad hoc chat review: the engineer pastes the diff and asks for a look
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: Don't merge yet. The most serious problem is the log line. **Blocking** 1. **Logging the full card number.** `log.info(... card.number ...)` writes raw PAN data to logs, which is a PCI DSS violation and a data-exposure risk. Log only the token or last four digits, or drop the card from the message entirely: ```python log.info("refunding %s cents for order %s", amount_cents, order.id) ``` 2. **No timeout on `requests.post`.** If the payments service hangs, this call blocks the worker indefinitely. Add one: ```python resp = requests.post(..., timeout=10) ``` **Should fix** 3. **No idempotency k…
+CI gate on the chat reply: not JSON: no machine-readable result. The pipeline has nothing to fail on, so PR 512 merges unless a human reads the reply (the reply does mention the card number, in prose).
+
+== PAUSE · Phase 1 finished: an ad hoc review in a chat
+   outcome: The reply is 267 words of prose and does mention the card number, but **the CI step cannot parse it** (not JSON: no machine-readable result), so nothing blocks the merge. It ran only because one engineer remembered, with that engineer's own prompt.
+   proceed: Phase 2: the same PR, reviewed by claude -p in CI with the shared skill and a findings schema, behind a gate
+
+== Phase 2 · claude -p in CI: committed /pr-review skill + JSON schema on every PR, then a gate in plain code
+    (CI: claude -p /pr-review 512) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (CI: claude -p /pr-review 512) answer: {"findings":[{"file":"payments/refund.py","line":14,"rule":"KR-1","severity":"high","message":"Logs card.number, which is a card number, in the info log message. Remove it from the log call."},{"file":"payments/refund.p…
+    (CI: claude -p /pr-review 513) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (CI: claude -p /pr-review 513) answer: {"findings":[],"verdict":"pass"}
+PR 512: 4 finding(s): KR-1/high payments/refund.py:14, KR-2/high payments/refund.py:15, KR-3/medium payments/refund.py:15, KR-4/low payments/refund.py:10 → gate exit 1 (2 high-severity finding(s))
+PR 513: 0 finding(s): none → gate exit 0 (no high-severity finding)
+
+== Turns
+turn 1: stop_reason=end_turn
+(CI: claude -p /pr-review 512) turn 1: stop_reason=end_turn
+(CI: claude -p /pr-review 513) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the ad hoc chat review is prose the CI gate cannot parse, so it gives no verdict on PR 512
+PASS  Phase 2: both CI reviews return findings that parse against the schema
+PASS  Phase 2: PR 512 has a KR-1 finding at payments/refund.py line 14, and the gate exits 1
+PASS  Phase 2: the clean PR 513 has no high-severity finding, and the gate exits 0
+
+== Side by side
+[trap] Phase 1: ad hoc chat review: Useful prose that even mentions the card number, but **nothing a pipeline can act on**: the gate has no verdict and PR 512 merges unless a human reads the reply.
+[fix] Phase 2: claude -p in CI with the shared skill: Schema-valid findings on both PRs; **PR 512 is blocked** (KR-1 at refund.py line 14, KR-2 on the refund call) and PR 513 passes with no high finding.
+  When it runs | when an engineer remembers | on every pull request, in CI (good)
+  Review rules | whatever the engineer's prompt says | committed /pr-review skill: KR-1..KR-4 (good)
+  Machine-readable result | no: prose (bad) | yes: findings JSON (good)
+  PR 512 findings | card number mentioned in prose | KR-1 high line 14, KR-2 high line 15, KR-3 medium line 15, KR-4 low line 10
+  PR 512 gate | no verdict → merges (bad) | exit 1 → blocked (good)
+  PR 513 (clean) gate | not reviewed | exit 0 → passes (good)
+
+3 Claude calls · 2359 in / 1606 out tokens · about US$0.0010 · 10.9 s

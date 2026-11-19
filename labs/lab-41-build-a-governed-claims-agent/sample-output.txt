@@ -1,0 +1,241 @@
+$ uv run check_tools.py
+Using CPython 3.13.4
+Creating virtual environment at: .venv
+Installed 17 packages in 26ms
+triage     5 tools: get_claim, get_policy, request_assessment, draft_letter, escalate_to_adjuster
+settlement 6 tools: get_claim, get_policy, request_assessment, draft_letter, approve_payout, escalate_to_adjuster
+delete/export/update tools anywhere: none
+[settlement] get_claim({'claim_id': 'CLM-7781'}) -> is_error False {"claim_id": "CLM-7781", "policy_id": "HM-POL-2201", "type": "collision", "claimed_usd": 4200, "description": "Rear bumper and boot lid damaged when another car
+[settlement] approve_payout({'claim_id': 'CLM-7790', 'amount': 18600, 'reason': 'total loss'}) -> is_error True {"errorCategory": "validation", "isRetryable": false, "message": "third-party only policy HM-POL-2240 does not cover collision."}
+[triage] approve_payout({'claim_id': 'CLM-7781', 'amount': 3700, 'reason': 'test'}) -> is_error True {"errorCategory": "permission", "isRetryable": false, "message": "Tool approve_payout is not available to the triage role."}
+
+$ uv run check_guards.py
+approve_payout $3700: {'decision': 'allow'}
+approve_payout $7400: {'decision': 'ask', 'reason': "Payout of $7,400 is above the agent's payout authority."}
+approve_payout $-50: {'decision': 'deny', 'reason': 'Blocked: approve_payout needs a positive numeric amount.'}
+get_claim: {'decision': 'allow'}
+
+get_policy redacted: {"policy_id": "HM-POL-2201", "policyholder_id": "PH-301", "product": "comprehensive motor", "excess_usd": 500, "covers": ["collision", "windscreen", "flood", "theft", "third_party"], "status": "active", "vehicle": "2022 Kestrel Hatch", "policyholder": {"policyholder_id": "PH-301", "name": "Priya Nair", "email": "[REDACTED]", "phone": "[REDACTED]", "national_id": "[REDACTED]", "date_of_birth": "[REDACTED]", "address": "[REDACTED]", "bank_account": "[REDACTED]"}}
+
+get_claim redacted: {"claim_id": "CLM-7811", "policy_id": "HM-POL-2263", "type": "flood", "claimed_usd": 7900, "description": "Engine flooded when the underpass filled with water during the storm. Garage report attached. My bank account for the payout is [ACCOUNT].", "assessment": {"status": "complete", "assessed_usd": 7900, "note": "Water ingress to engine confirmed by assessor."}}
+
+$ uv run agent.py CLM-7781
+trace_id=c521ceddaac0 role=settlement tools=['get_claim', 'get_policy', 'request_assessment', 'draft_letter', 'approve_payout', 'escalate_to_adjuster']
+
+Turn 1: stop_reason=tool_use (1418 in / 56 out tokens, 908 ms)
+  get_claim({"claim_id": "CLM-7781"}) -> ALLOW {"claim_id": "CLM-7781", "policy_id": "HM-POL-2201", "type": "collision", "claimed_usd": 4200, "description": "Rear bumper and boo
+
+Turn 2: stop_reason=tool_use (1627 in / 58 out tokens, 761 ms)
+  get_policy({"policy_id": "HM-POL-2201"}) -> ALLOW {"policy_id": "HM-POL-2201", "policyholder_id": "PH-301", "product": "comprehensive motor", "excess_usd": 500, "covers": ["collisi
+
+Turn 3: stop_reason=tool_use (1915 in / 252 out tokens, 1401 ms)
+  approve_payout({"claim_id": "CLM-7781", "amount": 3700, "reason": "Collision claim covered under active comprehensive policy ) -> ALLOW {"payout_id": "PAY-BAC4E6", "claim_id": "CLM-7781", "amount": 3700.0, "reason": "Collision claim covered under active comprehensiv
+
+Turn 4: stop_reason=tool_use (2304 in / 279 out tokens, 1519 ms)
+  draft_letter({"claim_id": "CLM-7781", "outcome": "approved", "body": "Dear Ms Nair,\n\nWe are pleased to let you know that ) -> ALLOW {"letter_id": "LTR-4659A6", "claim_id": "CLM-7781", "outcome": "approved", "status": "draft", "body": "Dear Ms Nair,\n\nWe are ple
+
+Turn 5: stop_reason=end_turn (2834 in / 131 out tokens, 1036 ms)
+
+=== For the claims desk ===
+CLM-7781 is approved and paid. The collision was covered under active policy HM-POL-2201, and the repair quote was verified against photos at $4,200. After the $500 excess, I paid $3,700 (payout PAY-BAC4E6). The approval letter is drafted (LTR-4659A6) for a human to send.
+
+Outcome: Approved and paid
+Amount paid: $3,700
+
+$ uv run agent.py CLM-7811
+trace_id=81941d7b27a9 role=settlement tools=['get_claim', 'get_policy', 'request_assessment', 'draft_letter', 'approve_payout', 'escalate_to_adjuster']
+
+Turn 1: stop_reason=tool_use (1418 in / 56 out tokens, 874 ms)
+  get_claim({"claim_id": "CLM-7811"}) -> ALLOW {"claim_id": "CLM-7811", "policy_id": "HM-POL-2263", "type": "flood", "claimed_usd": 7900, "description": "Engine flooded when the
+
+Turn 2: stop_reason=tool_use (1627 in / 58 out tokens, 790 ms)
+  get_policy({"policy_id": "HM-POL-2263"}) -> ALLOW {"policy_id": "HM-POL-2263", "policyholder_id": "PH-303", "product": "comprehensive motor", "excess_usd": 500, "covers": ["collisi
+
+Turn 3: stop_reason=tool_use (1914 in / 312 out tokens, 1714 ms)
+  approve_payout({"claim_id": "CLM-7811", "amount": 7400, "reason": "Flood damage to engine on comprehensive motor policy HM-PO) -> QUEUED {"status": "queued_for_human_approval", "approval_id": "APR-D9C7C3", "message": "Payout of $7,400 is above the agent's payout auth
+
+Turn 4: stop_reason=tool_use (2344 in / 333 out tokens, 1878 ms)
+  draft_letter({"claim_id": "CLM-7811", "outcome": "pending", "body": "Dear Policyholder,\n\nThank you for reporting the floo) -> ALLOW {"letter_id": "LTR-28B32A", "claim_id": "CLM-7811", "outcome": "pending", "status": "draft", "body": "Dear Policyholder,\n\nThank 
+
+Turn 5: stop_reason=end_turn (2980 in / 149 out tokens, 1171 ms)
+
+=== For the claims desk ===
+Claim CLM-7811 is covered and assessed, but the $7,400 payout is above my payout authority. The system queued it for a human adjuster as APR-D9C7C3, so I did not retry it. I drafted a pending letter (LTR-28B32A) for a person to send.
+
+Outcome: Pending (queued for human approval, APR-D9C7C3)
+Amount recommended: $7,400 ($7,900 assessed less $500 excess)
+
+$ uv run agent.py CLM-7790
+trace_id=f437f41101e4 role=settlement tools=['get_claim', 'get_policy', 'request_assessment', 'draft_letter', 'approve_payout', 'escalate_to_adjuster']
+
+Turn 1: stop_reason=tool_use (1418 in / 56 out tokens, 892 ms)
+  get_claim({"claim_id": "CLM-7790"}) -> ALLOW {"claim_id": "CLM-7790", "policy_id": "HM-POL-2240", "type": "collision", "claimed_usd": 18600, "description": "My own car was wri
+
+Turn 2: stop_reason=tool_use (1611 in / 58 out tokens, 759 ms)
+  get_policy({"policy_id": "HM-POL-2240"}) -> ALLOW {"policy_id": "HM-POL-2240", "policyholder_id": "PH-302", "product": "third-party only", "excess_usd": 0, "covers": ["third_party"
+
+Turn 3: stop_reason=tool_use (1879 in / 740 out tokens, 3507 ms)
+  draft_letter({"claim_id": "CLM-7790", "outcome": "declined", "body": "Dear Mr Okafor,\n\nThank you for reporting your claim) -> ALLOW {"letter_id": "LTR-890C04", "claim_id": "CLM-7790", "outcome": "declined", "status": "draft", "body": "Dear Mr Okafor,\n\nThank yo
+  escalate_to_adjuster({"claim_id": "CLM-7790", "reason": "Claim is for own-vehicle collision damage (total loss, assessed at USD 18,) -> ALLOW {"ticket_id": "ADJ-BD9DAE", "claim_id": "CLM-7790", "status": "queued", "reason": "Claim is for own-vehicle collision damage (tota
+
+Turn 4: stop_reason=end_turn (3202 in / 243 out tokens, 1475 ms)
+
+=== For the claims desk ===
+Claim CLM-7790 is not covered. Policy HM-POL-2240 is third-party only, and the claim is for damage to the policyholder's own 2015 Meridian Saloon, a total loss assessed at USD 18,600. I did not pay anything.
+
+- Drafted a declined letter (LTR-890C04) explaining that the policy covers only third-party liability. It invites the policyholder to contact us if he holds another policy with own-damage cover.
+- Escalated to a human adjuster (ticket ADJ-BD9DAE) to confirm the decline. I asked them to check for any other policy with own-damage cover.
+
+Outcome: Declined, pending adjuster confirmation.
+Amount paid or recommended: USD 0.
+
+$ uv run agent.py CLM-7781 --role triage
+trace_id=f2fac32590ec role=triage tools=['get_claim', 'get_policy', 'request_assessment', 'draft_letter', 'escalate_to_adjuster']
+
+Turn 1: stop_reason=tool_use (1280 in / 56 out tokens, 938 ms)
+  get_claim({"claim_id": "CLM-7781"}) -> ALLOW {"claim_id": "CLM-7781", "policy_id": "HM-POL-2201", "type": "collision", "claimed_usd": 4200, "description": "Rear bumper and boo
+
+Turn 2: stop_reason=tool_use (1489 in / 58 out tokens, 757 ms)
+  get_policy({"policy_id": "HM-POL-2201"}) -> ALLOW {"policy_id": "HM-POL-2201", "policyholder_id": "PH-301", "product": "comprehensive motor", "excess_usd": 500, "covers": ["collisi
+
+Turn 3: stop_reason=tool_use (1777 in / 490 out tokens, 2381 ms)
+  escalate_to_adjuster({"claim_id": "CLM-7781", "reason": "Collision claim on active comprehensive policy HM-POL-2201 (2022 Kestrel H) -> ALLOW {"ticket_id": "ADJ-B4E2E9", "claim_id": "CLM-7781", "status": "queued", "reason": "Collision claim on active comprehensive policy 
+
+Turn 4: stop_reason=end_turn (2554 in / 257 out tokens, 1681 ms)
+
+=== For the claims desk ===
+CLM-7781 is a covered collision claim on an active comprehensive policy, with a complete assessment. I can't approve payouts, so I escalated it to a human adjuster (ticket ADJ-B4E2E9) with a recommended payout. No payment has been made and no letter has been drafted yet.
+
+Calculation: assessed USD 4,200 less USD 500 excess = USD 3,700.
+
+The adjuster's note also suggests checking whether recovery from the other driver's insurer is worth pursuing, since the damage was caused by another car reversing into the policyholder's vehicle.
+
+Claims desk summary:
+- **Outcome:** Escalated for approval (ADJ-B4E2E9); not yet approved or paid.
+- **Amount recommended:** USD 3,700
+
+$ uv run agent.py CLM-7802
+trace_id=ee7a656decfc role=settlement tools=['get_claim', 'get_policy', 'request_assessment', 'draft_letter', 'approve_payout', 'escalate_to_adjuster']
+
+Turn 1: stop_reason=tool_use (1418 in / 56 out tokens, 862 ms)
+  get_claim({"claim_id": "CLM-7802"}) -> ALLOW {"claim_id": "CLM-7802", "policy_id": "HM-POL-2201", "type": "windscreen", "claimed_usd": 650, "description": "Stone chip turned i
+
+Turn 2: stop_reason=tool_use (1575 in / 58 out tokens, 753 ms)
+  get_policy({"policy_id": "HM-POL-2201"}) -> ALLOW {"policy_id": "HM-POL-2201", "policyholder_id": "PH-301", "product": "comprehensive motor", "excess_usd": 500, "covers": ["collisi
+
+Turn 3: stop_reason=tool_use (1863 in / 629 out tokens, 3223 ms)
+  request_assessment({"claim_id": "CLM-7802", "notes": "Windscreen claim on comprehensive policy HM-POL-2201 (2022 Kestrel Hatch). ) -> ALLOW {"assessment_id": "ASM-A091F8", "claim_id": "CLM-7802", "status": "requested", "notes": "Windscreen claim on comprehensive policy 
+  draft_letter({"claim_id": "CLM-7802", "outcome": "pending", "body": "Dear Policyholder,\n\nThank you for reporting the wind) -> ALLOW {"letter_id": "LTR-D9E31F", "claim_id": "CLM-7802", "outcome": "pending", "status": "draft", "body": "Dear Policyholder,\n\nThank 
+
+Turn 4: stop_reason=end_turn (3011 in / 302 out tokens, 1871 ms)
+
+=== For the claims desk ===
+CLM-7802 is covered but not yet assessed, so I have not paid it.
+
+- **Coverage:** Policy HM-POL-2201 is an active comprehensive policy that covers windscreen damage. The excess is $500.
+- **Assessment:** I requested a loss assessor inspection (ASM-A091F8) to confirm the damage and the repair amount.
+- **Letter:** I drafted a pending letter (LTR-D9E31F) telling the policyholder the claim is under assessment. A human needs to send it.
+- **Next step:** Once the assessor reports, the payout will be the assessed amount minus the $500 excess. The claimed $650 would give $150 if the assessment matches.
+
+Claims desk summary:
+- **Outcome:** Pending (assessment requested)
+- **Amount paid or recommended:** $0 paid so far; provisional figure $150 if the claimed $650 is confirmed.
+
+$ uv run approve.py
+1 pending approval(s)
+  APR-D9C7C3  CLM-7811  $7,400.00  trace 81941d7b27a9  Flood damage to engine on comprehensive motor policy HM-POL-2263. Asse
+
+$ uv run approve.py APR-D9C7C3 approve --by "Sam Lee"
+APR-D9C7C3: approved by Sam Lee -> {"payout_id": "PAY-EC5FEC", "claim_id": "CLM-7811", "amount": 7400.0, "reason": "Approved by Sam Lee (APR-D9C7C3)", "status": "paid", "ts": "2026-11-18T19:08:56+00:00"}
+
+$ uv run approve.py
+0 pending approval(s)
+
+$ uv run audit_report.py
+Runs (traces): 5   model calls: 22   tool calls: 19
+Tool decisions: {'allow': 18, 'queued': 1}
+Calls per tool: {'get_claim': 5, 'get_policy': 5, 'approve_payout': 2, 'draft_letter': 4, 'escalate_to_adjuster': 2, 'request_assessment': 1}
+
+Approvals by the agent: 1, total $3,700.00
+  CLM-7781  $3,700.00  trace c521ceddaac0
+Stopped by the gate: 1
+  QUEUED CLM-7811  approve_payout  7400  trace 81941d7b27a9
+Human decisions: 1
+  human_approved  CLM-7811  $7,400.00  by human:Sam Lee
+
+Tokens: 43458 in / 4687 out   cost US$0.0067   per run US$0.0013
+Model latency p50 / p95: 1036 / 3223 ms
+stop_reasons: {'tool_use': 17, 'end_turn': 5}
+
+$ uv run audit_report.py --trace 81941d7b27a9
+2026-11-18T19:08:27.519+00:00  turn 1  model  model stop_reason=tool_use                 874 ms  
+2026-11-18T19:08:27.519+00:00  turn 1  tool   get_claim              allow           0 ms  
+2026-11-18T19:08:28.309+00:00  turn 2  model  model stop_reason=tool_use                 790 ms  
+2026-11-18T19:08:28.310+00:00  turn 2  tool   get_policy             allow           0 ms  
+2026-11-18T19:08:30.024+00:00  turn 3  model  model stop_reason=tool_use                 1714 ms  
+2026-11-18T19:08:30.025+00:00  turn 3  tool   approve_payout         queued          0 ms  Payout of $7,400 is above the agent's payout authority. Queued as APR-D9C7C3.
+2026-11-18T19:08:31.902+00:00  turn 4  model  model stop_reason=tool_use                 1878 ms  
+2026-11-18T19:08:31.903+00:00  turn 4  tool   draft_letter           allow           0 ms  
+2026-11-18T19:08:33.074+00:00  turn 5  model  model stop_reason=end_turn                 1171 ms  
+2026-11-18T19:08:56.005+00:00  turn -  human  approve_payout         human_approved  - ms  
+
+$ uv run test_governance.py
+Run A: CLM-7781, settlement role (covered, $3,700)
+trace_id=a181905fad5a role=settlement tools=['get_claim', 'get_policy', 'request_assessment', 'draft_letter', 'approve_payout', 'escalate_to_adjuster']
+
+Turn 1: stop_reason=tool_use (1418 in / 56 out tokens, 911 ms)
+  get_claim({"claim_id": "CLM-7781"}) -> ALLOW {"claim_id": "CLM-7781", "policy_id": "HM-POL-2201", "type": "collision", "claimed_usd": 4200, "description": "Rear bumper and boo
+
+Turn 2: stop_reason=tool_use (1627 in / 58 out tokens, 757 ms)
+  get_policy({"policy_id": "HM-POL-2201"}) -> ALLOW {"policy_id": "HM-POL-2201", "policyholder_id": "PH-301", "product": "comprehensive motor", "excess_usd": 500, "covers": ["collisi
+
+Turn 3: stop_reason=tool_use (1915 in / 260 out tokens, 1417 ms)
+  approve_payout({"claim_id": "CLM-7781", "amount": 3700, "reason": "Collision claim covered under comprehensive motor policy H) -> ALLOW {"payout_id": "PAY-AC2CF6", "claim_id": "CLM-7781", "amount": 3700.0, "reason": "Collision claim covered under comprehensive motor
+
+Turn 4: stop_reason=tool_use (2316 in / 491 out tokens, 2590 ms)
+  draft_letter({"claim_id": "CLM-7781", "outcome": "approved", "body": "Dear Priya Nair,\n\nThank you for reporting the colli) -> ALLOW {"letter_id": "LTR-DEA476", "claim_id": "CLM-7781", "outcome": "approved", "status": "draft", "body": "Dear Priya Nair,\n\nThank y
+  escalate_to_adjuster({"claim_id": "CLM-7781", "reason": "For information only: payout of $3,700 was approved and paid (PAY-AC2CF6).) -> ALLOW {"ticket_id": "ADJ-A3303B", "claim_id": "CLM-7781", "status": "queued", "reason": "For information only: payout of $3,700 was appr
+
+Turn 5: stop_reason=end_turn (3278 in / 206 out tokens, 1369 ms)
+
+Run B: CLM-7811, settlement role (covered, $7,400: above the agent's authority)
+trace_id=484ae2f3304b role=settlement tools=['get_claim', 'get_policy', 'request_assessment', 'draft_letter', 'approve_payout', 'escalate_to_adjuster']
+
+Turn 1: stop_reason=tool_use (1418 in / 56 out tokens, 938 ms)
+  get_claim({"claim_id": "CLM-7811"}) -> ALLOW {"claim_id": "CLM-7811", "policy_id": "HM-POL-2263", "type": "flood", "claimed_usd": 7900, "description": "Engine flooded when the
+
+Turn 2: stop_reason=tool_use (1627 in / 58 out tokens, 747 ms)
+  get_policy({"policy_id": "HM-POL-2263"}) -> ALLOW {"policy_id": "HM-POL-2263", "policyholder_id": "PH-303", "product": "comprehensive motor", "excess_usd": 500, "covers": ["collisi
+
+Turn 3: stop_reason=tool_use (1914 in / 320 out tokens, 1789 ms)
+  approve_payout({"claim_id": "CLM-7811", "amount": 7400, "reason": "Flood damage to engine covered under comprehensive policy ) -> QUEUED {"status": "queued_for_human_approval", "approval_id": "APR-FE995A", "message": "Payout of $7,400 is above the agent's payout auth
+
+Turn 4: stop_reason=tool_use (2348 in / 338 out tokens, 1991 ms)
+  draft_letter({"claim_id": "CLM-7811", "outcome": "pending", "body": "Dear Tomas Varga,\n\nThank you for your claim CLM-7811) -> ALLOW {"letter_id": "LTR-B490BD", "claim_id": "CLM-7811", "outcome": "pending", "status": "draft", "body": "Dear Tomas Varga,\n\nThank y
+
+Turn 5: stop_reason=end_turn (2994 in / 209 out tokens, 1384 ms)
+
+Run C: CLM-7781, triage role (no payout tool)
+trace_id=085f57fb8732 role=triage tools=['get_claim', 'get_policy', 'request_assessment', 'draft_letter', 'escalate_to_adjuster']
+
+Turn 1: stop_reason=tool_use (1280 in / 56 out tokens, 882 ms)
+  get_claim({"claim_id": "CLM-7781"}) -> ALLOW {"claim_id": "CLM-7781", "policy_id": "HM-POL-2201", "type": "collision", "claimed_usd": 4200, "description": "Rear bumper and boo
+
+Turn 2: stop_reason=tool_use (1489 in / 58 out tokens, 757 ms)
+  get_policy({"policy_id": "HM-POL-2201"}) -> ALLOW {"policy_id": "HM-POL-2201", "policyholder_id": "PH-301", "product": "comprehensive motor", "excess_usd": 500, "covers": ["collisi
+
+Turn 3: stop_reason=tool_use (1777 in / 386 out tokens, 2044 ms)
+  escalate_to_adjuster({"claim_id": "CLM-7781", "reason": "Collision claim on active comprehensive policy HM-POL-2201, which covers c) -> ALLOW {"ticket_id": "ADJ-5E985C", "claim_id": "CLM-7781", "status": "queued", "reason": "Collision claim on active comprehensive policy 
+
+Turn 4: stop_reason=end_turn (2358 in / 271 out tokens, 1623 ms)
+
+PASS  A: approve_payout ran for 3700 and was allowed
+PASS  B: no approve_payout above $5,000 ran; every attempt was queued
+PASS  B: approval_queue.jsonl holds a pending CLM-7811 entry for this run
+PASS  C: the triage role never ran approve_payout
+PASS  No policyholder PII appears in any message sent to Claude
+PASS  Every tool call is in audit.jsonl with its trace_id
+PASS  No role has a delete, export or update tool
+
+7/7 checks passed
+

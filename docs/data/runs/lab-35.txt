@@ -1,0 +1,44 @@
+Lumen Retail · Write the delivery plan for the store product-support assistant.
+Lumen's product-support assistant goes live in 300 stores on 1 March (week 1). Lumen's in-house AI team (lead: Arun Pillai) takes over from the architect at the end of week 6. Lumen changes its product range every season; the spring range lands in week 5.
+== Phase 1 · plan to go-live: the project template ends at go-live and closure
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: {"phases":[{"name":"discovery","exit_gate":"Pilot baseline confirmed and recorded: escalation rate 8%, weekly graded accuracy 93.5% on a 100-answer sample, p95 latency 2.4 s, model cost about US$63 a day; success thresholds for go-live agreed with Farid Rahman and Arun Pillai.","owner":"Delivery lead"},{"name":"design","exit_gate":"Solution design approved, including product-range data sources and a process for updating them when the spring range lands in week 5; Lumen AI team (Arun Pillai) has reviewed the design for handoff at end of week 6.","owner":"Delivery lead with Arun Pillai"},{"name…
+Replay: wk1 7.9% · wk2 8.1% · wk3 8% · wk4 8.4% · wk5 9.6% (new range) · wk6 12.9% · wk7 14.7% · wk8 15.3% · wk9 15.1% · wk10 15.6%
+Phase 1: nothing watches after go-live. The drift that starts in week 5 is found in week 8: "Store managers escalate to the COO: 'the assistant can't answer anything about the spring range'".
+
+== PAUSE · Phase 1 finished: a plan that ends at go-live
+   outcome: The plan runs discovery → design → build → pilot → go_live and closes. **Nothing watches the system after go-live**, so the spring-range drift that starts in week 5 is first noticed in **week 8, from a complaint to the COO**, after Lumen's team had already taken over without criteria.
+   proceed: Phase 2: the same facts, with the lifecycle template: monitors that send changes back through evaluation, and handoff criteria
+
+== Phase 2 · lifecycle plan: monitors with thresholds and owners trigger iteration through the eval suite; handoff criteria
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: {"phases":[{"name":"discovery","exit_gate":"Support question categories, escalation reasons and the 300-store rollout scope are agreed and signed off by Farid Rahman (store operations) and Grace Lim (COO, sponsor).","owner":"Delivery lead (architect) with Farid Rahman"},{"name":"design","exit_gate":"Architecture, evaluation plan (graded-answer sample and rubric), escalation routing and the catalogue-change process are approved; the evaluation plan sets the pilot baseline targets.","owner":"Delivery lead (architect) with Arun Pillai"},{"name":"build","exit_gate":"Assistant passes the offline e…
+  monitor escalation_rate_pct above 10 (2 wk) → rerun_eval_suite_and_iterate · owner Arun Pillai · FIRES in week 7
+  monitor graded_accuracy_pct below 92 (2 wk) → rerun_eval_suite_and_iterate · owner Arun Pillai · FIRES in week 6
+  monitor p95_latency_s above 3 (2 wk) → page_on_call · owner Arun Pillai · never fires
+  monitor cost_per_day_usd above 80 (2 wk) → notify_only · owner Farid Rahman · never fires
+  monitor catalogue_change_event occurs (1 wk) → rerun_eval_suite_and_iterate · owner Arun Pillai · FIRES in week 5
+
+== Turns
+turn 1: stop_reason=end_turn
+turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the plan has no production monitor, so the week-5 drift waits for the week-8 complaint
+PASS  Phase 2: the plan's phases include handoff, monitoring and iteration
+PASS  Phase 2: in the replay a monitor sends the change back through the eval suite by week 6
+PASS  Phase 2: an escalation-rate monitor catches the drift before the complaint, routed to the evals
+PASS  Phase 2: at least 3 handoff criteria, each with its evidence
+
+== Side by side
+[trap] Phase 1: project plan to go-live: The plan stops at go_live. **No monitor, no owner after go-live**: the drift from week 5 surfaces in week 8 as a complaint to the COO.
+[fix] Phase 2: lifecycle plan: The catalogue-change monitor fires in week 5 and the escalation-rate monitor in week 7; **both send the change back through the eval suite**, 3 weeks before any complaint. 8 handoff criteria carry evidence.
+  Phases | discovery → design → build → pilot → go_live | discovery → design → build → pilot → go_live → handoff → monitoring → iteration → closure (good)
+  Monitors after go-live | 0 (bad) | 5 (good)
+  Drift first acted on (it starts week 5) | week 8, a complaint (bad) | week 5, re-run evals (good)
+  Catalogue change triggers evaluation | no (bad) | yes, week 5 (good)
+  Handoff criteria with evidence | none (bad) | 8 (good)
+
+2 Claude calls · 2216 in / 4209 out tokens · about US$0.0023 · 21.0 s

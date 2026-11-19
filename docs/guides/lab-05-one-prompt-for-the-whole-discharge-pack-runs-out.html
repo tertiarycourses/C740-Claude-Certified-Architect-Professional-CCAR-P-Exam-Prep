@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 5: One prompt for the whole discharge pack runs out: split and reconcile</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 5: One prompt for the whole discharge pack runs out: split and reconcile</h1>
+<blockquote>
+<p>Day 1 · Topic 1: Solution Design &amp; Architecture · Task statement 1.5 · Simulator 3: Meridian Clinical Notes · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 1.5: <strong>Apply decomposition techniques for complex problem solving.</strong> You answer one exam-style question, then run the Meridian Clinical Notes simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=5">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=5</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 5</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-05.js">docs/sims/lab-05.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>Meridian Health, a US hospital group, uses Claude to draft discharge summaries and referral letters from clinicians' visit notes. The notes contain protected health information (PHI) under HIPAA, and every draft is signed off by a clinician before it leaves the hospital. Accuracy, privacy and an audit trail matter more than speed.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>Decomposing trades difficulty for count.</strong> Each piece gets easier, but every extra step is another place an error can enter. A split pays when it makes each piece reliably right and checkable.</li>
+<li><strong>Cut at narrow, checkable seams.</strong> Pass a small structured artefact between steps (the medication JSON), not everything the next step might need. A seam you can validate is one you can trust.</li>
+<li><strong>Local first, global second.</strong> Section passes each see only their own evidence; a reconciliation step then checks the facts that span sections.</li>
+<li><strong>Read stop_reason first.</strong> A call that hits max_tokens stops mid-response, and with adaptive thinking the planning counts toward that budget too. Check stop_reason before using the output.</li>
+</ul>
+<h2>The question</h2>
+<p>Meridian Health generates a discharge pack from clinicians' notes: a medication reconciliation, a clinical summary, actions for the GP, and plain-English instructions for the patient, each with its own rules. One prompt writes the whole pack in a single call. It often stops at max_tokens, and when it finishes, a section often breaks its rules, so the whole call is rerun. Which approach best fixes this?</p>
+<ul>
+<li><strong>A.</strong> Write each section in its own pass with only its notes and rules, feed the medication JSON to the later passes, then validate every section and the shared facts in code.</li>
+<li><strong>B.</strong> Raise max_tokens to the model's maximum and add a reminder at the end of the prompt that every section's rules must be followed, so that one call completes the whole pack.</li>
+<li><strong>C.</strong> Move the single call to a larger model with a longer output limit, since a stronger model can plan six sections for three readers within one response.</li>
+<li><strong>D.</strong> Ask Claude to review its own pack at the end of the same call and to rewrite any section that breaks a rule before it returns the final version to the clinician.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=5">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=5</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 5
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: All four section passes ended with end_turn, and the reconciled pack passed every rule, with all 7 medications matching their last order.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Meridian Health · Patient Patient A, MRN 00-4417, admitted 2026-11-10, discharged 2026-11-14. 20 notes: 8 clinical (admission, med rec, ward rounds, haematology, rash, …
+The medication story: metformin and ramipril withheld for AKI; amoxicillin stopped for a rash (penicillin allergy); warfarin switched to apixaban; ramipril restarted at…
+== Phase 1 · one giant prompt: the whole discharge pack, every section's rules, in one call
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: max_tokens -&gt; STOP: Claude has finished
+Phase 1: stop_reason max_tokens · no usable JSON · 1 problem: no usable pack (stop_reason max_tokens)
+
+== PAUSE · Phase 1 finished: one call for the whole pack
+   outcome: **stop_reason: max_tokens.** The call spent its 4,096-token budget planning six sections for three readers and returned no usable pack.
+   proceed: Phase 2: one pass per section group, then reconcile in code
+
+== Phase 2 · section passes (local), then a reconciliation step in code (global), one repair per failing section
+    (section: medications + allergies) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (section: medications + allergies) answer: {&quot;medications&quot;:[{&quot;drug&quot;:&quot;Amoxicillin (IV)&quot;,&quot;dose&quot;:&quot;1 g&quot;,&quot;frequency&quot;:&quot;TDS&quot;,&quot;status&quot;:&quot;stopped&quot;,&quot;reason&quot;:&quot;Urticarial rash ab…
+    (section: diagnoses, course, pending) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (section: diagnoses, course, pending) answer: {&quot;diagnoses&quot;:[&quot;Community-acquired pneumonia, right lower lobe (CURB-65 2)&quot;,&quot;Acute kidney injury stage 1, prerenal/seps…
+    (section: GP actions) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (section: GP actions) answer: {&quot;gp_actions&quot;:[&quot;Arrange U&amp;E (urea and electrolytes) blood test in 1 week to check renal recovery after acute kidney injury.&quot;,&quot;Use the …
+    (section: patient instructions) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (section: patient instructions) answer: {&quot;patient_instructions&quot;: &quot;Take these medicines. Doxycycline, one 100 milligram tablet two times a day, until your course end…
+Reconcile (code): patient instructions: patient_instructions is 148 words (rule: under 120)
+    (repair: patient instructions) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (repair: patient instructions) answer: {&quot;patient_instructions&quot;:&quot;Take these medicines. Doxycycline, a 100 milligram tablet two times a day, until 15 November 2026. A…
+Repair patient instructions: now passes
+
+== Turns
+turn 1: stop_reason=max_tokens
+(section: medications + allergies) turn 1: stop_reason=end_turn
+(section: diagnoses, course, pending) turn 1: stop_reason=end_turn
+(section: GP actions) turn 1: stop_reason=end_turn
+(section: patient instructions) turn 1: stop_reason=end_turn
+(repair: patient instructions) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the single call did not deliver a pack that passes every section rule
+PASS  Phase 2: every section group ended with valid JSON, at most one of them needing its single repair
+PASS  Phase 2: the medication list matches the last order for all 7 drugs, and the penicillin allergy is recorded
+PASS  Phase 2: after reconciliation (at most one repair per section), every section passes its rules
+
+== Side by side
+[trap] Phase 1: one giant prompt: **stop_reason max_tokens**: the whole 4,096-token budget went on one call, and there is no pack to sign off.
+[fix] Phase 2: section passes, then reconcile: 4 passes, all end_turn; reconciliation found 1 problem, repaired patient instructions once; the pack passes every rule.
+  Claude calls | 1 | 5
+  stop_reason | max_tokens (bad) | end_turn (good)
+  What each call reads | all 20 notes and every rule | only its notes (or the meds JSON) and its own rule
+  Medications vs the last order (7 drugs) | no list (bad) | all 7 right (good)
+  Rule problems found by the validators | pack missing (bad) | 1 found, 0 left (good)
+  A failing section can be redone alone | no (bad) | yes (good)
+
+6 Claude calls · 9480 in / 12239 out tokens · about US$0.0071 · 56.1 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: A.</strong> A discharge pack is several jobs that share one record, each for a different reader with different rules. Decomposition gives each pass less to plan and less to read, and cuts at narrow seams: the medication pass returns structured JSON that the GP and patient passes read instead of the raw notes. Every seam can be checked, so code validates each section against its own rules and the facts that span sections, and only a failing section is repaired.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>B.</strong> A bigger budget may let the call finish, but every section still shares one blended set of rules, and one failing section still means rerunning the whole pack.</li>
+<li><strong>C.</strong> A larger model costs more and still produces one block with no checkable seams between the sections.</li>
+<li><strong>D.</strong> Self-review in the same call spends more of the same budget and is not an independent check; a failure still means a full rerun.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>A discharge pack is several jobs that share one record: a medication reconciliation that must follow the last order for each drug, a clinical narrative for clinicians, an action list for the GP and plain-English instructions for the patient. One giant prompt makes the model plan and write all of them at once under one output budget and one blended set of rules, so it either runs out (stop_reason max_tokens) or lets a section slip. Decomposition cuts at narrow seams: the medication pass returns structured JSON, and the GP and patient passes read that JSON instead of the raw notes. Every seam is checkable, so code validates each section against its own rules and the cross-section facts, and a failing section is repaired on its own. The cost is more calls and a design to maintain: cut where the output can be checked.</p>
+<h2>Exam tip</h2>
+<p>When one prompt does several jobs for different readers, look for the answer that splits at checkable seams (structured outputs) and adds a reconciliation step, not for a bigger budget or a bigger model.</p>
+<h2>Try this next</h2>
+<p>Raise BUDGET to 16000 and run it again: Phase 1 now usually finishes, but compare its patient instructions with the rules in RULE.patient and count the problems the reconciler lists. Then delete the ramipril line from note N15 in shared/d1-meridian.js: the medication pass reports ramipril 5 mg unchanged, and the reconciler names that exact problem.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

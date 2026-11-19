@@ -1,0 +1,44 @@
+[
+ {
+  "n": 1,
+  "name": "Harbour Mutual Claims Desk",
+  "company": "Harbour Mutual Insurance",
+  "tagline": "An agent that can pay out claims. Design it so it only pays the right ones.",
+  "scenario": "Harbour Mutual Insurance is replacing its first-line motor-claims triage with a Claude-based claims agent. The agent reads policies and claims, requests damage assessments, drafts customer letters, and can approve payouts or escalate to a human adjuster. Adjusters, the finance controller and the regulator all have a stake in how it is built. Claims arrive as free-text forms, photos and repair quotes."
+ },
+ {
+  "n": 2,
+  "name": "Northwind Policy Assistant",
+  "company": "Northwind Bank",
+  "tagline": "Ten thousand pages of policy. Every answer cites the page it came from.",
+  "scenario": "Northwind Bank's 4,000 staff ask an internal assistant about lending, compliance and HR policy. The answers come from a retrieval-augmented generation (RAG) pipeline over the bank's policy library, which is re-indexed every week as policies change. Wrong answers carry regulatory risk, so every answer must cite its source, and questions the library does not cover must be declined."
+ },
+ {
+  "n": 3,
+  "name": "Meridian Clinical Notes",
+  "company": "Meridian Health",
+  "tagline": "Summaries that save clinicians time, without leaking a single patient record.",
+  "scenario": "Meridian Health, a US hospital group, uses Claude to draft discharge summaries and referral letters from clinicians' visit notes. The notes contain protected health information (PHI) under HIPAA, and every draft is signed off by a clinician before it leaves the hospital. Accuracy, privacy and an audit trail matter more than speed."
+ },
+ {
+  "n": 4,
+  "name": "Riverton Resident Services",
+  "company": "Riverton City Council",
+  "tagline": "A public-sector assistant that treats every resident the same way.",
+  "scenario": "Riverton City Council runs a resident-services assistant that answers questions about permits, waste collection and benefit eligibility, and pre-screens applications for caseworkers. It must run in an authorised government cloud environment, handle residents' personal data under data-protection law, explain its decisions in plain language, and give the same quality of answer to every resident, whatever their language or background."
+ },
+ {
+  "n": 5,
+  "name": "Lumen Retail Engagement",
+  "company": "Lumen Retail",
+  "tagline": "The architect's job before and after the build: discovery, decisions, handoff.",
+  "scenario": "You are the Claude solution architect engaged by Lumen Retail, a 300-store retailer, to deliver an AI product-support assistant. You run discovery with the sponsor, store operations, IT security and legal; agree the service levels; record architecture decisions; hand the build to Lumen's own team; and run the system through monitoring and iteration after go-live. Claude helps you with each step."
+ },
+ {
+  "n": 6,
+  "name": "Kestrel Platform Team",
+  "company": "Kestrel Software",
+  "tagline": "Forty engineers, one shared Claude Code setup, and production to keep running.",
+  "scenario": "Kestrel Software's platform team is rolling Claude Code out to 40 engineers across four product squads, and runs Claude-powered features in production. The team owns the shared Claude Code configuration, the CI pipeline, the evaluation suite for each prompt change, and the on-call runbooks for incidents in Claude-powered services."
+ }
+]

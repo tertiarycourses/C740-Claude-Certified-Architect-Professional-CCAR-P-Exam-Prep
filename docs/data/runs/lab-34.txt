@@ -1,0 +1,50 @@
+Lumen Retail · The engagement ends in three weeks. Write the architecture handoff document for Lumen's in-house dev team, who will run and change the product-support assistant after you leave.
+== Phase 1 · architecture summary: a high-level handoff in prose
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: The Lumen product-support assistant answers store staff and customer questions through a single `POST /assist` endpoint, using Claude Haiku 5.5 (pinned in `config/assistant.yaml`) with retrieval over the product catalogue, which is rebuilt nightly. Prices and stock come only from the read-only product API, never from model-generated text, and customer messages are not kept after the session. When the assistant sets `escalate` to true, the store tablet opens a Store Help ticket for a human product specialist.
+    (Phase 1 reader: new Lumen developer) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (Phase 1 reader: new Lumen developer) answer: {"answers":[{"q":1,"found":false,"answer":"The document names the model as Claude Haiku 5.5 and says it is pinned in config/assistant.yaml, but it does not give an exact model ID string."},{"q":2,"found":false,"answer":…
+
+== PAUSE · Phase 1 finished: the high-level summary
+   outcome: The summary reads well, but it has **0 of 9** handoff sections and the new developer could answer **0 of 5** questions from it (Q1, Q2, Q3, Q4, Q5 missing). The notes had every answer; the document dropped them.
+   proceed: Phase 2: the same notes as ADR-007 plus an implementation guide with interfaces, runbook and owners
+
+== Phase 2 · ADR-007 + implementation guide: context, decision, consequences, alternatives; interfaces, runbook, owners
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: # ADR-007: Use Claude Haiku 5.5 with catalogue retrieval for the product-support assistant ## Context Lumen's product-support assistant answers customer product questions in stores. Answers must arrive within 3 seconds. The assistant must not invent prices or stock levels. Customer messages cannot be retained after a session (legal, INT-10). The human hotline option costs US$46,000 a month and has 6-minute waits. ## Decision Use Claude Haiku 5.5 (model ID `claude-haiku-5-5`, pinned in `config/assistant.yaml`) with retrieval over the product catalogue. Prices and stock come only from the read-…
+    (Phase 2 reader: new Lumen developer) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (Phase 2 reader: new Lumen developer) answer: {"answers":[{"q":1,"found":true,"answer":"The assistant uses model ID claude-haiku-5-5, pinned in config/assistant.yaml."},{"q":2,"found":true,"answer":"Request fields are store_id, session_id, and question (POST /assis…
+  Q1 ✓ The assistant uses model ID claude-haiku-5-5, pinned in config/assistant.yaml.
+  Q2 ✓ Request fields are store_id, session_id, and question (POST /assist). Response fields are answer, sources[], and escalate. When escalate is…
+  Q3 ✓ The runbook's first step is to open the Assistant health dashboard and confirm the escalation rate has been above 12% for two days. Since t…
+  Q4 ✓ Arun Pillai, Lumen AI team, owns the prompt and eval suite.
+  Q5 ✓ Sonnet 5.5 was rejected because its p95 latency of 3.6 s breaks the 3-second requirement, despite 95.0% accuracy, and it costs about US$9,6…
+
+== Turns
+turn 1: stop_reason=end_turn
+(Phase 1 reader: new Lumen developer) turn 1: stop_reason=end_turn
+turn 1: stop_reason=end_turn
+(Phase 2 reader: new Lumen developer) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the summary (a real reply, not empty) leaves the new developer unable to answer at least 2 of the 5 handoff questions
+PASS  Phase 2: ADR-007 has Context, Decision, Status, Consequences and Alternatives considered
+PASS  Phase 2: the implementation guide has Interfaces, Configuration, Runbook and Owners
+PASS  Phase 2: the new developer answered all 5 handoff questions with the right facts (model ID, fields, index check, Arun, Sonnet)
+
+== Side by side
+[trap] Phase 1: high-level architecture summary: Accurate and readable, but **0 of 9 sections**, and the newcomer answered **0 of 5** handoff questions. The model ID file, the runbook step, the owners or the rejected options went missing.
+[fix] Phase 2: ADR-007 + implementation guide: All nine sections present, and the newcomer answered **all five questions** from the document alone: the pinned model, the interface, the first runbook step, the owner and the rejected options.
+  Document shape | prose summary | ADR (why) + implementation guide (how, who) (good)
+  Sections found by heading | 0/9 (bad) | 9/9 (good)
+  Q1: Which exact model ID does the assistant use, and in which f… | not found (bad) | answered (good)
+  Q2: What are the request and response fields of the assistant's… | not found (bad) | answered (good)
+  Q3: The dashboard confirms the escalation rate has been above 1… | not found (bad) | answered (good)
+  Q4: Who owns the prompt and the eval suite? | not found (bad) | answered (good)
+  Q5: Which alternatives were rejected, and why? | not found (bad) | answered (good)
+
+4 Claude calls · 4688 in / 4740 out tokens · about US$0.0028 · 22.6 s

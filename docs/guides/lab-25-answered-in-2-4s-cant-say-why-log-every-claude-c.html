@@ -1,0 +1,138 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 25: &#x27;Answered in 2.4s&#x27; can&#x27;t say why: log every Claude call as a record</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 25: 'Answered in 2.4s' can't say why: log every Claude call as a record</h1>
+<blockquote>
+<p>Day 1 · Topic 4: Evaluation, Testing &amp; Optimization · Task statement 4.6 · Simulator 6: Kestrel Platform Team · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 4.6: <strong>Monitor system performance using logging and observability tools.</strong> You answer one exam-style question, then run the Kestrel Platform Team simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=25">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=25</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 25</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-25.js">docs/sims/lab-25.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>Kestrel Software's platform team is rolling Claude Code out to 40 engineers across four product squads, and runs Claude-powered features in production. The team owns the shared Claude Code configuration, the CI pipeline, the evaluation suite for each prompt change, and the on-call runbooks for incidents in Claude-powered services.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>What the API already tells you.</strong> Every response carries model, stop_reason and usage (input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens). Log them on every call.</li>
+<li><strong>Add your own context.</strong> Add a trace_id that links the call to the user request, the prompt version, the feature or squad, latency_ms and the number of tool calls.</li>
+<li><strong>Alert on rates, not anecdotes.</strong> Simple rules on the fields catch failures early: share of max_tokens stops, cache-hit rate, p95 latency, tokens per request, error rate.</li>
+<li><strong>Slice by version.</strong> A dashboard grouped by prompt version or model shows a bad deploy at a glance and supports rollback decisions.</li>
+<li><strong>Log data, mind the content.</strong> Log metadata on every call; keep full prompts and responses only where policy allows, sampled, access-controlled and redacted, since they may hold personal data.</li>
+</ul>
+<h2>The question</h2>
+<p>Kestrel's checkout-assistant calls Claude in production and writes free-text log lines such as 'answered customer question in 2.4s'. After a release, customers report cut-off answers and Claude spend rises 2.4 times, and the on-call engineer cannot tell why from the logs. Which change best lets the team detect and diagnose problems like this?</p>
+<ul>
+<li><strong>A.</strong> Emit one structured record per Claude call (trace_id, prompt version, tokens, cache reads, stop_reason) and alert on it.</li>
+<li><strong>B.</strong> Log the full prompt and the full response of every call as free text, so the on-call engineer can read exactly what happened.</li>
+<li><strong>C.</strong> Add a thumbs-down button to the feature, and page the on-call engineer whenever the rate of thumbs-down votes rises.</li>
+<li><strong>D.</strong> Run the offline evaluation suite against the production prompts every night, and alert when its pass rate falls.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=25">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=25</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 25
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: From free text no rule can run and the diagnosis is a guess; from 48 records both rules fire and Claude names v14's max_tokens cap and lost cache hits, with trace ids.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Kestrel · checkout-assistant · 48 Claude calls between 10:00 and 11:00 · customers report cut-off answers; billing says spend is up
+== Phase 1 · free-text logs: the lines the checkout-assistant prints today
+  10:22:11 INFO  checkout-assistant: answered customer question in 4.6s
+  10:22:11 WARN  checkout-assistant: slow response
+  10:22:58 INFO  checkout-assistant: answered customer question in 5.3s
+  10:22:58 WARN  checkout-assistant: slow response
+  10:22:58 WARN  checkout-assistant: customer reported an incomplete answer (ticket opened)
+  10:23:59 INFO  checkout-assistant: answered customer question in 5.3s
+  10:23:59 WARN  checkout-assistant: slow response
+  10:25:31 INFO  checkout-assistant: answered customer question in 4.7s
+  … 79 lines in all
+  rule &quot;truncation&quot; (stop_reason = max_tokens on more than 5% of calls): CANNOT EVALUATE: no such field in the logs
+  rule &quot;cache miss&quot; (cache_read_input_tokens = 0 on more than 50% of calls): CANNOT EVALUATE: no such field in the logs
+    Diagnosis from logs · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 2725 in / 1231 out · 7478 ms
+  cause: Latency regression starting about 10:20:49: response times rose from roughly 1.3-1.9s to roughly 3.8-5.5s and stayed elevated through 10:59, with a 'slow respo…
+  cause: Customer 'incomplete answer' tickets (10:22:58, 10:34:29, 10:56:22) all occur inside the slow-response window and follow the latency regression. This is a timi…
+  cause: Billing reports Claude API spend this hour at 2.4x the same hour yesterday. The timing overlaps the latency regression, which suggests a shared cause such as l…
+  confidence: low · missing: trace_ids or request IDs for any call, so no cause can be linked to a specific Claude call; stop_reason per call (e.g. max_tokens vs end_tu…
+
+== PAUSE · Phase 1 finished: a diagnosis from free text
+   outcome: Neither alert rule could run: the lines have no stop_reason or cache field. Claude's diagnosis: **confidence low**, **0 verifiable trace ids**, and it lists…
+   proceed: Phase 2: the same calls as structured records
+
+== Phase 2 · structured per-call records in the observability store: the same 48 calls
+  {&quot;ts&quot;:&quot;2026-11-19T10:12:57Z&quot;,&quot;trace_id&quot;:&quot;tr-5b82&quot;,&quot;service&quot;:&quot;checkout-assistant&quot;,&quot;model&quot;:&quot;claude-haiku-5-5&quot;,&quot;prompt_version&quot;:&quot;v13&quot;,&quot;input_tokens&quot;:569,&quot;cache_read_inpu…
+  {&quot;ts&quot;:&quot;2026-11-19T10:37:50Z&quot;,&quot;trace_id&quot;:&quot;tr-5e66&quot;,&quot;service&quot;:&quot;checkout-assistant&quot;,&quot;model&quot;:&quot;claude-haiku-5-5&quot;,&quot;prompt_version&quot;:&quot;v14&quot;,&quot;input_tokens&quot;:3787,&quot;cache_read_inp…
+  rule &quot;truncation&quot; (stop_reason = max_tokens on more than 5% of calls): FIRED · 9 of 24 calls since 10:30 (38%)
+  rule &quot;cache miss&quot; (cache_read_input_tokens = 0 on more than 50% of calls): FIRED · 24 of 24 calls since 10:30 (100%)
+  v13: 16 calls from 10:00 · avg output 268 · max_tokens stops 0 · avg cache reads 3200 · avg input 495 · p95 1948 ms
+  v14: 32 calls from 10:20 · avg output 885 · max_tokens stops 13 · avg cache reads 0 · avg input 3693 · p95 5457 ms
+    Diagnosis from records · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 7423 in / 2516 out · 12234 ms
+  cause: Customer-facing cut-off answers come from output hitting the 1024-token max_tokens cap. All 13 max_tokens stops are on v14, and each stopped call shows output_…
+  cause: The v14 prompt change made answers much longer. Average output rose from 268 tokens on v13 to 885 on v14, and v14 calls that finish normally still run 650-1000…
+  cause: Prompt caching stopped working for the checkout-assistant prompt after the v14 rollout. Every v13 call reads 3200 tokens from cache, while every v14 call has c…
+  cause: v14 increased tool use, which adds model round trips and tokens. Average tool calls rose from 0.2 on v13 to 1.5 on v14, and many v14 calls report 2 tool calls.…
+  confidence: medium · cited 34 real trace ids · missing: The v14 prompt diff, so the cause of the cache miss (changed prefix, cache_control placement, or prefix reorde…
+
+== Turns
+Diagnosis from logs turn 1: stop_reason=end_turn
+Diagnosis from records turn 1: stop_reason=end_turn
+
+== Checks
+…
+PASS  Phase 2: the diagnosis names prompt v14 and the max_tokens truncation
+PASS  Phase 2: the diagnosis names the lost cache hits and cites at least 2 real trace ids
+
+== Side by side
+[trap] Phase 1: free-text log lines: No rule could run. Diagnosis at **low** confidence with **0 verifiable trace ids**: a guess an engineer cannot check.
+[fix] Phase 2: one structured record per call: Both rules **fired** on their own. Diagnosis at **medium** confidence names **v14's max_tokens truncation** and **the los…
+  Fields per call | time, a sentence | trace_id, model, prompt_version, input/output tokens, cache reads, latency_ms, stop_reason, tool_calls
+  Rule: stop_reason = max_tokens on more than 5% of calls | cannot evaluate (bad) | fired (38%) (good)
+  Rule: cache_read_input_tokens = 0 on more than 50% of calls | cannot evaluate (bad) | fired (100%) (good)
+  Root causes found | Latency regression starting about 10:20:49: response times rose from roughly 1.3-1.9s to roughly 3.8-5.5s and… · Customer 'incomplete answer' tick…
+  Trace ids cited that exist | 0 (bad) | 34 (good)
+  Confidence | low | medium
+
+2 Claude calls · 10148 in / 3747 out tokens · about US$0.0029 · 19.7 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: A.</strong> Cut-off answers and higher spend are explained by fields the API returns on every call: stop_reason (max_tokens), output tokens, cache_read_input_tokens, plus the prompt version and trace_id the service adds. One structured record per call makes those queryable: alert rules can watch the max_tokens and cache-miss rates, a group-by on prompt version finds the release, and each finding links to a trace. In the lab, the same incident gives a low-confidence guess from the free-text lines and a cited, two-cause diagnosis from the records.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>B.</strong> Full prompts and responses as text are costly, risky to store and still unqueryable: no rule can count stop_reason in prose.</li>
+<li><strong>C.</strong> Thumbs-down votes arrive late and say that something is wrong, not why; they cannot see cache misses or token growth.</li>
+<li><strong>D.</strong> An offline suite tests fixed items, not production traffic, so it can miss a cache miss or a token-cap problem live users hit.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Free-text lines answer "did something happen?" but not "why?": they carry no trace_id, no prompt version, no token counts and no stop_reason, so no alert rule can be written on them and any diagnosis is a guess. One structured record per Claude call, with the fields the API already returns (model, input and output tokens, cache_read_input_tokens, stop_reason, tool calls) plus your own (trace_id, prompt_version, latency_ms), turns monitoring into queries. Here two simple rules fire on their own, a group-by on prompt_version points at the 10:20 deploy, and Claude's diagnosis can cite trace ids an engineer can open. The incident is the same in both phases; only what was logged changed.</p>
+<h2>Exam tip</h2>
+<p>For production monitoring, pick structured per-call telemetry (tokens, latency, stop_reason, cache reads, model and prompt version, trace ids) with alerts and dashboards. Verbose text logs, user feedback and offline evals are useful but cannot diagnose a live incident on their own.</p>
+<h2>Try this next</h2>
+<p>In docs/sims/shared/d4-kestrel.js, change traffic() so v14 keeps cache_read_input_tokens at 3200: the cache-miss rule stops firing and Claude's diagnosis drops that cause. Then add a field such as squad or customer_tier to each record and ask a sharper question: which squad's calls are truncated?</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

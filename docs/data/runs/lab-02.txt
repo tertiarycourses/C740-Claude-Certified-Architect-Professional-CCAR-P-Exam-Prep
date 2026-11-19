@@ -1,0 +1,61 @@
+Harbour Mutual · claims CLM-7781 (Priya Nair, rear bumper $4,200), CLM-7790 (Daniel Okafor, total loss $18,600, third party only), CLM-7815 (Arjun Mehta, front end $7,250). Agent payout authority: $5,000.
+== Phase 1 · open loop: whatever the decision step returns is executed
+    (decide CLM-7781) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7781) answer: {"claim_id":"CLM-7781","decision":"approve","payout_amount":3700,"reason":"The comprehensive policy is active and covers accidental damage to the insured vehicle, and the $4,200 repair quote less the $500 excess gives $…
+CLM-7781: approve $3,700 → executed
+    (decide CLM-7790) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7790) answer: {"claim_id":"CLM-7790","decision":"decline","payout_amount":0,"reason":"The policy is third party only and expressly excludes loss of or damage to the insured vehicle, so the own damage total loss is not covered.","lett…
+CLM-7790: decline  → executed
+    (decide CLM-7815) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7815) answer: {"claim_id":"CLM-7815","decision":"approve","payout_amount":6500,"reason":"The policy is active, comprehensive cover includes accidental own-damage, and the incident date falls within the policy period, so the US$7,250 …
+CLM-7815: approve $6,500 → executed (unchecked rule breaks: authority)
+
+== PAUSE · Phase 1 finished: open loop
+   outcome: **CLM-7815 was paid $6,500**, above the $5,000 authority, with no check and no person in the path. Nothing was recorded either, so tomorrow's run can make the same mistake.
+   proceed: Phase 2: the same decision step inside a closed loop
+
+== Phase 2 · closed loop: input checks, output validator, repair retry, action gate, feedback to the eval set
+Input checks: 3/3 claims valid (claimant is the policyholder, policy active, quote present)
+    (decide CLM-7781) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7781) answer: {"claim_id":"CLM-7781","decision":"approve","payout_amount":3700,"reason":"The policy is active, the incident on 2026-10-28 falls within the policy period, and comprehensive cover includes accidental damage, so the US$4…
+CLM-7781: validator passed → executed: approve $3,700
+    (decide CLM-7790) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7790) answer: {"claim_id":"CLM-7790","decision":"decline","payout_amount":0,"reason":"The policy is third party only and expressly excludes loss of or damage to the insured vehicle, so the own-damage total loss is not covered.","lett…
+CLM-7790: validator passed → executed: decline 
+    (decide CLM-7815) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7815) answer: {"claim_id":"CLM-7815","decision":"approve","payout_amount":6500,"reason":"The policy is active, comprehensive cover includes accidental own damage, and the $750 excess is deducted from the $7,250 repair quote, leaving …
+CLM-7815: validator → authority (payout 6500 is above the agent's US$5,000 authority: a human adjuster must approve) → action gate: adjuster queue (loop B, minutes)
+CLM-7815: adjuster approve $6,500 · eval case EV-7815 saved: {"case_id":"EV-7815","input":{"claim":"CLM-7815","policy":"HM-POL-2263"},"model":{"decision":"approve","payout_amount":6500},"human":{"decision":"approve","payout_amount":6500,"by":"adjuster L. Ferreira"},"label":"model agreed with adjuster; held only by the gate","rules_broken":["authority"]} (loop C, days)
+
+== Turns
+(decide CLM-7781) turn 1: stop_reason=end_turn
+(decide CLM-7790) turn 1: stop_reason=end_turn
+(decide CLM-7815) turn 1: stop_reason=end_turn
+(decide CLM-7781) turn 1: stop_reason=end_turn
+(decide CLM-7790) turn 1: stop_reason=end_turn
+(decide CLM-7815) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1 (open loop): a payout above the $5,000 authority was executed with no check
+PASS  Phase 2: the output validator held CLM-7815 and the action gate sent it to the adjuster
+PASS  Phase 2: every payout executed without a person passed the rules (covered, quote minus excess, within $5,000)
+PASS  Phase 2: each adjuster decision was saved as a labelled eval case
+
+== Side by side
+[trap] Phase 1: open loop: Paid **CLM-7815 $6,500** above the $5,000 authority with no check, and recorded nothing to learn from.
+[fix] Phase 2: closed loop: The validator held CLM-7815 for the adjuster; 1 payout inside the rules went straight through; the adjuster's decision became an eval case.
+  Decision step (model and prompt) | the same | the same
+  Input checks before the call | none (bad) | 3/3 valid (good)
+  Decisions | 7781 approve, 7790 decline, 7815 approve | 7781 approve, 7790 decline, 7815 approve
+  Paid without a person | 7781 $3,700, 7815 $6,500 (bad) | 7781 $3,700 (good)
+  Rule breaks executed | 1 (bad) | 0 (good)
+  Sent to the adjuster | none | CLM-7815
+  Feedback captured (eval cases) | 0 (bad) | 1 (good)
+
+6 Claude calls · 4710 in / 2541 out tokens · about US$0.0017 · 17.6 s

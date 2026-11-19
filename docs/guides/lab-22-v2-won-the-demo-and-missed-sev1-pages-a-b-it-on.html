@@ -1,0 +1,138 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 22: v2 won the demo and missed SEV1 pages: A/B it on the same alerts</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 22: v2 won the demo and missed SEV1 pages: A/B it on the same alerts</h1>
+<blockquote>
+<p>Day 1 · Topic 4: Evaluation, Testing &amp; Optimization · Task statement 4.3 · Simulator 6: Kestrel Platform Team · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 4.3: <strong>Conduct A/B testing and iterative improvements.</strong> You answer one exam-style question, then run the Kestrel Platform Team simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=22">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=22</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 22</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-22.js">docs/sims/lab-22.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>Kestrel Software's platform team is rolling Claude Code out to 40 engineers across four product squads, and runs Claude-powered features in production. The team owns the shared Claude Code configuration, the CI pipeline, the evaluation suite for each prompt change, and the on-call runbooks for incidents in Claude-powered services.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>A demo is not evidence.</strong> The author picks the example that shows the change working. It says nothing about the cases the change might break.</li>
+<li><strong>Hold everything but the change.</strong> Run both variants on the same fixed items with the same grader and settings, so any difference in the score comes from the change alone.</li>
+<li><strong>Primary metric and guardrails.</strong> Decide before the run what must improve (the primary metric) and what may not get worse (guardrails such as SEV1 recall), and what result ships the change.</li>
+<li><strong>Noise and sample size.</strong> Model outputs vary between runs. Repeat runs to see the spread, and do not claim significance from a few items: small sets find specific regressions, large sets measure rates.</li>
+<li><strong>Iterate, then canary.</strong> Fix what the eval found, re-run the same set, and only then expose the change to a small share of live traffic with the same metrics before a full rollout.</li>
+</ul>
+<h2>The question</h2>
+<p>Kestrel's platform team owns the prompt that triages production alerts into SEV1, SEV2 and SEV3. An engineer rewrote it as v2 and demonstrated it on a staging alert that v1 had wrongly paged as SEV1; v2 got it right, and the team wants to ship v2 today. Which approach best decides whether v2 should replace v1?</p>
+<ul>
+<li><strong>A.</strong> Ship v2 for all alerts and collect on-call feedback for a week, rolling back if complaints about wrong pages start to rise.</li>
+<li><strong>B.</strong> Run v1 and v2 on the same labelled eval alerts with the same grader, and apply a decision rule agreed before the run.</li>
+<li><strong>C.</strong> Run v2 on twenty new alerts picked by its author, and compare its accuracy with the score v1 achieved last quarter.</li>
+<li><strong>D.</strong> Ask Claude to read both prompts side by side and choose the one that it judges to be clearer and more complete.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=22">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=22</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 22
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: v2 wins the demo; on the same 8 labelled alerts it misses the 2.1% checkout and 1.4% payment SEV1s, and the rule rejects it.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Kestrel on-call alert triage · prompt v2 proposed by its author · gold labels agreed by the on-call leads
+== Phase 1 · one demo: v1 and v2 on the author's demo alert AL-01 only
+    Prompt v1 · demo · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 575 in / 30 out · 1376 ms
+      Prompt v1: AL-01 SEV1
+    Prompt v2 · demo · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 598 in / 30 out · 1458 ms
+      Prompt v2: AL-01 SEV3
+Demo: v1 said SEV1, v2 said SEV3 (gold SEV3). v2 fixed it: ship v2.
+
+== PAUSE · Phase 1 finished: one demo alert
+   outcome: On the staging alert AL-01, v1 said **SEV1** and v2 said **SEV3** (gold SEV3). On this evidence the author would **ship v2**. One alert says nothing about w…
+   proceed: Phase 2: A/B v1 and v2 on the same 8 labelled alerts, twice each
+
+== Phase 2 · A/B test: v1 and v2 on the same 8 labelled alerts, 2 runs each, decision rule fixed before the run
+Decision rule (written before any result): Ship v2 only if (1) its mean accuracy over both runs is at least v1's, and (2) it misses no gold SEV1 alert in either run (a …
+    Prompt v1 · run 1 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 816 in / 453 out · 2841 ms
+      Prompt v1: AL-01 SEV1 · AL-02 SEV1 · AL-03 SEV1 · AL-04 SEV2 · AL-05 SEV1 · AL-06 SEV3 · AL-07 SEV2 · AL-08 SEV3
+    Prompt v2 · run 1 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 839 in / 389 out · 2465 ms
+      Prompt v2: AL-01 SEV3 · AL-02 SEV2 · AL-03 SEV2 · AL-04 SEV2 · AL-05 SEV1 · AL-06 SEV3 · AL-07 SEV2 · AL-08 SEV3
+    Prompt v1 · run 2 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 816 in / 454 out · 2687 ms
+      Prompt v1: AL-01 SEV1 · AL-02 SEV1 · AL-03 SEV1 · AL-04 SEV2 · AL-05 SEV1 · AL-06 SEV3 · AL-07 SEV2 · AL-08 SEV3
+    Prompt v2 · run 2 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 839 in / 381 out · 2476 ms
+      Prompt v2: AL-01 SEV3 · AL-02 SEV2 · AL-03 SEV2 · AL-04 SEV2 · AL-05 SEV1 · AL-06 SEV3 · AL-07 SEV2 · AL-08 SEV3
+  v1: accuracy 7/8, 7/8 · missed SEV1 none | none
+  v2: accuracy 6/8, 6/8 · missed SEV1 AL-02+AL-03 | AL-02+AL-03
+Decision: primary (accuracy 75% vs 88%) NOT met · guardrail (missed SEV1: AL-02, AL-03) NOT met → REJECT v2
+v2 still fixes the demo alert in the A/B (both runs). 8 items × 2 runs is too few for significance; it is enough to see which items regressed.
+
+== Turns
+Prompt v1 · demo turn 1: stop_reason=end_turn
+Prompt v2 · demo turn 1: stop_reason=end_turn
+Prompt v1 · run 1 turn 1: stop_reason=end_turn
+Prompt v2 · run 1 turn 1: stop_reason=end_turn
+Prompt v1 · run 2 turn 1: stop_reason=end_turn
+Prompt v2 · run 2 turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: v2 labelled the demo alert correctly (SEV3), so the demo alone said ship v2
+PASS  Phase 2: v1 and v2 labelled the same 8 alert ids in every run, all schema-valid
+…
+  Items compared | AL-01 | 8 alerts × 2 runs, same ids for v1 and v2
+  Decision rule | whatever the demo shows | Ship v2 only if (1) its mean accuracy over both runs is at least v1's, and (2) it misses no gold SEV1 alert in either run (a…
+  AL-01 (gold SEV3) | v1 SEV1 · v2 SEV3 | v1 SEV1 / SEV1 · v2 SEV3 / SEV3 (good)
+  AL-02 (gold SEV1) | not tested | v1 SEV1 / SEV1 · v2 SEV2 / SEV2 (bad)
+  AL-03 (gold SEV1) | not tested | v1 SEV1 / SEV1 · v2 SEV2 / SEV2 (bad)
+  AL-04 (gold SEV2) | not tested | v1 SEV2 / SEV2 · v2 SEV2 / SEV2 (good)
+  AL-05 (gold SEV1) | not tested | v1 SEV1 / SEV1 · v2 SEV1 / SEV1 (good)
+  AL-06 (gold SEV3) | not tested | v1 SEV3 / SEV3 · v2 SEV3 / SEV3 (good)
+  AL-07 (gold SEV2) | not tested | v1 SEV2 / SEV2 · v2 SEV2 / SEV2 (good)
+  AL-08 (gold SEV3) | not tested | v1 SEV3 / SEV3 · v2 SEV3 / SEV3 (good)
+  Accuracy (mean of runs) | - | v1 88% · v2 75%
+  Decision | ship v2 (bad) | reject v2 (good)
+
+6 Claude calls · 4483 in / 1737 out tokens · about US$0.0013 · 13.3 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: B.</strong> A demo shows the case the change was written to fix. An A/B comparison runs both prompts on the same labelled items with the same grader, so the only difference is the prompt, and a decision rule fixed before the run (a primary metric plus guardrails that may not regress) turns the result into a decision. In the lab, v2 fixes the staging alert but drops two small checkout and payment failures from SEV1 to SEV2, and the guardrail rejects it.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>A.</strong> Shipping first makes on-call engineers the test set, and a missed SEV1 page is found by customers, not by the feedback channel.</li>
+<li><strong>C.</strong> Different items and a quarter-old score compare two datasets, not two prompts, and the author chose the items.</li>
+<li><strong>D.</strong> Claude judging which prompt reads better measures the prompt's wording, not how it labels real alerts.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>A demo picks the example that shows the change working, so it measures the author's hope, not the change. An A/B test runs both versions on the same fixed eval items with the same graders, so the only difference is the prompt. The decision rule is written before the run: a primary metric (accuracy) plus a guardrail that may not regress (no missed SEV1). Eight items run twice is far too few for statistical significance, and this lab does not claim any. It is enough to find a specific regression you can read item by item, which is what blocks v2 here. In production the next step after passing offline would be a small canary with the same metrics.</p>
+<h2>Exam tip</h2>
+<p>A/B means the same items, the same graders and a rule agreed in advance, with guardrail metrics that may not regress. Comparing different datasets, shipping and watching feedback, or asking a model which prompt is better are the distractors.</p>
+<h2>Try this next</h2>
+<p>In docs/sims/shared/d4-kestrel.js, add "Any failed customer checkout or payment is SEV1, whatever the rate." to TRIAGE_V2 and run again: v2 now keeps v1's SEV1 recall and its staging fix, and the same rule ships it. Then set REPEATS to 1 and notice how much less you know about run-to-run noise.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

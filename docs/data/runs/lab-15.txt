@@ -1,0 +1,81 @@
+INC-2291 · checkout-assistant · p95 3.1 s before 14:00, 7.1 s after · 480 requests between 12:00 and 16:00
+== Phase 1 · grep the raw service logs: text lines, total duration only, no trace_id
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> grep_logs({"pattern":"latency|slow|timeout|retry|upstream|model|dependency","from":"13:45","to":"14:15"})
+  <- result: {"matches":1,"lines":["2026-11-19 14:14:43 WARN anthropic-client 429 rate_limit_error, retrying in 0.8s"]}
+  -> grep_logs({"pattern":"WARN|ERROR","from":"13:45","to":"14:15"})
+  <- result: {"matches":1,"lines":["2026-11-19 14:14:43 WARN anthropic-client 429 rate_limit_error, retrying in 0.8s"]}
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> grep_logs({"pattern":"anthropic-client|p95|latency_ms|rate_limit|retry"})
+  <- result: {"matches":1203,"lines":["2026-11-19 12:00:44 INFO anthropic-client POST /v1/messages 200","2026-11-19 12:00:44 INFO anthropic-client POST /v1/messag…
+  -> grep_logs({"pattern":"tool_call|cart|inventory|pricing|db|postgres|redis|cache","from":"13:50","to":"14:10"})
+  <- result: {"matches":0,"lines":[]}
+Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> grep_logs({"pattern":"429|rate_limit_error|retrying"})
+  <- result: {"matches":15,"lines":["2026-11-19 14:14:43 WARN anthropic-client 429 rate_limit_error, retrying in 0.8s","2026-11-19 14:23:07 WARN anthropic-client …
+  -> grep_logs({"pattern":"\\d+ms|duration|elapsed|took","from":"13:55","to":"14:05"})
+  <- !! error: {"isError":true,"message":"Investigation budget of 5 calls used. File your finding now with what you have measured."}
+Turn 4: POST /v1/messages · model claude-haiku-5-5 · 7 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+  -> file_incident_finding({"cause":"anthropic-client upstream rate limiting (429s)","metric":"anthropic-client 429 rate_limit_error count per 2h …)
+  <- result: {"filed":true,"incident":"INC-2291"}
+Turn 5: POST /v1/messages · model claude-haiku-5-5 · 9 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: I filed INC-2291 with low confidence. The likely cause is upstream rate limiting on the model API, but the evidence does not yet explain the full slowdown. **What I measured:** - Searching 12:00–16:00 for `429` / `rate_limit_error` found 0 matches before 14:00 and 15 after. The first was at 14:14:43 and the last at 15:52:48. - Each 429 was logged as "retrying in 0.8s". **What I did not establish:** - I could not get latency figures from the logs. The log lines carry no per-request durations, so I never measured the p95 before or after 14:00. - A 0.8 s retry per event is smaller than the rough…
+
+== PAUSE · Phase 1 finished: grep over raw logs
+   outcome: Finding: **anthropic-client upstream rate limiting (429s) · anthropic-client 429 rate_limit_error count per 2h window (12:00-16:00): 0 -> 15 · confidence low**. The logs show *that* requests slowed at 14:00, but no line says which step inside a request took the time, so inventory_lookup could not be named.
+   proceed: Phase 2: the same incident and prompt, with a structured trace store to query
+
+== Phase 2 · query structured traces: one trace per request, a span per model call and tool call
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> query_traces({"group_by":"span","metric":"latency_ms","stat":"p95","window":"both"})
+  <- result: {"metric":"latency_ms","stat":"p95","group_by":"span","rows":[{"group":"model_call","before":859,"n_before":592,"after":865,"n_after":596,"slowest_tr…
+  -> query_traces({"group_by":"prompt_version","metric":"latency_ms","stat":"p95","window":"both"})
+  <- result: {"metric":"latency_ms","stat":"p95","group_by":"prompt_version","rows":[{"group":"v41","before":3080,"n_before":240,"after":6470,"n_after":20,"slowes…
+  -> query_traces({"group_by":"model","metric":"latency_ms","stat":"p95","window":"both"})
+  <- result: {"metric":"latency_ms","stat":"p95","group_by":"model","rows":[{"group":"claude-haiku-5-5","before":3080,"n_before":240,"after":7070,"n_after":240,"s…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+  -> get_trace({"trace_id":"tr-2ba78d"})
+  <- result: {"trace_id":"tr-2ba78d","time":"14:41:33","service":"checkout-assistant","model":"claude-haiku-5-5","prompt_version":"v42","input_tokens":2063,"outpu…
+Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+  -> file_incident_finding({"cause":"tool:inventory_lookup (slow tool dependency)","metric":"p95 latency_ms of inventory_lookup span","before":250…)
+  <- result: {"filed":true,"incident":"INC-2291"}
+Turn 4: POST /v1/messages · model claude-haiku-5-5 · 7 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: I filed the finding: the slowdown comes from the `inventory_lookup` tool, not the model or the prompt change. - **Cause:** `tool:inventory_lookup` - **Metric:** p95 latency of the `inventory_lookup` span - **Before 14:00:** 250 ms (n=140) - **After 14:00:** 5081 ms (n=144) - **Confidence:** high The model-call p95 stayed flat (859 ms before, 865 ms after), and `price_quote` and `order_status` were also flat. Trace tr-2ba78d shows `inventory_lookup` taking 5185 ms of a 7673 ms request. Prompt v42 appeared after 14:00, but the model spans did not change, so I ruled it out. I did not look into w…
+
+== Turns
+turn 1: stop_reason=tool_use tools=grep_logs,grep_logs
+turn 2: stop_reason=tool_use tools=grep_logs,grep_logs
+turn 3: stop_reason=tool_use tools=grep_logs,grep_logs(error)
+turn 4: stop_reason=tool_use tools=file_incident_finding
+turn 5: stop_reason=end_turn
+turn 1: stop_reason=tool_use tools=query_traces,query_traces,query_traces
+turn 2: stop_reason=tool_use tools=get_trace
+turn 3: stop_reason=tool_use tools=file_incident_finding
+turn 4: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: Claude grepped the raw logs and filed a finding without measured inventory_lookup figures
+PASS  Phase 2: Claude queried latency grouped by span (each model call and tool)
+PASS  Phase 2: the finding names inventory_lookup as the cause
+PASS  Phase 2: the finding's before/after match the store (about 250 -> 5081 ms p95)
+PASS  Phase 2: the finding cites trace_ids that exist in the store
+
+== Side by side
+[trap] Phase 1: grep the raw logs: Blamed **anthropic-client upstream rate limiting (429s)**. The logs show requests got slower, and what else happened nearby, but not which step inside a request took the time.
+[fix] Phase 2: query the structured traces: Grouped p95 latency by span: model_call flat, **tool:inventory_lookup 250 ms -> 5081 ms**. The finding cites 3 real trace_ids.
+  What Claude could query | grep_logs over 1,690 text lines | query_traces + get_trace over 480 traces (good)
+  Investigation calls | 6 | 4
+  Cause named in the finding | anthropic-client upstream rate limiting (429s) (bad) | tool:inventory_lookup (slow tool dependency) (good)
+  Before/after matches the store (inventory_lookup p95 250 -> 5081 ms) | no (bad) | yes (good)
+  Real trace_ids cited as evidence | 0 | 3 (good)
+
+9 Claude calls · 24523 in / 3573 out tokens · about US$0.0042 · 19.8 s

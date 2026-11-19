@@ -1,0 +1,48 @@
+Lumen Retail · BRIEF-01: Grace Lim (COO), by email: "We want an AI assistant in all 300 stores that answers product questions for staff and customers. Live by early March. Can you send me the solution design by Friday?"
+== Phase 1 · design from the sponsor's ask: requirements drafted from BRIEF-01 alone
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: {"requirements":[{"item":"users","finding":"Store staff and customers are the intended users of an AI assistant answering product questions across all 300 stores.","evidence":["BRIEF-01"]},{"item":"volumes","finding":"Deployment scope is all 300 stores. Per-store user counts and query volumes are not stated.","evidence":["BRIEF-01","assumption"]},{"item":"data","finding":"Product question answering implies access to product catalogue information. Source systems, data quality, and whether store-level stock or pricing is needed are not stated.","evidence":["BRIEF-01","assumption"]},{"item":"con…
+Phase 1 trace: 2/7 items backed by a record that covers them (users, constraints); assumed: volumes, data, risks, success_measures, slas. Conflicts with two real sources: 0.
+
+== PAUSE · Phase 1 finished: requirements from the sponsor's one line
+   outcome: Only **2 of 7** checklist items trace to something a stakeholder said (users, constraints); **5 are the architect's guesses** (volumes, data, risks, success_measures, slas). No conflict between two real sources was found, so the transcript clash between store operations and legal is still hidden.
+   proceed: Phase 2: the same ask, with structured discovery: interview each group against the checklist
+
+== Phase 2 · structured discovery: interview sponsor, store ops, IT security and legal against the checklist
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> ask_stakeholder({"stakeholder":"sponsor","question":"Who are the users (staff and customers), expected volumes (stores, daily queries, …)
+  <- result: {"stakeholder":"Grace Lim, COO (sponsor)","records":[{"id":"INT-01","topic":"success_measures","says":"Success means store staff spend 30% less time …
+  -> ask_stakeholder({"stakeholder":"store_ops","question":"How do store staff and customers would use an AI product-question assistant: who…)
+  <- result: {"stakeholder":"Farid Rahman, store operations lead","records":[{"id":"INT-03","topic":"users","says":"2,400 store staff on store tablets, plus custo…
+  -> ask_stakeholder({"stakeholder":"it_security","question":"Constraints for an AI assistant across 300 stores: systems and product data so…)
+  <- result: {"stakeholder":"Hannah Koh, IT security lead","records":[{"id":"INT-07","topic":"data","says":"It may use the product catalogue, stock levels and the…
+  -> ask_stakeholder({"stakeholder":"legal","question":"Legal and compliance constraints for an AI assistant answering product questions for…)
+  <- result: {"stakeholder":"Ravi Menon, legal counsel","records":[{"id":"INT-10","topic":"constraints","says":"Chat transcripts that contain customer details mus…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: {"requirements":[{"item":"users","finding":"About 2,400 store staff use store tablets, and staff access must sit behind single sign-on.","evidence":["INT-03","INT-08"]},{"item":"users","finding":"Customers would use the assistant at self-service kiosks, but store operations says kiosks exist only in the 40 flagship stores, while the sponsor's brief covers customers in all 300 stores.","evidence":["BRIEF-01","INT-03"]},{"item":"volumes","finding":"About 18,000 questions a day across 300 stores, with a Saturday peak of about 2,500 an hour. At 30 days a month that is roughly 540,000 questions a …
+CONFLICT: Store operations wants all chat transcripts kept for 90 days for quality review. Legal says transcripts containing customer details must not be stored after the session ends, because the privacy notice promises this to customers. (evidence INT-06, INT-10; decided by Grace Lim, COO (sponsor))
+
+== Turns
+turn 1: stop_reason=end_turn
+turn 1: stop_reason=tool_use tools=ask_stakeholder,ask_stakeholder,ask_stakeholder,ask_stakeholder
+turn 2: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: at most 2 of the 7 checklist items trace to a record (the sponsor's ask covers users and a deadline only)
+PASS  Phase 2: Claude interviewed all four stakeholder groups with ask_stakeholder
+PASS  Phase 2: every checklist item cites a record that really covers it (7/7)
+PASS  Phase 2: the transcript conflict is logged with both sources, INT-06 and INT-10
+
+== Side by side
+[trap] Phase 1: design from the ask: **5 of 7 items are assumptions** (volumes, data, risks, success_measures, slas). No stakeholder was asked, so no conflict with two real sources could be found.
+[fix] Phase 2: structured discovery: Four groups interviewed; **all 7 items trace to a record**, and the clash between INT-06 (keep transcripts 90 days) and INT-10 (never store them) is logged for Grace Lim, COO (sponsor) to decide.
+  Stakeholder groups interviewed | 0 (sponsor's email only) | 4: sponsor, store_ops, it_security, legal (good)
+  Checklist items traced to a record | 2/7 (bad) | 7/7 (good)
+  Trace by item (✓ traced, ? assumed) | ✓ users · ? volumes · ? data · ✓ constraints · ? risks · ? success_measures · ? slas | ✓ users · ✓ volumes · ✓ data · ✓ constraints · ✓ risks · ✓ success_measures · ✓ slas
+  Conflicts backed by two stakeholders' records | 0 | 2
+  Transcripts: keep 90 days vs never store | not found (bad) | found (good)
+
+3 Claude calls · 5684 in / 5297 out tokens · about US$0.0032 · 26.4 s

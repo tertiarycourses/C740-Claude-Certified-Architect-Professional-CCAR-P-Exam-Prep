@@ -1,0 +1,51 @@
+{
+ "id": 10,
+ "task": "2.4",
+ "task_title": "Optimize context windows and manage token usage",
+ "topic": 2,
+ "topic_name": "Claude Models, Prompting & Context Engineering",
+ "sim": 3,
+ "title": "17 years of notes for one referral: select sections, cap the letter",
+ "stem": "Meridian Health drafts referral letters by sending each patient's entire record, often more than a decade of visit notes, results and routine care, with the request. The letters run long, the token bill is higher than planned, and some letters mention unrelated history such as an old psychiatric episode. Which change best reduces token usage while meeting HIPAA's minimum-necessary standard?",
+ "options": {
+  "A": "Keep sending the whole record, since every current Claude model can accept a 1M-token context window.",
+  "B": "Summarise the full record with Claude before every letter, then draft each letter from that summary.",
+  "C": "Select only the sections the letter needs from an index of the record, and cap the letter with an outline.",
+  "D": "Send only the most recent 4,000 tokens of the record so that every request stays a small, predictable size."
+ },
+ "answer": "C",
+ "why": "Fitting in the window is not the question. Every token sent is paid for, competes for the model's attention, and may end up in the output. Selecting the sections the task needs from an index (titles and dates, no clinical text) and loading only those cuts input tokens and keeps unrelated PHI out of the context by design; an outline, a word limit and max_tokens bound the output.",
+ "wrong": {
+  "A": "The record fits, but every call pays for all of it, and unrelated PHI in the context can reach the letter.",
+  "B": "Summarising still sends the whole record on every letter, adds a call, and the summary can carry unrelated history.",
+  "D": "Truncating by recency drops older facts the letter needs, such as a 2008 penicillin allergy."
+ },
+ "fix": "Select the needed sections from an index, load only those, and draft to a capped outline.",
+ "see": "The whole record costs about 11,500 input tokens and yields a 600-word letter with unrelated history; selection uses about a third of the tokens for a 200-word letter with none.",
+ "explain": "Patient A's record has 82 sections from 2009 to 2026, and the cardiology referral needs five of them: the problem list, current medicines, allergies, the chest-pain visit and its bloods. Stuffing the whole record into the context uses about 11,500 input tokens and returns a long letter that repeats eczema, dental work and the 2009 psychiatry or 2014 sexual-health notes. A selection pass over the record index picks the sections, code loads only those, and the drafter writes to a seven-heading, 180-word outline with thinking off: about a third of the input tokens, a letter under half the length, all five key facts, and nothing unrelated.",
+ "exam_tip": "A large context window answers 'will it fit?', not 'should it be there?'. Prefer the option that selects what the task needs and bounds the output; truncation loses needed facts and summarising first still pays for everything.",
+ "source": "Original question written for C740",
+ "headline": "Send what the task needs. Cap what comes back.",
+ "concepts": [
+  {
+   "t": "Everything in the window counts",
+   "b": "System prompt, tool definitions, every message, documents and the output, thinking included, all count as tokens and are billed. A 1M window does not make them free."
+  },
+  {
+   "t": "Context rot",
+   "b": "As context grows, the model's recall of any one detail declines. Treat context as a budget: the smallest set of high-signal tokens that does the job."
+  },
+  {
+   "t": "Select, don't stuff",
+   "b": "Pick sections from an index, retrieve the chunks that match, or filter by type and date in code, then send only those. Selection is also a privacy control."
+  },
+  {
+   "t": "Bound the output",
+   "b": "An outline, a word limit and max_tokens cap the answer. Thinking tokens are output tokens: switch thinking off or lower effort for formatting tasks."
+  },
+  {
+   "t": "Measure in usage tokens",
+   "b": "Every response reports input_tokens and output_tokens. Compare designs on those numbers, not on guesses about prompt length."
+  }
+ ]
+}

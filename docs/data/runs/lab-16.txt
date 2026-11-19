@@ -1,0 +1,45 @@
+Teller (role: teller) asks: "A first-time buyer has a debt-servicing ratio of 58% and a guarantor. Can the mortgage be approved, and who signs it off?"
+== Phase 1 · fixed 200-character chunks, no metadata: retrieve the top 3 and answer
+  retrieved chunk-006 (score 12.35): "t variable income such as bonuses and commission at 70% of the two-year average. 3 Debt-servicing ratio. The …"
+  retrieved chunk-008 (score 9.5): "oints or 5.5% a year. 5 Guarantors for mortgages. A mortgage guarantor must be an immediate family member wit…"
+  retrieved chunk-003 (score 6.65): " be approved by a credit officer and signs the guarantee deed at the branch. One person may guarantee at most…"
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: **Cannot confirm approval.** The retrieved passages don't state the maximum allowed debt-servicing ratio, so I can't say whether 58% is acceptable [chunk-006]. The passages also don't cover a first-time buyer's eligibility. **Guarantor:** A mortgage guarantor must be an immediate family member with their own income, approved by a credit officer, who signs the deed of guarantee [chunk-008]. A guarantor may cover at most two loans [chunk-003]. Please check the DSR limit with a credit officer.
+
+== PAUSE · Phase 1 finished: fixed 200-character chunks
+   outcome: The top 3 chunks were **chunk-006, chunk-008, chunk-003**. None held the 55% limit and **none held the 60% first-home exception**: the window boundaries cut LEND-07 mid-sentence. The chunks carry no document id or section, so the answer cannot cite a policy.
+   proceed: Phase 2: the same library cut one section per chunk, with metadata, answered with citations
+
+== Phase 2 · one chunk per section with heading path and metadata, role filter, citations enabled
+  retrieved LEND-07§3 (score 12.9) · LEND-07 Mortgage Affordability › 3 Debt-servicing ratio · effective 2026-07-01
+  retrieved LEND-07§5 (score 9.31) · LEND-07 Mortgage Affordability › 5 Guarantors for mortgages · effective 2026-07-01
+  retrieved LEND-07§7 (score 7.68) · LEND-07 Mortgage Affordability › 7 Exceptions · effective 2026-07-01
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: **Possibly, but only a credit officer can approve it.** The first-home limit rises to 60% where a guarantor approved under section 5 signs the deed; only a credit officer may approve this, never a teller. The guarantor must be an immediate family member with their own income, approved by a credit officer, and signs the deed of guarantee. Record every exception in the credit file with the approver's name. The stress test is not covered by this exception: No exception applies to the stress test in section 4. Section 4 itself is not in the documents I have.
+  cited: LEND-07§7 Exceptions (rev 2026-07, effective 2026-07-01)
+  cited: LEND-07§5 Guarantors for mortgages (rev 2026-07, effective 2026-07-01)
+
+== Turns
+turn 1: stop_reason=end_turn
+turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the 3 fixed chunks retrieved held neither the 55% limit nor the 60% first-home exception
+PASS  Phase 2: section retrieval returned both the rule (LEND-07 §3) and its exception (LEND-07 §7)
+PASS  Phase 2: the response carried citations to LEND-07 document blocks
+PASS  Phase 2: the answer gives the 60% limit with credit officer approval
+
+== Side by side
+[trap] Phase 1: fixed 200-character chunks: Retrieved chunk-006, chunk-008, chunk-003: **neither the 55% limit nor the 60% exception**. chunk-003 is from LEND-04 Personal Loans, not the mortgage policy, and nothing in the chunk says so. The answer cannot give the first-home exception, and it has no policy section to cite.
+[fix] Phase 2: section chunks, metadata, citations: Retrieved LEND-07§3, LEND-07§5, LEND-07§7. The answer gives the **60% first-home limit with a guarantor, approved by a credit officer**, with 4 citations to LEND-07§7 Exceptions, LEND-07§5 Guarantors for mortgages.
+  How the library is cut | 200-character windows | one chunk per section, heading path kept (good)
+  Metadata on each chunk | chunk id only | doc id, section, revision, effective date, roles (good)
+  Retrieved (k = 3) | chunk-006, chunk-008, chunk-003 | LEND-07§3, LEND-07§5, LEND-07§7
+  Where those chunks really came from (the trap's index does not know) | chunk-006: LEND-07 Mortgage Affordability; chunk-008: LEND-07 Mortgage Affordability; chunk-003: LEND-04 Personal Loans (bad) | LEND-07 §3 Debt-servicing ratio; LEND-07 §5 Guarantors for mortgages; LEND-07 §7 Exceptions
+  55% rule in what Claude saw | no (bad) | yes (good)
+  60% first-home exception in what Claude saw | no (bad) | yes (good)
+  Citations returned | 0 (plain text, no citations) | 4 (LEND-07§7, LEND-07§5) (good)
+
+2 Claude calls · 1926 in / 931 out tokens · about US$0.0007 · 5.0 s

@@ -1,0 +1,51 @@
+{
+ "id": 20,
+ "task": "4.1",
+ "task_title": "Define evaluation metrics (accuracy, latency, cost, safety, security)",
+ "topic": 4,
+ "topic_name": "Evaluation, Testing & Optimization",
+ "sim": 2,
+ "title": "Thumbs-up says ship, nothing cites a source: gate on a scorecard",
+ "stem": "Northwind Bank's policy assistant is about to roll out to 4,000 staff. The project team proposes to approve each release when pilot users give at least 80% of answers a thumbs-up. Compliance requires every answer to cite its source and to decline questions the policy library does not cover, and finance has set a cost budget per answer. Which evaluation approach best supports the release decision?",
+ "options": {
+  "A": "Keep the thumbs-up rate as the release metric, but raise the bar to 95% and collect votes from a larger pilot group.",
+  "B": "Have an LLM judge give every answer an overall quality score from 1 to 5, and release when the average reaches 4.",
+  "C": "Score a fixed eval set on separate metrics, each with a threshold: accuracy, grounding, declines, latency and cost.",
+  "D": "Track p95 latency and cost per answer on a dashboard, and have a compliance officer spot-check ten answers a week."
+ },
+ "answer": "C",
+ "why": "A release decision needs each requirement measured on its own. A scorecard over a fixed eval set gives accuracy against golden answers, citation grounding, correct declines, latency and cost per answer, each with a threshold agreed in advance, and blocks the release when any one fails. Most rows are plain code over the answers, the retrieval log and the API usage block, so the same check runs on every change. In the lab, the thumbs-up judge likes every answer while the scorecard shows that none of them cites a retrieved document.",
+ "wrong": {
+  "A": "A higher thumbs-up bar is still one blended proxy: staff like fluent answers whether or not they cite a source or should have declined.",
+  "B": "One overall score averages properties together, so a zero on citations or declines disappears inside a good mean.",
+  "D": "Latency and cost are covered, but ten spot-checks a week cannot gate a release on accuracy, grounding or declines."
+ },
+ "fix": "Score the same eval set on separate metrics, each with its own threshold, and block the release when any one fails.",
+ "see": "The thumbs-up metric says release; the scorecard blocks it because no answer cites a retrieved document.",
+ "explain": "The release candidate (prompt v3, tuned on pilot thumbs-up) answers five eval questions once: four in-scope questions with a golden key fact, and one the library does not cover. Phase 1 judges those answers with one metric, a thumbs-up judge, and the rate clears the 80% bar. Phase 2 scores exactly the same answers on a scorecard: accuracy against the golden facts, citation grounding (does the answer cite a document that was actually retrieved), declining the out-of-scope question, restricted chunks served to the wrong role, p95 latency and cost per answer from the usage block. Accuracy, latency and cost pass; grounding is 0 of 4, so the gate blocks the release and names what to fix. With five items the p95 is just the slowest answer: a real gate needs a few hundred items.",
+ "exam_tip": "When a stem lists several requirements (cite sources, decline out-of-scope, a cost budget), the answer measures each one separately against a threshold. A satisfaction rate, an averaged judge score or a weekly spot-check is the distractor.",
+ "source": "Original question written for C740",
+ "headline": "One number hides the row that fails.",
+ "concepts": [
+  {
+   "t": "Accuracy against golden answers",
+   "b": "An eval item pairs a question with a golden answer or key fact. Code checks whether the answer contains it, so accuracy is repeatable and cheap to run on every change."
+  },
+  {
+   "t": "Groundedness and citations",
+   "b": "A grounded answer is supported by the retrieved text and names its source. Check that each cited document id was actually retrieved for that question."
+  },
+  {
+   "t": "Safety and security as metrics",
+   "b": "Safety: the assistant declines what the library does not cover. Security: no restricted content reaches a role that may not see it. Both are rates with a threshold, often zero tolerance."
+  },
+  {
+   "t": "Latency and cost per answer",
+   "b": "Measure p95 latency, not the mean, and compute cost per answer from the usage block (input, output and cache tokens). A stable p95 needs a few hundred items."
+  },
+  {
+   "t": "Thresholds make a gate",
+   "b": "Each metric gets a pass mark agreed before the run. One failing metric blocks the release; averaging metrics together lets a zero hide behind good scores."
+  }
+ ]
+}

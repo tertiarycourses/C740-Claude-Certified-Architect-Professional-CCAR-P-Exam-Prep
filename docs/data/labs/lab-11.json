@@ -1,0 +1,51 @@
+{
+ "id": 11,
+ "task": "2.5",
+ "task_title": "Implement prompt reuse strategies (caching, modular prompts, Skills)",
+ "topic": 2,
+ "topic_name": "Claude Models, Prompting & Context Engineering",
+ "sim": 2,
+ "title": "8,075 tokens billed in full every call: put them first and cache them",
+ "stem": "An application sends the same 8,000-token system prompt and policy document on every request, followed by a short, varying user message. Latency and cost are both concerns. Which optimization most directly addresses both?",
+ "options": {
+  "A": "Truncate the policy document to the first 1,000 tokens.",
+  "B": "Switch to the smallest available model regardless of task fit.",
+  "C": "Place the static system prompt and policy before the dynamic content and enable prompt caching.",
+  "D": "Move the policy document into a few-shot example block."
+ },
+ "answer": "C",
+ "why": "Ordering stable content first and enabling prompt caching lets repeated prefixes be reused, reducing both time-to-first-token and per-request cost without discarding required context. The cache covers the prefix up to the cache_control breakpoint, so the static instructions and policy must come before anything that changes between requests.",
+ "wrong": {
+  "A": "Truncation loses policy the assistant needs to answer correctly.",
+  "B": "Downsizing blindly, regardless of task fit, risks answer quality.",
+  "D": "Relocating the policy to a few-shot block does not create a cacheable, reusable prefix."
+ },
+ "fix": "Put the static prompt and policy first with a cache_control breakpoint, and the dynamic content after it.",
+ "see": "Dynamic content first pays full price on every call even with caching on; static first lets the second call read about 8,000 tokens from cache.",
+ "explain": "Northwind's assistant sends an 8,075-token prefix (instructions and an eleven-document policy pack) before every short staff question. With a session header (timestamp, staff name, request id) in front and no caching, both requests pay for the whole prefix. Switching on cache_control without moving the header makes things worse: each request writes the cache at 1.25 times the input price and none reads it, because no two prefixes match. With the static prefix first and the breakpoint on it, request 1 writes about 8,000 tokens and request 2 reads them at 0.1 times the price, paying full price only for the header and question: about 89% less input cost.",
+ "exam_tip": "Prompt caching needs a byte-identical prefix: static content first, dynamic content last, breakpoint on the last static block. The answer that keeps all the content and changes only its order and caching is the one that cuts both cost and latency.",
+ "source": "Official exam guide, sample question 2",
+ "headline": "Stable first, dynamic last, then cache.",
+ "concepts": [
+  {
+   "t": "How prompt caching works",
+   "b": "The request is read in the order tools, system, messages. A cache_control breakpoint caches everything up to it; a later request with a byte-identical prefix reads it instead."
+  },
+  {
+   "t": "Cache pricing",
+   "b": "On the 5-minute cache a write costs 1.25 times the base input price and a read 0.1 times. One read pays back the write; a prefix that never matches only adds cost."
+  },
+  {
+   "t": "Order is the design",
+   "b": "Put the most stable content first and anything that changes per request (timestamps, names, ids, the question) after the breakpoint. One changed byte early misses the cache."
+  },
+  {
+   "t": "Minimum cacheable length",
+   "b": "Each model has a minimum prefix length for caching (512 tokens on Haiku 5.5). Below it nothing is cached and no error is raised: check cache_creation_input_tokens."
+  },
+  {
+   "t": "Prove it in usage",
+   "b": "cache_creation_input_tokens shows a write, cache_read_input_tokens a hit, and input_tokens only what came after the breakpoint."
+  }
+ ]
+}

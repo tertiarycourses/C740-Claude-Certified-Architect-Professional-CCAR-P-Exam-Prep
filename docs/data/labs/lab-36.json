@@ -1,0 +1,51 @@
+{
+ "id": 36,
+ "task": "7.1",
+ "task_title": "Configure Claude tools and environments for teams (e.g., Claude Code)",
+ "topic": 7,
+ "topic_name": "Developer Productivity & Operational Enablement",
+ "sim": 6,
+ "title": "The team's rules live on one laptop: commit the Claude Code config",
+ "stem": "Kestrel is rolling Claude Code out to 40 engineers in four squads. Today each engineer keeps the team's conventions and permissions in their own ~/.claude files; two of them allow Bash(*), and one has a Sentry token pasted into a personal MCP config. A new engineer's first sessions follow none of the conventions. What should the platform team do?",
+ "options": {
+  "A": "Publish the recommended ~/.claude settings on the team wiki, and ask each engineer to copy them onto their own machine as part of their onboarding.",
+  "B": "Commit a project CLAUDE.md, .claude/settings.json allow and deny rules, shared skills and an .mcp.json that reads its token from an environment variable.",
+  "C": "Put the team's conventions, permission rules and each MCP server's token into one shared CLAUDE.md at the repository root, so that every session reads them.",
+  "D": "Have each squad lead review their engineers' ~/.claude folders every quarter, and remove any risky permissions or pasted tokens that they find in them."
+ },
+ "answer": "B",
+ "why": "Configuration in the repository reaches every engineer's session from the first run and changes only through review. CLAUDE.md carries the guidance Claude reads; .claude/settings.json carries allow and deny rules the harness enforces; shared skills give everyone the same workflows; and .mcp.json can reference ${SENTRY_AUTH_TOKEN}, so the secret stays in each engineer's environment and out of git.",
+ "wrong": {
+  "A": "Copied personal settings drift from day one, nobody can see what each engineer actually runs, and the team still has no shared deny rules.",
+  "C": "CLAUDE.md is guidance Claude reads, not permissions the harness enforces, and tokens written into a committed file are secrets in git.",
+  "D": "A quarterly review watches the risk instead of removing it: between reviews Bash(*) and pasted tokens stay live, and new engineers still get nothing."
+ },
+ "fix": "Commit CLAUDE.md, .claude/settings.json allow/deny rules, shared skills and an .mcp.json that uses environment variables for secrets.",
+ "see": "Phase 1: Ben's session loads 0 of 5 team policies. Phase 2: all 5 reach his first session, and Claude's report of what loads matches the loader.",
+ "explain": "Both phases ask what a new engineer's first session loads in kestrel/checkout-service. In Phase 1 the conventions live in Ana's ~/.claude files, so Ben's session, which sees only the repository, loads no instruction file, no deny rule, no skill and no MCP server; Ana's own config meanwhile allows Bash(*) and holds a literal token that no review sees. In Phase 2 the same conventions are committed, with the token replaced by ${SENTRY_AUTH_TOKEN}. Claude inspects the files with Glob and Read and reports what loads; plain code computes the same and checks five team policies.",
+ "exam_tip": "For team-wide Claude Code behaviour, choose committed project configuration: CLAUDE.md for guidance, .claude/settings.json for enforced permissions, .claude/skills/ for shared workflows, and .mcp.json with environment-variable references. Organisation-wide must-holds go further, into managed settings.",
+ "source": "Original question written for C740",
+ "headline": "Put each rule where every session loads it.",
+ "concepts": [
+  {
+   "t": "Scopes: user, project, local",
+   "b": "~/.claude reaches only you. .claude/settings.json and CLAUDE.md in the repository reach everyone. .claude/settings.local.json is yours, kept out of git."
+  },
+  {
+   "t": "Guidance versus enforcement",
+   "b": "CLAUDE.md and skills are read by Claude and followed most of the time. Permission rules, hooks and managed settings are enforced by the harness."
+  },
+  {
+   "t": "Allow and deny lists merge",
+   "b": "Permission lists combine across scopes, and a deny anywhere beats an allow. A team deny on git push --force holds even if someone allows more."
+  },
+  {
+   "t": "Shared skills",
+   "b": "A skill in .claude/skills/<name>/SKILL.md gives all 40 engineers the same /pr-review workflow, versioned and reviewed like code."
+  },
+  {
+   "t": "MCP config without secrets",
+   "b": "Commit .mcp.json with ${SENTRY_AUTH_TOKEN}; each engineer's environment supplies the value. A token written into the file is a secret in git."
+  }
+ ]
+}

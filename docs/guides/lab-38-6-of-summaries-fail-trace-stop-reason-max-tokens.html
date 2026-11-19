@@ -1,0 +1,138 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 38: 6% of summaries fail: trace stop_reason max_tokens, don&#x27;t guess</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 38: 6% of summaries fail: trace stop_reason max_tokens, don't guess</h1>
+<blockquote>
+<p>Day 2 · Topic 7: Developer Productivity &amp; Operational Enablement · Task statement 7.3 · Simulator 6: Kestrel Platform Team · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 7.3: <strong>Support debugging and operational issue resolution.</strong> You answer one exam-style question, then run the Kestrel Platform Team simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=38">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=38</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 38</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-38.js">docs/sims/lab-38.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>Kestrel Software's platform team is rolling Claude Code out to 40 engineers across four product squads, and runs Claude-powered features in production. The team owns the shared Claude Code configuration, the CI pipeline, the evaluation suite for each prompt change, and the on-call runbooks for incidents in Claude-powered services.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>stop_reason tells you why it stopped.</strong> end_turn means Claude finished. max_tokens means the reply was cut off at the limit; parsing that text as JSON then fails with a confusing error.</li>
+<li><strong>Traces for LLM features.</strong> Record model, max_tokens, input and output tokens, stop_reason, latency and tool calls per request. Most Claude incidents show up in these fields.</li>
+<li><strong>Read widely, change narrowly.</strong> Read-only access to logs, traces and deploys is safe to grant for diagnosis. Changes go through a branch, review and an approved rollout.</li>
+<li><strong>Reproduce, then change one thing.</strong> Replay a failing request as it was sent. If it fails the same way, change one setting and re-run: a pass is evidence, not a hope.</li>
+<li><strong>Retries don't fix deterministic failures.</strong> A transient 529 is worth a retry. A reply truncated by max_tokens fails the same way every time, so a retry only adds latency and cost.</li>
+</ul>
+<h2>The question</h2>
+<p>Since Tuesday afternoon, 6% of requests to Kestrel's order-summary service, which uses Claude to write the summary on the order confirmation page, fail with "Order summary unavailable". The on-call engineer asks Claude Code for help. Which approach best resolves the incident?</p>
+<ul>
+<li><strong>A.</strong> Give Claude read-only access to logs, traces and recent deploys, and have it reproduce a failing request, test one hypothesis at a time and verify the fix before rollout.</li>
+<li><strong>B.</strong> Paste the alert and the customer ticket into Claude, apply the most likely fix it suggests straight away, and roll it back if the error rate has not dropped within an hour.</li>
+<li><strong>C.</strong> Switch the service to a larger Claude model, because failures that start without any application code change usually point to a regression in the quality of the model's output.</li>
+<li><strong>D.</strong> Wrap the Claude call in a retry with exponential backoff, so that transient failures are absorbed and customers stop seeing errors while the team investigates the cause.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=38">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=38</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 38
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: Phase 1 cannot name a proven cause; Phase 2 finds stop_reason max_tokens after config v42, reproduces it and verifies the fix in staging.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Kestrel on-call · PAGE · order-summary: error rate 6.1% (baseline 0.2%) since Tue 14:10. Customers see &quot;Order summary unavailable&quot; on the confirmation page. Ticket SUP-…
+== Phase 1 · guess from symptoms: the page and the ticket, no tools
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: {&quot;hypotheses&quot;:[{&quot;cause&quot;:&quot;max_tokens_truncation&quot;,&quot;status&quot;:&quot;untested&quot;,&quot;evidence&quot;:&quot;No traces or logs provided. Truncated model output would fail parsing and show 'u…
+Phase 1 diagnosis: unknown · fix: Before changing anything, pull error traces since Tue 14:10 and group them by stop_reason, error type, and tool latency. If a deploy o…
+
+== PAUSE · Phase 1 finished: a diagnosis from the symptoms
+   outcome: From the symptoms alone Claude **cannot name a root cause**; its &quot;fix&quot; is a to-do list or a mitigation: &quot;Before changing anything, pull error traces since T…
+   proceed: Phase 2: the same page, with read-only logs, traces and deploys, a staging replay, and the debugging loop
+
+== Phase 2 · structured debugging loop: gather evidence, isolate, one hypothesis at a time, reproduce, verify
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -&gt; CONTINUE: run the tools, append the results, call Claude again
+  -&gt; search_logs({})
+  &lt;- result: {&quot;service&quot;:&quot;order-summary&quot;,&quot;window&quot;:&quot;Mon 00:00 to Wed 18:00&quot;,&quot;groups&quot;:[{&quot;message&quot;:&quot;order_summary_failed: JSONDecodeError: Unterminated string startin…
+  -&gt; list_traces({&quot;failed_only&quot;:true})
+  &lt;- result: [{&quot;trace_id&quot;:&quot;tr-a131&quot;,&quot;at&quot;:&quot;Tue 15:20&quot;,&quot;items_in_order&quot;:17,&quot;stop_reason&quot;:&quot;max_tokens&quot;,&quot;app_result&quot;:&quot;error&quot;},{&quot;trace_id&quot;:&quot;tr-a157&quot;,&quot;at&quot;:&quot;Wed 09:12&quot;,&quot;…
+  -&gt; list_deploys({})
+  &lt;- result: [{&quot;at&quot;:&quot;Mon 10:12&quot;,&quot;service&quot;:&quot;inventory-service&quot;,&quot;change&quot;:&quot;v3.1: new stock cache&quot;},{&quot;at&quot;:&quot;Tue 13:40&quot;,&quot;service&quot;:&quot;order-summary&quot;,&quot;change&quot;:&quot;prompt v17: …
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: tool_use -&gt; CONTINUE: run the tools, append the results, call Claude again
+  -&gt; get_trace({&quot;trace_id&quot;:&quot;tr-a131&quot;})
+  &lt;- result: {&quot;trace_id&quot;:&quot;tr-a131&quot;,&quot;at&quot;:&quot;Tue 15:20&quot;,&quot;items_in_order&quot;:17,&quot;service&quot;:&quot;order-summary&quot;,&quot;model&quot;:&quot;claude-haiku-5-5&quot;,&quot;config_version&quot;:&quot;v42&quot;,&quot;prompt_versio…
+  -&gt; get_trace({&quot;trace_id&quot;:&quot;tr-a157&quot;})
+  &lt;- result: {&quot;trace_id&quot;:&quot;tr-a157&quot;,&quot;at&quot;:&quot;Wed 09:12&quot;,&quot;items_in_order&quot;:14,&quot;service&quot;:&quot;order-summary&quot;,&quot;model&quot;:&quot;claude-haiku-5-5&quot;,&quot;config_version&quot;:&quot;v42&quot;,&quot;prompt_versio…
+  -&gt; get_trace({&quot;trace_id&quot;:&quot;tr-9f19&quot;})
+  &lt;- result: {&quot;trace_id&quot;:&quot;tr-9f19&quot;,&quot;at&quot;:&quot;Tue 12:31&quot;,&quot;items_in_order&quot;:5,&quot;inventory_timeout&quot;:true,&quot;service&quot;:&quot;order-summary&quot;,&quot;model&quot;:&quot;claude-haiku-5-5&quot;,&quot;config_versi…
+Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+  stop_reason: tool_use -&gt; CONTINUE: run the tools, append the results, call Claude again
+  -&gt; rerun_request({&quot;trace_id&quot;:&quot;tr-a131&quot;})
+  &lt;- result: {&quot;trace_id&quot;:&quot;tr-a131&quot;,&quot;max_tokens&quot;:1024,&quot;stop_reason&quot;:&quot;max_tokens&quot;,&quot;output_tokens&quot;:1024,&quot;summary_json_valid&quot;:false}
+  -&gt; list_traces({})
+  &lt;- result: [{&quot;trace_id&quot;:&quot;tr-9e41&quot;,&quot;at&quot;:&quot;Mon 11:02&quot;,&quot;items_in_order&quot;:3,&quot;stop_reason&quot;:&quot;end_turn&quot;,&quot;app_result&quot;:&quot;ok&quot;},{&quot;trace_id&quot;:&quot;tr-9e77&quot;,&quot;at&quot;:&quot;Mon 15:40&quot;,&quot;items_…
+Turn 4: POST /v1/messages · model claude-haiku-5-5 · 7 messages (tool results appended)
+  stop_reason: tool_use -&gt; CONTINUE: run the tools, append the results, call Claude again
+  -&gt; rerun_request({&quot;trace_id&quot;:&quot;tr-a131&quot;,&quot;max_tokens&quot;:2048})
+  &lt;- result: {&quot;trace_id&quot;:&quot;tr-a131&quot;,&quot;max_tokens&quot;:2048,&quot;stop_reason&quot;:&quot;end_turn&quot;,&quot;output_tokens&quot;:1370,&quot;summary_json_valid&quot;:true}
+  -&gt; rerun_request({&quot;trace_id&quot;:&quot;tr-a188&quot;,&quot;max_tokens&quot;:2048})
+  &lt;- result: {&quot;trace_id&quot;:&quot;tr-a188&quot;,&quot;max_tokens&quot;:2048,&quot;stop_reason&quot;:&quot;end_turn&quot;,&quot;output_tokens&quot;:1510,&quot;summary_json_valid&quot;:true}
+Turn 5: POST /v1/messages · model claude-haiku-5-5 · 9 messages (tool results appended)
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: {&quot;hypotheses&quot;:[{&quot;cause&quot;:&quot;max_tokens_truncation&quot;,&quot;status&quot;:&quot;confirmed&quot;,&quot;evidence&quot;:&quot;Config v42 at Tue 14:05 cut max_tokens 2048 to 1024. All failing traces (tr-a131…
+  confirmed max_tokens_truncation: Config v42 at Tue 14:05 cut max_tokens 2048 to 1024. All failing traces (tr-a131, tr-a157, tr-a188) show stop_reason max_tokens with …
+…
+PASS  Phase 2: a re-run with a higher max_tokens returned end_turn and valid summary JSON (fix verified)
+PASS  Phase 2: root cause max_tokens_truncation, citing a real failing trace, with the tool timeout ruled out
+
+== Side by side
+[trap] Phase 1: guess from symptoms: **No root cause**: with only the page and the ticket, Claude can list what to look at or suggest a mitigation, but **no trace, log …
+[fix] Phase 2: structured debugging loop: Evidence first, then isolation: failing traces stop at **stop_reason max_tokens, 1,024 tokens**, after config v42 halved max_t…
+  Evidence read | none (bad) | search_logs, list_traces, list_deploys, get_trace (good)
+  Root cause named | unknown (bad) | max_tokens_truncation (good)
+  Failing traces cited (exist in the store) | 0 (bad) | tr-a131, tr-a157, tr-a188 (good)
+  Reproduced in staging | no (bad) | yes: max_tokens at 1024 (good)
+  Fix verified by a re-run | no (bad) | yes: end_turn, valid JSON at 2048 (good)
+  Red herring (get_inventory timeout) | — | ruled out with evidence (good)
+
+6 Claude calls · 18628 in / 3223 out tokens · about US$0.0035 · 21.8 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: A.</strong> Claude is useful in an incident when it works from evidence. Read-only access to logs, traces and deploys is safe to grant widely and lets it see that every failing trace stops with stop_reason max_tokens at 1,024 tokens after a config change halved max_tokens. Reproducing a failing request, testing one hypothesis at a time and verifying the fix in staging turns a plausible story into a proven cause before anything changes in production.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>B.</strong> A fix chosen from symptoms is a guess; applying it in production risks a second incident and teaches nothing if the errors happen to stop.</li>
+<li><strong>C.</strong> The failures began with a config change, not a model change; a larger model costs more and still stops at the same max_tokens limit.</li>
+<li><strong>D.</strong> A truncated response is deterministic for that order: every retry hits the same max_tokens limit, so retries add latency and cost without fixing it.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Both phases start from the same page and the same customer ticket. From symptoms alone, Claude can only produce a plausible story: an API problem, a timeout, a bad prompt. Nothing in it is checked, and acting on it in production risks a second incident. With read-only access to logs, traces and deploys, the loop narrows quickly: the new error group appears at Tue 14:05, every failing trace stops with stop_reason max_tokens at exactly 1,024 output tokens on large orders, healthy traces before the change used up to 1,300 tokens under a 2,048 limit, and the deploy log shows config v42 halving max_tokens. A replay in staging reproduces the failure and verifies the fix before anyone touches production. The application should also check stop_reason before parsing, so a truncated reply fails loudly instead of as a JSON error.</p>
+<h2>Exam tip</h2>
+<p>In debugging questions, prefer evidence-driven loops: observability access, reproduction, one change at a time, verification before rollout. Retries, model upgrades and fixes guessed from symptoms are distractors, especially when the failure is deterministic, such as a max_tokens truncation.</p>
+<h2>Try this next</h2>
+<p>In shared/d7-kestrel.js, raise the v42 limit in TRACES from 1024 to 2048 and run Phase 2: the failures vanish and Claude has to look elsewhere. Then remove rerun_request from opsTools and see whether Claude still claims fix_verified.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

@@ -1,0 +1,47 @@
+{
+ "id": 6,
+ "task": "1.6",
+ "task_title": "Align solutions to business value pillars (efficiency, transformation, productivity, cost, performance SLAs)",
+ "topic": 1,
+ "topic_name": "Solution Design & Architecture",
+ "sim": 5,
+ "title": "A board pitch with no numbers: sell the value pillar and the SLAs",
+ "stem": "Lumen Retail's board paper for the store product-support assistant is in draft. It leads with the technology: the Claude models, retrieval over every product manual, and what the system can do. The COO says the board will ask what it is buying and how it will know the service is working. Which revision best aligns the solution to business value?",
+ "options": {
+  "A": "Add a table comparing the chosen model's benchmark scores with competing models, so that the board can see that Lumen is buying the most capable AI technology on the market.",
+  "B": "Replace the technology section with quotes from staff in the pilot stores and a list of questions the assistant answered well, to show that staff enjoy using it.",
+  "C": "Promise a 50% cut in support costs and full automation of product support within six months, so that the board has one clear, ambitious headline figure to approve and track.",
+  "D": "Name the primary value pillar, give metrics with today's baselines and targets, commit to SLAs for availability, p95 latency, accuracy and escalation, and price each answer."
+ },
+ "answer": "D",
+ "why": "A board funds an outcome it can measure, not a model. The architect names the primary value pillar (efficiency, productivity, transformation, cost or performance), expresses it as metrics with a measured baseline and a target, and turns performance into service levels a non-deterministic system can be held to: availability, p95 latency, answer accuracy on a test set and time to escalate, each with a number and a measurement method. The model is then chosen by cost per resolved answer and the latency target.",
+ "wrong": {
+  "A": "Benchmark scores describe the model, not Lumen's outcome; the board still has nothing to hold the service to after go-live.",
+  "B": "Anecdotes show that people like it, not that handle time or cost moved; nothing is measured against a baseline.",
+  "C": "A headline promise with no baseline, method or service levels cannot be checked, and \"full automation\" ignores the tasks that stay with people."
+ },
+ "fix": "Rewrite the paper around one value pillar, baselined metrics, four measurable service levels and a cost per answer.",
+ "see": "The value case anchors its metrics to 7.5 minutes and $11.40 and commits to all four service levels with a number and a measurement method.",
+ "explain": "Phase 1 writes the board summary as a capability pitch, and the same extractor audit that later reads the value case finds almost nothing the board could hold the service to: one service level with a number at most, and no metric anchored to a discovery baseline. Phase 2 writes the same solution as a value case: efficiency as the primary pillar, handle time and cost per call measured against the discovery baselines (7.5 minutes, $11.40), the four service levels with targets and measurement methods, and a model chosen by cost per answer, which code prices at a fraction of a cent from the price table.",
+ "exam_tip": "When a stem's draft leads with the model or its features, pick the answer that names a value pillar, baselined metrics and measurable SLAs; reject benchmark tables, anecdotes and unmeasured promises.",
+ "source": "Original question written for C740",
+ "headline": "Fund an outcome you can measure, not a model.",
+ "concepts": [
+  {
+   "t": "Five value pillars",
+   "b": "Efficiency, productivity, transformation, cost and performance SLAs. They pull a design in different directions, so name the primary one."
+  },
+  {
+   "t": "Each pillar has its own metric",
+   "b": "Efficiency: handle time or cost per task. Productivity: output per person. Transformation: something not possible before. Cost: total cost of ownership."
+  },
+  {
+   "t": "SLAs a model can keep",
+   "b": "Availability, p95 latency, answer accuracy on a fixed test set and time to escalate, each with a number and a measurement method, not \"fast\" and \"accurate\"."
+  },
+  {
+   "t": "Cost per resolved answer",
+   "b": "Price tokens per answer from the list prices (Haiku 5.5 $0.10/$0.50 per million tokens), add review cost, and compare with today's cost per call."
+  }
+ ]
+}

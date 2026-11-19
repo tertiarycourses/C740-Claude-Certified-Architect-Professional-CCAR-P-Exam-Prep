@@ -1,0 +1,51 @@
+{
+ "id": 12,
+ "task": "3.1",
+ "task_title": "Evaluate tool/agent configuration for capability bloat",
+ "topic": 3,
+ "topic_name": "Integration",
+ "sim": 1,
+ "title": "Paid out and deleted on a customer's say-so: remove the tools",
+ "stem": "A team exposes a customer-support agent that can read tickets, draft replies, issue refunds, and delete user accounts. Support staff only ever need to read tickets and draft replies. Applying least-privilege principles, which change best reduces risk?",
+ "options": {
+  "A": "Add logging to the refund and delete tools so misuse can be audited later.",
+  "B": "Remove the refund and delete tools from the agent's configuration entirely.",
+  "C": "Keep all tools but add a confirmation prompt before refunds and deletions.",
+  "D": "Replace the agent with a larger model that follows instructions more reliably."
+ },
+ "answer": "B",
+ "why": "Least privilege means the agent holds only the capabilities its role needs. Support staff read and draft, so refunds and deletions are not part of the role. Removing those tools from the configuration deletes the risk: no prompt, injected instruction or misunderstanding can make the agent call a tool it was never given. In the lab, the same message makes the fully tooled claims agent pay out and delete a claim, while the agent with the role's three tools can only read the claim and draft a letter.",
+ "wrong": {
+  "A": "Logging is a detective control: it records a refund or deletion after it has happened and does nothing to stop it.",
+  "C": "A confirmation step is a compensating control that leaves the capability in place, and reviewers under queue pressure start approving by habit.",
+  "D": "Model size changes how often the agent errs, not what an error can do: the refund and delete tools would still be one bad decision away."
+ },
+ "fix": "Configure each agent with only the tools its role needs; give high-impact actions to a different role or a human workflow.",
+ "see": "With every tool, the claims agent paid out on CLM-7802 and deleted CLM-7803 on the customer's own say-so; with the role's three tools it drafted a letter and changed nothing.",
+ "explain": "This is the exam guide's own sample question, mirrored on the Harbour Mutual claims desk: reading claims and drafting letters are the support role (read tickets, draft replies); approve_payout and delete_claim stand in for refunds and account deletion. Both phases send the same prompt and the same web-form message, in which the customer asks to be paid in full today and to delete a duplicate claim. With six tools configured, the agent does both, and the audit log only records it afterwards. With three tools, the API request carries no payout or delete definition, so the call cannot be made; the agent reads the claim, drafts a reply and hands the payout to the people authorised to make it.",
+ "exam_tip": "When the stem says a role 'only ever needs' some capabilities, the answer removes the rest. Logging, confirmations and bigger models are all distractors that keep the excess privilege.",
+ "source": "Official exam guide, sample question 1",
+ "headline": "If the role doesn't need the tool, the agent doesn't get it.",
+ "concepts": [
+  {
+   "t": "Capability bloat costs twice",
+   "b": "Every unneeded tool is attack surface (a confused or injected agent can call it) and selection noise (one more option to pick wrongly, one more definition in context)."
+  },
+  {
+   "t": "Least privilege for agents",
+   "b": "An agent should hold only the tools and permissions the role it serves needs. Higher-impact actions belong to another role, another agent or a human workflow."
+  },
+  {
+   "t": "Preventive beats detective",
+   "b": "Remove the tool (preventive), narrow it or its credential (restrictive), gate it with approval (compensating), log it (detective). Only removal makes the harm impossible."
+  },
+  {
+   "t": "The model is not the boundary",
+   "b": "\"Never issue refunds\" in a prompt makes misuse less likely, not impossible. Any text the agent reads, including a customer's message, can push it to use a tool it holds."
+  },
+  {
+   "t": "Allowlist per role",
+   "b": "Configure tools from an allowlist keyed by role, so a new tool stays off until someone decides a role needs it. A denylist silently grants whatever is added next."
+  }
+ ]
+}

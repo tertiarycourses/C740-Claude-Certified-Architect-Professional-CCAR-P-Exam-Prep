@@ -1,0 +1,47 @@
+{
+ "id": 5,
+ "task": "1.5",
+ "task_title": "Apply decomposition techniques for complex problem solving",
+ "topic": 1,
+ "topic_name": "Solution Design & Architecture",
+ "sim": 3,
+ "title": "One prompt for the whole discharge pack runs out: split and reconcile",
+ "stem": "Meridian Health generates a discharge pack from clinicians' notes: a medication reconciliation, a clinical summary, actions for the GP, and plain-English instructions for the patient, each with its own rules. One prompt writes the whole pack in a single call. It often stops at max_tokens, and when it finishes, a section often breaks its rules, so the whole call is rerun. Which approach best fixes this?",
+ "options": {
+  "A": "Write each section in its own pass with only its notes and rules, feed the medication JSON to the later passes, then validate every section and the shared facts in code.",
+  "B": "Raise max_tokens to the model's maximum and add a reminder at the end of the prompt that every section's rules must be followed, so that one call completes the whole pack.",
+  "C": "Move the single call to a larger model with a longer output limit, since a stronger model can plan six sections for three readers within one response.",
+  "D": "Ask Claude to review its own pack at the end of the same call and to rewrite any section that breaks a rule before it returns the final version to the clinician."
+ },
+ "answer": "A",
+ "why": "A discharge pack is several jobs that share one record, each for a different reader with different rules. Decomposition gives each pass less to plan and less to read, and cuts at narrow seams: the medication pass returns structured JSON that the GP and patient passes read instead of the raw notes. Every seam can be checked, so code validates each section against its own rules and the facts that span sections, and only a failing section is repaired.",
+ "wrong": {
+  "B": "A bigger budget may let the call finish, but every section still shares one blended set of rules, and one failing section still means rerunning the whole pack.",
+  "C": "A larger model costs more and still produces one block with no checkable seams between the sections.",
+  "D": "Self-review in the same call spends more of the same budget and is not an independent check; a failure still means a full rerun."
+ },
+ "fix": "Split the pack into section passes with their own inputs and rules, then reconcile in code and repair only the failing section.",
+ "see": "All four section passes ended with end_turn, and the reconciled pack passed every rule, with all 7 medications matching their last order.",
+ "explain": "Phase 1 asks one call for all six sections for three readers. In most runs it spends its whole 4,096-token budget planning and stops with stop_reason max_tokens before returning a usable pack; when it does finish, a section tends to break its own rule. Phase 2 routes the notes: the medication pass reads the admission note, the pharmacy reconciliation, the ward rounds, the haematology advice and the rash note; the routine observation notes go to no pass at all. The GP and patient passes read the medication JSON, not the raw notes. A reconciliation step in code then checks every section's rules and the medication list against the last order for each drug, and sends a failing section back once with its errors.",
+ "exam_tip": "When one prompt does several jobs for different readers, look for the answer that splits at checkable seams (structured outputs) and adds a reconciliation step, not for a bigger budget or a bigger model.",
+ "source": "Original question written for C740",
+ "headline": "Local passes first. Reconcile globally second.",
+ "concepts": [
+  {
+   "t": "Decomposing trades difficulty for count",
+   "b": "Each piece gets easier, but every extra step is another place an error can enter. A split pays when it makes each piece reliably right and checkable."
+  },
+  {
+   "t": "Cut at narrow, checkable seams",
+   "b": "Pass a small structured artefact between steps (the medication JSON), not everything the next step might need. A seam you can validate is one you can trust."
+  },
+  {
+   "t": "Local first, global second",
+   "b": "Section passes each see only their own evidence; a reconciliation step then checks the facts that span sections."
+  },
+  {
+   "t": "Read stop_reason first",
+   "b": "A call that hits max_tokens stops mid-response, and with adaptive thinking the planning counts toward that budget too. Check stop_reason before using the output."
+  }
+ ]
+}

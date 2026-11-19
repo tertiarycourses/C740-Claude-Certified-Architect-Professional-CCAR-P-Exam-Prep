@@ -1,0 +1,122 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 37: A chat review can&#x27;t block PR 512: run claude -p in CI behind a gate</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 37: A chat review can't block PR 512: run claude -p in CI behind a gate</h1>
+<blockquote>
+<p>Day 2 · Topic 7: Developer Productivity &amp; Operational Enablement · Task statement 7.2 · Simulator 6: Kestrel Platform Team · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 7.2: <strong>Improve developer workflows using AI-assisted tooling.</strong> You answer one exam-style question, then run the Kestrel Platform Team simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=37">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=37</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 37</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-37.js">docs/sims/lab-37.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>Kestrel Software's platform team is rolling Claude Code out to 40 engineers across four product squads, and runs Claude-powered features in production. The team owns the shared Claude Code configuration, the CI pipeline, the evaluation suite for each prompt change, and the on-call runbooks for incidents in Claude-powered services.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>Headless Claude Code: claude -p.</strong> Print mode runs one prompt and exits, which suits CI. --output-format json gives a result a script can read instead of a chat transcript.</li>
+<li><strong>Skills make reviews consistent.</strong> A committed .claude/skills/pr-review/SKILL.md gives every run the same rules, versioned and reviewed like code.</li>
+<li><strong>Structured output for machines.</strong> A JSON schema for findings (file, line, rule, severity) lets a CI step count and filter them. Prose needs a human to read it.</li>
+<li><strong>Model for judgement, code for the gate.</strong> Claude decides whether line 14 logs a card number. Plain code decides that a high finding fails the build. Branch protection blocks the merge.</li>
+<li><strong>Speed-ups move the bottleneck.</strong> Faster code writing helps only if review and verification keep up. Automating the first review pass keeps the human reviewer for judgement.</li>
+</ul>
+<h2>The question</h2>
+<p>Kestrel engineers paste diffs into a Claude chat for review when they remember to, each with their own prompt, and the feedback varies from person to person. Last month a refund change that logged full card numbers was merged. The platform team wants consistent reviews that stop changes like that. What should they do?</p>
+<ul>
+<li><strong>A.</strong> Add a CONTRIBUTING.md rule that every engineer must ask Claude to review the diff in a chat before opening a pull request.</li>
+<li><strong>B.</strong> Give each engineer a recommended review prompt to keep in their personal ~/.claude/CLAUDE.md, so every review starts from the same text.</li>
+<li><strong>C.</strong> Have Claude review each pull request in CI and post its findings as a free-text comment for the human reviewer to read before merging.</li>
+<li><strong>D.</strong> Run claude -p in CI with a committed review skill and a JSON schema for findings, and fail the check on any high-severity finding.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=37">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=37</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 37
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: Phase 1's chat reply is prose and the gate has no verdict; Phase 2 blocks PR 512 on KR-1 at refund.py line 14 and passes the clean PR 513.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Kestrel · PR 512 &quot;Partial refunds from the order page&quot; by Dev Patel (squad 3); PR 513 &quot;Test for cart totals&quot;
+== Phase 1 · ad hoc chat review: the engineer pastes the diff and asks for a look
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: Don't merge yet. The most serious problem is the log line. **Blocking** 1. **Logging the full card number.** `log.info(... card.number ...)` writes raw PAN data …
+CI gate on the chat reply: not JSON: no machine-readable result. The pipeline has nothing to fail on, so PR 512 merges unless a human reads the reply (the reply does me…
+
+== PAUSE · Phase 1 finished: an ad hoc review in a chat
+   outcome: The reply is 267 words of prose and does mention the card number, but **the CI step cannot parse it** (not JSON: no machine-readable result), so nothing blo…
+   proceed: Phase 2: the same PR, reviewed by claude -p in CI with the shared skill and a findings schema, behind a gate
+
+== Phase 2 · claude -p in CI: committed /pr-review skill + JSON schema on every PR, then a gate in plain code
+    (CI: claude -p /pr-review 512) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (CI: claude -p /pr-review 512) answer: {&quot;findings&quot;:[{&quot;file&quot;:&quot;payments/refund.py&quot;,&quot;line&quot;:14,&quot;rule&quot;:&quot;KR-1&quot;,&quot;severity&quot;:&quot;high&quot;,&quot;message&quot;:&quot;Logs card.number, which is a c…
+    (CI: claude -p /pr-review 513) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (CI: claude -p /pr-review 513) answer: {&quot;findings&quot;:[],&quot;verdict&quot;:&quot;pass&quot;}
+PR 512: 4 finding(s): KR-1/high payments/refund.py:14, KR-2/high payments/refund.py:15, KR-3/medium payments/refund.py:15, KR-4/low payments/refund.py:10 → gate exit 1 …
+PR 513: 0 finding(s): none → gate exit 0 (no high-severity finding)
+
+== Turns
+turn 1: stop_reason=end_turn
+(CI: claude -p /pr-review 512) turn 1: stop_reason=end_turn
+(CI: claude -p /pr-review 513) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the ad hoc chat review is prose the CI gate cannot parse, so it gives no verdict on PR 512
+PASS  Phase 2: both CI reviews return findings that parse against the schema
+PASS  Phase 2: PR 512 has a KR-1 finding at payments/refund.py line 14, and the gate exits 1
+PASS  Phase 2: the clean PR 513 has no high-severity finding, and the gate exits 0
+
+== Side by side
+[trap] Phase 1: ad hoc chat review: Useful prose that even mentions the card number, but **nothing a pipeline can act on**: the gate has no verdict and PR 512 merges un…
+[fix] Phase 2: claude -p in CI with the shared skill: Schema-valid findings on both PRs; **PR 512 is blocked** (KR-1 at refund.py line 14, KR-2 on the refund call) and …
+  When it runs | when an engineer remembers | on every pull request, in CI (good)
+  Review rules | whatever the engineer's prompt says | committed /pr-review skill: KR-1..KR-4 (good)
+  Machine-readable result | no: prose (bad) | yes: findings JSON (good)
+  PR 512 findings | card number mentioned in prose | KR-1 high line 14, KR-2 high line 15, KR-3 medium line 15, KR-4 low line 10
+  PR 512 gate | no verdict → merges (bad) | exit 1 → blocked (good)
+  PR 513 (clean) gate | not reviewed | exit 0 → passes (good)
+
+3 Claude calls · 2359 in / 1606 out tokens · about US$0.0010 · 10.9 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: D.</strong> The improvement comes from wiring the tool into the flow, not from using it more often. CI runs the review on every pull request; the committed skill applies the same rules for everyone; the schema makes the output something a script can read; and a few lines of plain code fail the check on a high-severity finding, so branch protection stops the merge. The model supplies the judgement, the gate is deterministic.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>A.</strong> A written rule still depends on each engineer remembering and on their own prompt, and its prose output cannot block anything.</li>
+<li><strong>B.</strong> A personal ~/.claude file reaches only its owner, drifts over time, and still produces nothing a pipeline can check.</li>
+<li><strong>C.</strong> Running in CI fixes when it happens, but free text cannot gate a merge: a busy reviewer can still miss the finding.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Both phases review the same pull request. The ad hoc workflow depends on someone remembering to paste the diff, gets a different review from each person's prompt, and returns prose that only a human can act on: the CI step has nothing it can check, so the change merges unless a reviewer happens to read the reply. The wired-in workflow runs on every pull request in CI with <code>claude -p</code>, uses the team's committed pr-review skill so every review applies the same rules, and asks for findings in a JSON schema. A few lines of plain code then fail the check on any high-severity finding: the model gives judgement, the gate is deterministic, and the clean pull request passes.</p>
+<h2>Exam tip</h2>
+<p>When the goal is consistent, enforced AI assistance across a team, look for the answer that runs in the shared pipeline, uses committed configuration, and produces structured output a deterministic step can gate on. Free-text comments and personal prompts are partial fixes.</p>
+<h2>Try this next</h2>
+<p>Remove card.number from line 14 of PR 512 in shared/d7-kestrel.js and add an Idempotency-Key header, then run Phase 2: the gate opens. Then change KR-3 to high in REVIEW_SKILL and see the missing timeout block the merge too.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

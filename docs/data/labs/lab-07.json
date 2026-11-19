@@ -1,0 +1,51 @@
+{
+ "id": 7,
+ "task": "2.1",
+ "task_title": "Select appropriate Claude models based on trade-offs",
+ "topic": 2,
+ "topic_name": "Claude Models, Prompting & Context Engineering",
+ "sim": 4,
+ "title": "Every question at Opus prices: route by difficulty, grade each route",
+ "stem": "Riverton City Council's resident assistant sends every question to Claude Opus 5.5. Its logs show that 80% of questions are one-fact lookups (bin days, permit status) in four languages, and 20% are benefit pre-screens that apply several eligibility rules to a resident's own figures. The model bill is now well over budget. Which approach best balances answer quality and cost?",
+ "options": {
+  "A": "Move all traffic to Claude Haiku 5.5, the cheapest tier, because most resident questions are simple lookups.",
+  "B": "Route each question by task difficulty, Haiku for lookups and Sonnet for pre-screens, and evaluate each route.",
+  "C": "Keep Claude Opus 5.5 for every question, but lower max_tokens so that each answer costs less to generate.",
+  "D": "Move all traffic to Claude Fable 5.2, whose higher accuracy means fewer failed answers need a costly human follow-up."
+ },
+ "answer": "B",
+ "why": "Model choice is a trade-off made per task, not per application. One-fact lookups are well within Haiku 5.5's ability in every language Riverton serves, at a fortieth of Opus 5.5's price; the multi-rule pre-screens justify a stronger tier. A cheap router sends each question to the least capable model that passes for that kind of task, and each route is graded on its own eval cases before traffic moves, so the saving does not come at the cost of quality where quality matters.",
+ "wrong": {
+  "A": "Haiku for everything ignores the 20% of multi-rule pre-screens, and nothing measures whether it handles them.",
+  "C": "A lower output cap risks truncated answers and leaves every input token, and the lookups, at Opus prices.",
+  "D": "Fable doubles the price of every lookup that Haiku already answers correctly, so there is no failure cost to recover."
+ },
+ "fix": "Route lookups to Haiku and pre-screens to Sonnet, with each route graded on its own eval cases.",
+ "see": "Opus for everything answers all eight correctly at several times the budget; routing keeps every route correct at a quarter to a third of the cost.",
+ "explain": "Most of Riverton's traffic is one-fact lookups that the smallest model answers correctly in English, Malay, Chinese and Tamil; a minority are benefit pre-screens that apply several rules to a resident's figures. Sending everything to the top tier pays for capability the lookups never use. A Haiku router sends lookups to the Haiku route and pre-screens to the Sonnet route, and the same answer key grades each route separately. Priced at Riverton's traffic mix, the routed design keeps full marks on both routes and cuts the projected monthly bill by two thirds or more, inside the budget.",
+ "exam_tip": "When one model serves very different tasks, the best answer routes by task difficulty and measures quality per route. 'Cheapest for everything' and 'most capable for everything' are both traps: each ignores half the trade-off.",
+ "source": "Original question written for C740",
+ "headline": "Pay for capability only where the task needs it.",
+ "concepts": [
+  {
+   "t": "The Claude model tiers",
+   "b": "Fable 5.2, Opus 5.5, Sonnet 5.5 and Haiku 5.5 all have a 1M-token context. They differ in price (US$8/40 down to US$0.10/0.50 per million tokens), latency and ceiling."
+  },
+  {
+   "t": "Cost per completed task",
+   "b": "Compare models on your own eval: tokens times price, divided by the share of tasks solved, plus the cost of cleaning up failures. Price per token alone misleads."
+  },
+  {
+   "t": "Routing by task difficulty",
+   "b": "A cheap classifier sends each request to the least capable model that passes for that kind of task: lookups and extraction go small, multi-step reasoning goes up."
+  },
+  {
+   "t": "Quality per route",
+   "b": "Grade every route on its own eval cases. A blended score can hide a route that fails, so check each slice before moving traffic to a cheaper model."
+  },
+  {
+   "t": "Effort and thinking are levers too",
+   "b": "Within one model, lower effort or thinking switched off cuts output tokens and latency on simple tasks. Tuning effort is often a better lever than changing model."
+  }
+ ]
+}

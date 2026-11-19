@@ -1,0 +1,101 @@
+Harbour Mutual · CLM-7781: Priya Nair, rear bumper, quote $4,200 from Bayside Panel Works, invoice RQ-5531. Policy HM-POL-2201, excess $500.
+== Phase 1 · peer specialists: the lead agent fans out to coverage, damage and fraud agents that may each settle their part
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> Agent({"remit":"coverage","prompt":"New claim CLM-7781 under policy HM-POL-2201. Repairing garage: Bayside Panel Works. Pleas…)
+    (peer coverage) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+      -> approve_payout({"claim_id":"CLM-7781","amount":3650})
+      <- result: {"approved":true,"claim_id":"CLM-7781","amount":3650}
+    (peer coverage) Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (peer coverage) answer: **Coverage determination for CLM-7781 (policy HM-POL-2201):** Covered, and I approved a payout of $3,650. - **Policy period and status:** The policy is active, started 2025-03-01, and the incident date of 2026-10-28 fal…
+  <- result: **Coverage determination for CLM-7781 (policy HM-POL-2201):** Covered, and I approved a payout of $3,650. - **Policy period and status:** The policy …
+  -> Agent({"remit":"damage","prompt":"New claim CLM-7781 under policy HM-POL-2201. Repairing garage: Bayside Panel Works. Please …)
+    (peer damage) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+      -> approve_payout({"claim_id":"CLM-7781","amount":4150})
+      <- result: {"approved":true,"claim_id":"CLM-7781","amount":4150}
+    (peer damage) Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (peer damage) answer: I approved a payout of US$4,150 on CLM-7781, the independently assessed repair cost, which is US$50 below Bayside Panel Works' US$4,200 quote. - **Damage vs. description:** The assessor found a cracked rear bumper cover…
+  <- result: I approved a payout of US$4,150 on CLM-7781, the independently assessed repair cost, which is US$50 below Bayside Panel Works' US$4,200 quote. - **Da…
+  -> Agent({"remit":"fraud","prompt":"New claim CLM-7781 under policy HM-POL-2201. Repairing garage: Bayside Panel Works. Please s…)
+    (peer fraud) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+      -> escalate_to_adjuster({"claim_id":"CLM-7781","reason":"Fraud screen failed; not settling within my remit. (1) Duplicate invoice: RQ-5531 (Bay…)
+      <- result: {"queued":true}
+    (peer fraud) Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (peer fraud) answer: I escalated CLM-7781 to a human adjuster and did not approve the $4,200 payout, because the invoice it relies on (RQ-5531) is already recorded as paid on CLM-6120, dated about 16 months before this incident.
+  <- result: I escalated CLM-7781 to a human adjuster and did not approve the $4,200 payout, because the invoice it relies on (RQ-5531) is already recorded as pai…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: CLM-7781 has been routed to the coverage, damage and fraud specialists, but the outcomes conflict and payment should be held. - **Coverage** approved $3,650, which is the $4,150 assessed cost less the $500 excess. - **Damage** settled at $4,150 and does not appear to deduct the excess, so the two payment figures disagree. - **Fraud** escalated to a human adjuster and did not approve payment. The $4,200 repair invoice (RQ-5531) is already recorded as paid on an earlier claim, CLM-6120, about 16 months before this incident. I'd hold any payment on CLM-7781 until the fraud escalation is reviewed…
+Phase 1 actions on CLM-7781: coverage: approve_payout $3,650 | damage: approve_payout $4,150 | fraud: escalate (Fraud screen failed; not settling within my remit. (1) Duplicate invoice: RQ-5531 (Baysid…)
+
+== PAUSE · Phase 1 finished: three specialists, three separate actions
+   outcome: **The coverage agent approved $3,650; The damage agent approved $4,150** while the fraud agent escalated because invoice RQ-5531 was already paid on CLM-6120. The same claim was paid and sent for review at once: no step ever saw all three results.
+   proceed: Phase 2: the same specialists as read-only subagents; the coordinator reconciles before it acts
+
+== Phase 2 · coordinator: read-only subagents return findings; the coordinator reconciles them, then acts once
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> Agent({"remit":"coverage","prompt":"Claim CLM-7781 under policy HM-POL-2201, repairer Bayside Panel Works. Determine whether …)
+    (subagent coverage) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (subagent coverage) answer: {"remit":"coverage","status":"flag","amount_due":3650,"evidence":["Policy HM-POL-2201 active, start 2025-03-01, incident 2026-10-28","Policy wording Section 2: accidental damage by impact with another vehicle is covered…
+  <- result: {"remit":"coverage","status":"flag","amount_due":3650,"evidence":["Policy HM-POL-2201 active, start 2025-03-01, incident 2026-10-28","Policy wording …
+  -> Agent({"remit":"damage","prompt":"Claim CLM-7781 under policy HM-POL-2201, repairer Bayside Panel Works. Assess the damage an…)
+    (subagent damage) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (subagent damage) answer: {"remit":"damage","status":"clear","amount_due":4150,"evidence":["CLM-7781 description: rear bumper cracked, parking sensor not working, reversing impact by another vehicle","AS-3302 findings: rear bumper cover cracked,…
+  <- result: {"remit":"damage","status":"clear","amount_due":4150,"evidence":["CLM-7781 description: rear bumper cracked, parking sensor not working, reversing im…
+  -> Agent({"remit":"fraud","prompt":"Claim CLM-7781 under policy HM-POL-2201, repairer Bayside Panel Works. Screen for fraud indi…)
+    (subagent fraud) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (subagent fraud) answer: {"remit":"fraud","status":"flag","amount_due":0,"evidence":["Invoice RQ-5531 (repair_quote 4200, same as CLM-7781 invoice_ref) is already recorded against claim CLM-6120 (claimant K. Wong, dated 2025-06-14, 'rear bumper…
+  <- result: {"remit":"fraud","status":"flag","amount_due":0,"evidence":["Invoice RQ-5531 (repair_quote 4200, same as CLM-7781 invoice_ref) is already recorded ag…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: tool_use -> CONTINUE: run the tool, append the result, call Claude again
+  -> escalate_to_adjuster({"claim_id":"CLM-7781","reason":"Two subagent findings are flagged, so no payout has been approved.\n\nFRAUD FLAG (dupl…)
+  <- result: {"queued":true}
+Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: CLM-7781 has been escalated to a human adjuster and no payout has been approved. The fraud review found that invoice RQ-5531 (US$4,200) was already paid under CLM-6120 in June 2025, and the coverage review raised open questions about the parking sensor exclusion and the 30-day notice requirement.
+Findings: coverage flag ($3,650 due) · damage clear ($4,150 due) · fraud flag
+Coordinator's one decision: escalate (Two subagent findings are flagged, so no payout has been approved. FRAUD FLAG (duplicate billing): Invoice RQ-5531 (US$4,200, Bayside Panel Works), cited as th…)
+
+== Turns
+turn 1: stop_reason=tool_use tools=Agent,Agent,Agent
+(peer coverage) turn 1: stop_reason=tool_use tools=approve_payout
+(peer coverage) turn 2: stop_reason=end_turn
+(peer damage) turn 1: stop_reason=tool_use tools=approve_payout
+(peer damage) turn 2: stop_reason=end_turn
+(peer fraud) turn 1: stop_reason=tool_use tools=escalate_to_adjuster
+(peer fraud) turn 2: stop_reason=end_turn
+turn 2: stop_reason=end_turn
+turn 1: stop_reason=tool_use tools=Agent,Agent,Agent
+(subagent coverage) turn 1: stop_reason=end_turn
+(subagent damage) turn 1: stop_reason=end_turn
+(subagent fraud) turn 1: stop_reason=end_turn
+turn 2: stop_reason=tool_use tools=escalate_to_adjuster
+turn 3: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: a peer agent approved a payout on CLM-7781 while another escalated it (no reconciliation)
+PASS  Phase 2: the coordinator spawned the coverage, damage and fraud subagents
+PASS  Phase 2: the fraud subagent's finding flagged RQ-5531 as already paid on CLM-6120
+PASS  Phase 2: the coordinator reconciled the findings and made one decision: escalate, nothing paid
+
+== Side by side
+[trap] Phase 1: peer specialists that each settle: **Paid $7,800 and escalated the same claim**: coverage, damage, fraud each acted on a partial view, and no step reconciled them.
+[fix] Phase 2: coordinator reconciles read-only findings: Coverage found $3,650 due, the fraud subagent flagged RQ-5531 (paid on CLM-6120), and the coordinator made **one decision: escalate, $0 paid**.
+  Specialists and their slices | coverage, damage, fraud (same) | coverage, damage, fraud (same)
+  Who can approve a payout | every specialist (bad) | only the coordinator (good)
+  Actions on CLM-7781 | coverage: approve_payout $3,650 | damage: approve_payout $4,150 | fraud: escalate (Fraud screen failed; not settling within my remit. (1) Duplicate invoice: RQ-5531 (Baysid…) (bad) | one escalation, with the fraud evidence (good)
+  Duplicate RQ-5531 / CLM-6120 found | yes, by the fraud agent | yes, in the fraud finding (good)
+  Where the results meet | nowhere (bad) | the coordinator, before acting (good)
+  Claude calls · input tokens | 8 · 20,042 | 6 · 13,835
+
+14 Claude calls · 33877 in / 9140 out tokens · about US$0.0080 · 48.2 s

@@ -1,0 +1,42 @@
+CLM-7815 · Priya Nair · rear-end collision, 6 Nov 2026 · 21-line quote, line 14 (paint and materials) not priced: "per materials sheet to follow". With the sheet's $486.30 the payout is $5,340.64, above the $5,000.00 authority. Without line 14 it comes to $4,810.58.
+== Phase 1 · two calls agree, so pay: Claude calculates, a second call re-calculates, the payout system acts when they match
+    Calculate: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+    Re-calculate: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  Claude: $4,810.58 · second call: $4,810.58 · they agree
+  payout system: approve_payout($4,810.58)
+Phase 1 result: both calls agreed on $4,810.58, below the authority, so the pipeline paid it with no adjuster. The quote never priced line 14; with it, the payout is $5,340.64 and needs an adjuster.
+
+== PAUSE · Phase 1 finished: two calls agreed, so the pipeline paid
+   outcome: **Both calls said $4,810.58, and the pipeline paid it without an adjuster.** Neither call could know line 14's amount: the quote doesn't print it. With the materials sheet the payout is $5,340.64, above the $5,000.00 authority.
+   proceed: Phase 2: Claude extracts the lines; code grounds them, holds for the missing sheet, computes and routes
+
+== Phase 2 · the model copies, code decides: extract every line (null where unpriced), ground it, hold for the gap, compute in code
+    Extract: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  Claude: 21 lines extracted · null amounts on line(s) 14
+  ground(): 20 priced lines match the quote · unpriced: line 14
+  payout system: hold(CLM-7815) · line 14 unpriced · request_document("materials sheet")
+  <- MS-7815: Bayside Autobody · materials sheet for CLM-7815 · line 14: Paint and materials (2K clear coat, base coat, primer, abrasives) · $486.30 excl. GST
+  compute_payout(): parts and materials $3,557.70 + GST $320.19 + labour $1,962.75 - excess $500 = $5,340.64
+  payout system: escalate_to_adjuster($5,340.64) · $5,340.64 is above the $5,000.00 authority
+
+== Turns
+Calculate turn 1: stop_reason=end_turn
+Re-calculate turn 1: stop_reason=end_turn
+Extract turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: both calls agreed on a figure that leaves out unpriced line 14, and it was paid without an adjuster
+PASS  Phase 2: all 21 lines extracted; the 20 priced amounts match the quote and line 14 came back null, not guessed
+PASS  Phase 2: code held the claim until the materials sheet arrived, then computed the payout itself
+PASS  Phase 2: $5,340.64 is above the $5,000 authority, so the claim was escalated to an adjuster
+
+== Side by side
+[trap] Phase 1: two calls agree, so pay: Both calls said **$4,810.58**: consistent, fluent and wrong. Line 14 was never priced, so the pipeline paid without an adjuster.
+[fix] Phase 2: model copies, code decides: Code saw line 14 was unpriced and **held** the claim, fetched the sheet, computed **$5,340.64** and escalated it (above $5,000.00).
+  What Claude was asked for | the payout, twice | the lines it can read; null where none is printed (good)
+  Line 14 (paint and materials) | silently left out (bad) | null → hold → materials sheet $486.30 (good)
+  The check | two calls agree (bad) | ground every line in the quote, compute in code (good)
+  Figure acted on | $4,810.58 (bad) | $5,340.64 (good)
+  Action | approve_payout (bad) | escalate_to_adjuster (good)
+
+3 Claude calls · 2821 in / 1938 out tokens · about US$0.0013 · 11.1 s

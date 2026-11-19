@@ -1,0 +1,54 @@
+Riverton Resident Services: an eval set of 8 questions (6 lookups, 2 benefit pre-screens) in English, Malay, Chinese and Tamil, graded on an answer key. Live traffic: 90,000 questions a month, budget US$300 a month.
+This lab calls only claude-haiku-5-5. Bigger tiers are priced from their list prices, never called.
+== Phase 1 · one model for everything: every question at the top tier (priced at Claude Opus 5.5)
+  (Answered in two batches, lookups then pre-screens, to keep the lab cheap. Every question goes to the same top tier.)
+  ok    Q1 (English) [top tier]: In Zone 3, general waste is collected on Wednesday. Collection starts at 7am, so put your bin out the night before.
+  ok    Q2 (Malay) [top tier]: Tong kitar semula di Zon 1 dikutip pada hari Khamis. Collection starts at 7am, so put your bin out the night before.
+  ok    Q3 (English) [top tier]: Permit PRM-2231 for the street party on Elm Close on 14 December 2026 is still awaiting police comments. They were requested on 12 November 2026, so …
+  ok    Q4 (Chinese) [top tier]: 许可证 PRM-2244（18 Mill Lane 外路边的废料箱）有效期至2026年12月15日。
+  ok    Q5 (Tamil) [top tier]: மண்டலம் 2 இல் பொதுக் கழிவுகள் செவ்வாய்க்கிழமை சேகரிக்கப்படும். சேகரிப்பு காலை 7 மணிக்கு தொடங்கும், எனவே முந்தைய இரவு தொட்டியை வெளியே வையுங்கள்.
+  ok    Q6 (English) [top tier]: Each household gets 2 free bulky item collections per year. After that, each collection costs US$25. You can book online or by phone.
+  usage: input_tokens 1370 · output_tokens 984
+  ok    Q7 (English) [top tier] pre_screen=met: Yes, you pass the pre-screen. Counted income: US$3,700 minus US$350 childcare = US$3,350, under the US$3,600 limit for 3 people. Carer's allowance is…
+  ok    Q8 (English) [top tier] pre_screen=not_met: No, you do not pass the pre-screen yet. Counted income: US$4,700 minus childcare capped at US$400 = US$4,300, under the US$4,500 limit for 5 or more …
+  usage: input_tokens 1353 · output_tokens 1208
+  One lookup's tokens at each tier's list price: Claude Fable 5.2 US$0.0084 · Claude Opus 5.5 US$0.0042 · Claude Sonnet 5.5 US$0.0021 · Claude Haiku 5.5 US$0.0001
+
+== PAUSE · Phase 1 finished: one model for everything
+   outcome: **8/8** answers correct on the key, at Opus 5.5 prices **US$0.0042 a lookup** and **US$0.0148 a pre-screen**, so **US$0.0063 a question** at Riverton's traffic mix and: **US$568 a month** for 90,000 questions, against a US$300 budget. 80% of that traffic is one-fact lookups.
+   proceed: Phase 2: a Haiku router sends lookups to Haiku and pre-screens to Sonnet, graded per route
+
+== Phase 2 · route by task difficulty: Haiku router → Haiku route (lookups) or Sonnet route (pre-screens)
+  Router: haiku ← Q1, Q2, Q3, Q4, Q5, Q6 · sonnet ← Q7, Q8 · input_tokens 831 · output_tokens 147
+  ok    Q1 (English) [haiku route]: General waste is collected on Wednesdays in Zone 3. Put your bin out the night before, as collection starts at 7am.
+  ok    Q2 (Malay) [haiku route]: Kitar semula di Zon 1 dikutip pada hari Khamis. Letakkan tong anda di luar pada malam sebelumnya, kerana kutipan bermula pada pukul 7 pagi.
+  ok    Q3 (English) [haiku route]: Permit PRM-2231 for the street party on Elm Close on 14 December 2026 is still awaiting police comments. These were requested on 12 November 2026.
+  ok    Q4 (Chinese) [haiku route]: 许可证 PRM-2244（18 Mill Lane 外道路上的垃圾箱）有效期至 2026 年 12 月 15 日。
+  ok    Q5 (Tamil) [haiku route]: மண்டலம் 2 இல் பொதுக் கழிவுகள் செவ்வாய்க்கிழமைகளில் சேகரிக்கப்படும். கழிவுகளை முந்தைய இரவே வெளியே வைக்கவும், சேகரிப்பு காலை 7 மணிக்குத் தொடங்கும்.
+  ok    Q6 (English) [haiku route]: You get 2 free bulky item collections per household per year. After that, each additional collection costs US$25. You can book online or by phone.
+  usage: input_tokens 1369 · output_tokens 540
+  ok    Q7 (English) [sonnet route, priced at Sonnet 5.5] pre_screen=met: Pre-screen met. Rule 1: US$3,700 minus US$350 childcare gives US$3,350 counted income (carer's allowance is not counted). Rule 2: for 3 people the li…
+  ok    Q8 (English) [sonnet route, priced at Sonnet 5.5] pre_screen=not_met: Pre-screen not met. Rule 1: US$4,700 minus US$450 childcare gives US$4,250 counted income. Rule 2: for 5 or more people the limit is US$4,500, and yo…
+  usage: input_tokens 1353 · output_tokens 1297
+== Result: per question US$0.0063 → US$0.0016 (router US$0.0000 + 80% × Haiku US$0.0001 + 20% × Sonnet US$0.0078) · monthly US$568 → US$148
+
+== Turns
+
+== Checks
+PASS  The router sent all 6 lookups to the Haiku route and both benefit pre-screens to the Sonnet route
+PASS  Haiku route: every lookup correct on the answer key, in all four languages (6/6)
+PASS  Sonnet route: both pre-screens apply the rules correctly (2/2)
+PASS  Phase 1 is over budget (US$568 a month) and phase 2 within it (US$148)
+PASS  Routing cut the projected monthly cost by at least half (74%)
+
+== Side by side
+[trap] Phase 1: one model for everything (Opus 5.5 prices): 8/8 correct, **US$568 a month**: 1.9x the budget, mostly spent on one-fact lookups.
+[fix] Phase 2: route by difficulty, graded per route: Lookups 6/6 on Haiku, pre-screens 2/2 on the Sonnet route, **US$148 a month** (74% less).
+  Lookups (Q1-Q6) correct | 6/6 | 6/6 (good)
+  Benefit pre-screens (Q7-Q8) correct | 2/2 | 2/2 (good)
+  Model per question | Opus 5.5 for all 8 | Haiku: Q1 Q2 Q3 Q4 Q5 Q6 · Sonnet: Q7 Q8
+  Cost per lookup · per pre-screen (list prices) | US$0.0042 · US$0.0148 | US$0.0001 · US$0.0078 (+ router US$0.0000)
+  Cost per question at the traffic mix | US$0.0063 | US$0.0016
+  Projected month (90,000 questions, budget US$300) | US$568 (bad) | US$148 (good)
+
+5 Claude calls · 6276 in / 4176 out tokens · about US$0.0027 · 22.4 s

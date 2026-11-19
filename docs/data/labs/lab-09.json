@@ -1,0 +1,47 @@
+{
+ "id": 9,
+ "task": "2.3",
+ "task_title": "Apply prompt engineering techniques (zero-shot, few-shot, chain-of-thought)",
+ "topic": 2,
+ "topic_name": "Claude Models, Prompting & Context Engineering",
+ "sim": 1,
+ "title": "Zero-shot misroutes 3 of 8 claims: show the edges, reason, then label",
+ "stem": "Harbour Mutual's triage classifier routes motor claims into four routes using a zero-shot prompt with a one-line definition of each route. On the eval set it handles plain claims well but misroutes the same boundary cases on every run: quotes just over US$5,000 before the excess is deducted, a third-party-only policyholder whose victim is claiming, and own-damage write-offs on third-party policies. Which change most directly fixes these errors?",
+ "options": {
+  "A": "Switch the classifier to Claude Opus 5.5, which knows enough about motor insurance to settle these cases without examples.",
+  "B": "Ask for a confidence score with every label, and send each claim scored below 0.8 to a human adjuster for routing.",
+  "C": "Add \"Think very carefully about edge cases and double-check every label\" to the end of the existing system prompt.",
+  "D": "Add worked examples of exactly these boundary cases to the prompt, each with brief reasoning written before its label."
+ },
+ "answer": "D",
+ "why": "The errors are systematic: the one-line definitions leave Harbour's boundary conventions open (the authority applies to the payout after the excess; third-party cover pays the other party's damage), and zero-shot the model guesses the same way every time. Few-shot examples placed on those boundaries show how Harbour applies its rules, and reasoning written before the label makes the model work each case through before it commits.",
+ "wrong": {
+  "A": "A bigger model costs more per claim and still has to guess Harbour's own conventions, which only examples or rules supply.",
+  "B": "The wrong labels are systematic and given confidently, so a self-reported score will not catch them, and it adds adjuster work.",
+  "C": "A plea for care names no convention, so the model has nothing new to apply on the boundary cases."
+ },
+ "fix": "Few-shot examples on the boundary cases, each with reasoning before the label.",
+ "see": "Zero-shot gets the plain claims right and misroutes CLM-7790, 7815 and 7821; with six worked examples and reasoning first, all eight route correctly.",
+ "explain": "The eight claims carry an adjusters' answer key. Zero-shot, with thinking off as a high-volume classifier would run, the plain claims route correctly and the boundaries do not: a US$5,600 quote whose payout after the US$750 excess is US$4,850 goes to an adjuster, so does the claim for the van Daniel reversed into, and his own write-off goes to an adjuster instead of being declined. Six worked examples on those boundaries, each with a line of reasoning, and a schema that asks for reasoning before the label, route all eight correctly. The cost is a longer prompt and more output tokens per claim.",
+ "exam_tip": "Few-shot examples fix systematic errors on the cases a definition leaves open; reasoning before the answer helps on cases that need several steps. Confidence scores and 'be careful' instructions do not teach the model anything new.",
+ "source": "Original question written for C740",
+ "headline": "Show the boundary cases. Reason, then label.",
+ "concepts": [
+  {
+   "t": "Zero-shot",
+   "b": "Instructions and definitions only, no examples. It works when the task is clear from the definitions; it fails systematically where they leave a boundary open."
+  },
+  {
+   "t": "Few-shot examples",
+   "b": "A few input-output pairs in the prompt show the format and how your organisation applies its rules. Choose them to cover the boundaries, and vary them."
+  },
+  {
+   "t": "Chain-of-thought",
+   "b": "Asking for reasoning before the answer lets the model work through the steps first. In structured outputs, put the reasoning field before the label field."
+  },
+  {
+   "t": "Errors that repeat are systematic",
+   "b": "If the same cases fail on every run, the prompt is missing information. More confidence or a bigger model rarely fixes that; better examples usually do."
+  }
+ ]
+}

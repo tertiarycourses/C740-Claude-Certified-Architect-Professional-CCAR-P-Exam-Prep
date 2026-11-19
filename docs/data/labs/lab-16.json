@@ -1,0 +1,51 @@
+{
+ "id": 16,
+ "task": "3.5",
+ "task_title": "Design a RAG pipeline with appropriate chunking and indexing strategies",
+ "topic": 3,
+ "topic_name": "Integration",
+ "sim": 2,
+ "title": "Fixed chunks split the 60% exception: chunk on headings, cite",
+ "stem": "Northwind Bank's policy assistant splits every policy into fixed 200-character chunks with no metadata and retrieves the top 3 for each question. Credit officers report answers that state a rule but miss the exception written two paragraphs later, and the answers cannot say which policy section they rest on. Which change to the pipeline best fixes both problems?",
+ "options": {
+  "A": "Raise top-k from 3 to 20 so that more neighbouring chunks reach the model and the exception is more likely to be among them.",
+  "B": "Chunk each policy along its headings, store document id, section and effective date with every chunk, and answer with citations.",
+  "C": "Switch to a larger embedding model so that the chunk holding the exception scores closer to the chunk holding the rule it modifies.",
+  "D": "Add a system prompt rule telling Claude to look for exceptions in the passages and to name the source policy document in every answer."
+ },
+ "answer": "B",
+ "why": "Both symptoms start at index time. Fixed windows cut a rule away from its number and an exception away from its condition, and a chunk with no metadata cannot be traced to a policy. Cutting along the policy's own sections keeps each clause whole, the heading path makes short clauses findable, and metadata (document id, section, effective date, roles) lets the pipeline filter and lets Claude cite the exact span with citations enabled.",
+ "wrong": {
+  "A": "More chunks add noise and cost, still carry no document id to cite, and an exception split from its condition is still split.",
+  "C": "A better embedding cannot rejoin text that the chunker cut apart, and it adds no metadata for citations.",
+  "D": "Claude cannot find an exception or cite a section that retrieval never gave it; a prompt cannot repair the index."
+ },
+ "fix": "Chunk on the document's headings, keep document id, section and effective date as metadata, and return answers with citations.",
+ "see": "Fixed chunks lose both the 55% limit and the 60% exception; section chunks retrieve LEND-07 §3 and §7 and the answer cites them.",
+ "explain": "Both phases ask the same question with the same BM25 scorer and k = 3. With fixed 200-character windows, the boundaries fall mid-sentence: the top 3 chunks hold the DSR definition without its 55% limit, a mortgage guarantor clause and a personal-loan guarantor clause from LEND-04, and none holds the 60% first-home exception. With one chunk per section, each prefixed with its heading path and carrying document id, revision, section, effective date and roles, retrieval returns LEND-07 §3, §5 and §7. Sent as document blocks with citations enabled, the answer gives the 60% limit with credit officer approval and every claim carries a citation to LEND-07.",
+ "exam_tip": "When answers miss an exception or cannot cite their source, look at chunking and indexing first. Structure-aware chunks with metadata and citations beat a bigger k, a bigger embedding model or a stronger prompt, because none of those can recover what the index split or never stored.",
+ "source": "Original question written for C740",
+ "headline": "Cut where the document cuts. Keep where it came from.",
+ "concepts": [
+  {
+   "t": "Chunking decides what retrieval can find",
+   "b": "Claude reasons only over the chunks it receives. A clause split across two chunks, or separated from its heading, can be lost before Claude is ever called."
+  },
+  {
+   "t": "Cut along the document's structure",
+   "b": "Policies split by section and clause, tables by row with the header repeated, code by function. Fixed-size windows ignore all of these and cut mid-sentence."
+  },
+  {
+   "t": "Index more than text",
+   "b": "Each chunk carries its document id, section, revision, effective date and access roles. Filters on these run in code before ranking, and they make citations possible."
+  },
+  {
+   "t": "Heading paths make short chunks findable",
+   "b": "Prefixing 'LEND-07 Mortgage Affordability › 7 Exceptions' gives a short clause the words a query will use. Contextual Retrieval applies the same idea with a generated summary."
+  },
+  {
+   "t": "Citations make answers checkable",
+   "b": "Document blocks with citations enabled return the exact span behind each claim, so a reviewer or an evaluation can check the answer against its source."
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+Credit officer asks (today 2026-11-19): "A customer wants a 5-year fixed mortgage at 75% loan-to-value. What rate applies today, and is there an early repayment fee if they repay in year 2?"
+== Phase 1 · one text-similarity search over everything (tables flattened, no date filter), top 3
+  retrieved LEND-07§8 · rev 2026-07 (score 23.14): "LEND-07 Mortgage Affordability › 8 Early repayment On a fixed-rate mortgage an early repayment fee …"
+  retrieved LEND-11§1 · rev 2026-08 (score 18.84): "LEND-11 Mortgage Rate Sheet › 1 Fixed rates The 2-year fixed rate is 4.05% a year for a loan-to-val…"
+  retrieved LEND-07§6 · rev 2026-07 (score 11.72): "LEND-07 Mortgage Affordability › 6 Loan-to-value The loan-to-value limit is 80% for a first propert…"
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: **Rate:** 4.35% a year. LEND-11 Mortgage Rate Sheet, §1 (rev 2026-08), applies the 5-year fixed rate of 4.35% to loan-to-value up to 80%. The 4.20% rate applies only up to 60%. **Early repayment:** Yes. LEND-07 Mortgage Affordability, §8 (rev 2026-07), sets a 1.5% fee on the amount repaid in years 1 and 2 of the fixed period, so year 2 is covered. The 75% LTV is within the LEND-07 §6 (rev 2026-07) limits for both first (80%) and second (75%) properties.
+
+== PAUSE · Phase 1 finished: one similarity search for everything
+   outcome: The top 3 hits were **LEND-07§8 (rev 2026-07), LEND-11§1 (rev 2026-08), LEND-07§6 (rev 2026-07)**. The superseded rate sheet (rev 2026-08, ended 31 Oct) matched the words of the question; **the current 5YF row never came back**: "5YF,60.01-80.00,3.95" shares no words with "5-year fixed at 75%". The answer quotes **4.35%**.
+   proceed: Phase 2: a lookup tool for the rate table and hybrid search for the prose
+
+== Phase 2 · retrieval matched to data shape: lookup_rate for the table, search_policy (hybrid, in force today) for prose
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -> CONTINUE: run the tools, append the results, call Claude again
+  -> lookup_rate({"product_code":"5YF","ltv_pct":75,"as_of":"2026-11-19"})
+  <- result: {"source":"LEND-11 rev 2026-11","product_code":"5YF","product":"5-year fixed","ltv_band":"60.01-80.00","rate_pct":"3.95","effective_from":"2026-11-01…
+  -> search_policy({"query":"early repayment fee fixed rate mortgage year 2","effective_on":"2026-11-19"})
+  <- result: [{"id":"LEND-07§8","title":"LEND-07 Mortgage Affordability › 8 Early repayment","rev":"2026-07","effective":"2026-07-01","text":"On a fixed-rate mort…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: The 5-year fixed rate at 75% LTV is **3.95%**, per LEND-11 rev 2026-11 (60.01–80.00% band, effective 2026-11-01). Yes, an early repayment fee applies in year 2. Under LEND-07§8 (rev 2026-07), a fixed-rate mortgage carries a fee of **1.5% of the amount repaid** in years 1 and 2, with no fee from year 3.
+
+== Turns
+turn 1: stop_reason=end_turn
+turn 1: stop_reason=tool_use tools=lookup_rate,search_policy
+turn 2: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the similarity search returned the superseded LEND-11 rev 2026-08 and not the current 5YF row
+PASS  Phase 1: the answer quoted the superseded 4.35% rate, not 3.95%
+PASS  Phase 2: lookup_rate ran for product 5YF and returned 3.95% from LEND-11 rev 2026-11
+PASS  Phase 2: search_policy (not the rate lookup) returned the early repayment rule, LEND-07 §8
+PASS  Phase 2: the answer gives 3.95% and the 1.5% year-2 fee
+
+== Side by side
+[trap] Phase 1: one similarity search for everything: The superseded rate sheet (rev 2026-08) was a top hit and **the current 5YF row was not**. The answer quotes **4.35%**, a rate that ended on 31 Oct.
+[fix] Phase 2: lookup for the table, hybrid search for prose: lookup_rate(5YF, 75%, 2026-11-19) returned **3.95% from LEND-11 rev 2026-11**; search_policy returned LEND-07 §8, so the answer adds the **1.5% fee in year 2**.
+  Rate table reached through | text chunks (rows without their header) | lookup_rate: product code + LTV + as_of (good)
+  Prose reached through | the same similarity search | search_policy: hybrid, in force on today's date (good)
+  What came back | LEND-07§8 (rev 2026-07), LEND-11§1 (rev 2026-08), LEND-07§6 (rev 2026-07) | lookup_rate → 3.95% (LEND-11 rev 2026-11); search_policy → LEND-07§8, LEND-07§4, LEND-09§3
+  Rate quoted | 4.35% (superseded) (bad) | 3.95% (current) (good)
+  Early repayment fee in year 2 | 1.5% (good) | 1.5% (good)
+
+3 Claude calls · 3101 in / 839 out tokens · about US$0.0007 · 5.0 s

@@ -1,0 +1,137 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 2: $6,500 paid with no check: close the loop around the decision step</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 2: $6,500 paid with no check: close the loop around the decision step</h1>
+<blockquote>
+<p>Day 1 · Topic 1: Solution Design &amp; Architecture · Task statement 1.2 · Simulator 1: Harbour Mutual Claims Desk · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 1.2: <strong>Design end-to-end architectures (input → processing → output → feedback loops).</strong> You answer one exam-style question, then run the Harbour Mutual Claims Desk simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=2">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=2</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 2</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-02.js">docs/sims/lab-02.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>Harbour Mutual Insurance is replacing its first-line motor-claims triage with a Claude-based claims agent. The agent reads policies and claims, requests damage assessments, drafts customer letters, and can approve payouts or escalate to a human adjuster. Adjusters, the finance controller and the regulator all have a stake in how it is built. Claims arrive as free-text forms, photos and repair quotes.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>Four stages, not three.</strong> Input, processing and output are what you demo. The feedback stage (traces, human decisions, outcomes) is what lets the system improve, and it is what you operate.</li>
+<li><strong>Validate in code, after Claude.</strong> Hard rules such as coverage, quote minus excess and payout authority are checked by code on every decision, independently of the model that produced it.</li>
+<li><strong>Gates fail closed.</strong> If the validator fails, errors or cannot decide, the action gate sends the case to a person. It never executes by default.</li>
+<li><strong>Three loops, three clocks.</strong> Repair one output (seconds), human review of risky cases (minutes), and offline improvement where failures become eval cases that gate the next change (days).</li>
+</ul>
+<h2>The question</h2>
+<p>Harbour Mutual's claims pipeline sends each claim and its policy to Claude, which returns a decision that the pipeline executes. Last week it paid a $6,500 claim, above the agent's $5,000 payout authority, and the team has no record of which decisions adjusters later reversed. Which change to the end-to-end architecture best addresses both problems?</p>
+<ul>
+<li><strong>A.</strong> Add the $5,000 payout authority and the excess rule to the system prompt with worked examples, so that Claude refers large claims to an adjuster on its own initiative.</li>
+<li><strong>B.</strong> Validate each decision in code against the payout rules, retry once with the errors, route anything still failing to an adjuster, and store each adjuster decision as a labelled eval case.</li>
+<li><strong>C.</strong> Log every request and response to the observability store, and review a weekly sample of 50 decisions with the adjusters to agree the prompt changes for each release of the claims pipeline.</li>
+<li><strong>D.</strong> Switch the decision step to a larger model with extended thinking, since the payout shows that the current model's reasoning about policy limits is not reliable enough.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=2">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=2</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 2
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: The validator holds CLM-7815 for the adjuster, valid payouts still go through, and the adjuster's decision becomes an eval case.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Harbour Mutual · claims CLM-7781 (Priya Nair, rear bumper $4,200), CLM-7790 (Daniel Okafor, total loss $18,600, third party only), CLM-7815 (Arjun Mehta, front end $7,2…
+== Phase 1 · open loop: whatever the decision step returns is executed
+    (decide CLM-7781) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7781) answer: {&quot;claim_id&quot;:&quot;CLM-7781&quot;,&quot;decision&quot;:&quot;approve&quot;,&quot;payout_amount&quot;:3700,&quot;reason&quot;:&quot;The comprehensive policy is active and covers accidental damage…
+CLM-7781: approve $3,700 → executed
+    (decide CLM-7790) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7790) answer: {&quot;claim_id&quot;:&quot;CLM-7790&quot;,&quot;decision&quot;:&quot;decline&quot;,&quot;payout_amount&quot;:0,&quot;reason&quot;:&quot;The policy is third party only and expressly excludes loss of or d…
+CLM-7790: decline  → executed
+    (decide CLM-7815) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7815) answer: {&quot;claim_id&quot;:&quot;CLM-7815&quot;,&quot;decision&quot;:&quot;approve&quot;,&quot;payout_amount&quot;:6500,&quot;reason&quot;:&quot;The policy is active, comprehensive cover includes accidental o…
+CLM-7815: approve $6,500 → executed (unchecked rule breaks: authority)
+
+== PAUSE · Phase 1 finished: open loop
+   outcome: **CLM-7815 was paid $6,500**, above the $5,000 authority, with no check and no person in the path. Nothing was recorded either, so tomorrow's run can make t…
+   proceed: Phase 2: the same decision step inside a closed loop
+
+== Phase 2 · closed loop: input checks, output validator, repair retry, action gate, feedback to the eval set
+Input checks: 3/3 claims valid (claimant is the policyholder, policy active, quote present)
+    (decide CLM-7781) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7781) answer: {&quot;claim_id&quot;:&quot;CLM-7781&quot;,&quot;decision&quot;:&quot;approve&quot;,&quot;payout_amount&quot;:3700,&quot;reason&quot;:&quot;The policy is active, the incident on 2026-10-28 falls within t…
+CLM-7781: validator passed → executed: approve $3,700
+    (decide CLM-7790) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7790) answer: {&quot;claim_id&quot;:&quot;CLM-7790&quot;,&quot;decision&quot;:&quot;decline&quot;,&quot;payout_amount&quot;:0,&quot;reason&quot;:&quot;The policy is third party only and expressly excludes loss of or d…
+CLM-7790: validator passed → executed: decline
+    (decide CLM-7815) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (decide CLM-7815) answer: {&quot;claim_id&quot;:&quot;CLM-7815&quot;,&quot;decision&quot;:&quot;approve&quot;,&quot;payout_amount&quot;:6500,&quot;reason&quot;:&quot;The policy is active, comprehensive cover includes accidental o…
+CLM-7815: validator → authority (payout 6500 is above the agent's US$5,000 authority: a human adjuster must approve) → action gate: adjuster queue (loop B, minutes)
+CLM-7815: adjuster approve $6,500 · eval case EV-7815 saved: {&quot;case_id&quot;:&quot;EV-7815&quot;,&quot;input&quot;:{&quot;claim&quot;:&quot;CLM-7815&quot;,&quot;policy&quot;:&quot;HM-POL-2263&quot;},&quot;model&quot;:{&quot;decision&quot;:&quot;approve&quot;,&quot;pay…
+
+== Turns
+(decide CLM-7781) turn 1: stop_reason=end_turn
+(decide CLM-7790) turn 1: stop_reason=end_turn
+(decide CLM-7815) turn 1: stop_reason=end_turn
+(decide CLM-7781) turn 1: stop_reason=end_turn
+(decide CLM-7790) turn 1: stop_reason=end_turn
+(decide CLM-7815) turn 1: stop_reason=end_turn
+
+== Checks
+…
+PASS  Phase 2: each adjuster decision was saved as a labelled eval case
+
+== Side by side
+[trap] Phase 1: open loop: Paid **CLM-7815 $6,500** above the $5,000 authority with no check, and recorded nothing to learn from.
+[fix] Phase 2: closed loop: The validator held CLM-7815 for the adjuster; 1 payout inside the rules went straight through; the adjuster's decision became an eval case.
+  Decision step (model and prompt) | the same | the same
+  Input checks before the call | none (bad) | 3/3 valid (good)
+  Decisions | 7781 approve, 7790 decline, 7815 approve | 7781 approve, 7790 decline, 7815 approve
+  Paid without a person | 7781 $3,700, 7815 $6,500 (bad) | 7781 $3,700 (good)
+  Rule breaks executed | 1 (bad) | 0 (good)
+  Sent to the adjuster | none | CLM-7815
+  Feedback captured (eval cases) | 0 (bad) | 1 (good)
+
+6 Claude calls · 4710 in / 2541 out tokens · about US$0.0017 · 17.6 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: B.</strong> The pipeline is open loop: whatever the model returns is executed, and nothing is learned. Closing the loop keeps the same model and prompt and adds stages around the call: checks before it, a validator in code after it (coverage, quote minus excess, payout authority), one repair retry for fixable errors (seconds), an action gate that sends rule breaks to a person and fails closed (minutes), and a feedback path that saves every adjuster decision as a labelled eval case for the next change to be tested against (days).</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>A.</strong> A prompt makes the referral more likely, but when it fails the decision still executes unchecked, and no feedback is captured.</li>
+<li><strong>C.</strong> Logging and sampling find problems after the money has gone; nothing stops a bad payout before it executes.</li>
+<li><strong>D.</strong> A larger model is still probabilistic and still unchecked, and the pipeline would still learn nothing from adjuster decisions.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Input, processing and output are what you demo; the feedback loops are what you operate. Phase 1 executes whatever the model returns: one approval above the payout authority is paid, and because nothing is checked or recorded, the same mistake will happen again tomorrow. Phase 2 keeps the same model and prompt and wraps it: input checks before the call, an output validator in code after it (coverage, quote minus excess, authority), a single repair retry with the errors for fixable mistakes (seconds), an action gate that sends rule breaks to a human adjuster instead of executing them (minutes), and every adjuster decision stored as a labelled eval case for the next prompt or model change to be tested against (days). The validator fails closed: anything it cannot pass goes to a person.</p>
+<h2>Exam tip</h2>
+<p>When a stem says a system acts on model output and nothing is learned from it, choose the answer that checks the output in code before acting, routes failures to a person, and feeds those decisions back as test cases.</p>
+<h2>Try this next</h2>
+<p>Change CLM-7781's repair_quote in shared/d1-harbour.js to 5,800 and run it again: in Phase 1 it is paid unchecked; in Phase 2 it joins the adjuster queue and the eval set grows by one more case. Then delete the excess from the policy wording and see whether the validator's repair retry (loop A) catches a wrong amount.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

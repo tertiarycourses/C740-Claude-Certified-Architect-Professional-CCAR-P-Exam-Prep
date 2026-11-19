@@ -1,0 +1,36 @@
+{
+ "id": 38,
+ "task": "7.3",
+ "task_title": "Support debugging and operational issue resolution",
+ "topic": 7,
+ "topic_name": "Developer Productivity & Operational Enablement",
+ "sim": 6,
+ "title": "6% of summaries fail: trace stop_reason max_tokens, don't guess",
+ "stem": "Since Tuesday afternoon, 6% of requests to Kestrel's order-summary service, which uses Claude to write the summary on the order confirmation page, fail with \"Order summary unavailable\". The on-call engineer asks Claude Code for help. Which approach best resolves the incident?",
+ "options": {
+  "A": "Give Claude read-only access to logs, traces and recent deploys, and have it reproduce a failing request, test one hypothesis at a time and verify the fix before rollout.",
+  "B": "Paste the alert and the customer ticket into Claude, apply the most likely fix it suggests straight away, and roll it back if the error rate has not dropped within an hour.",
+  "C": "Switch the service to a larger Claude model, because failures that start without any application code change usually point to a regression in the quality of the model's output.",
+  "D": "Wrap the Claude call in a retry with exponential backoff, so that transient failures are absorbed and customers stop seeing errors while the team investigates the cause."
+ },
+ "answer": "A",
+ "why": "Claude is useful in an incident when it works from evidence. Read-only access to logs, traces and deploys is safe to grant widely and lets it see that every failing trace stops with stop_reason max_tokens at 1,024 tokens after a config change halved max_tokens. Reproducing a failing request, testing one hypothesis at a time and verifying the fix in staging turns a plausible story into a proven cause before anything changes in production.",
+ "wrong": {
+  "B": "A fix chosen from symptoms is a guess; applying it in production risks a second incident and teaches nothing if the errors happen to stop.",
+  "C": "The failures began with a config change, not a model change; a larger model costs more and still stops at the same max_tokens limit.",
+  "D": "A truncated response is deterministic for that order: every retry hits the same max_tokens limit, so retries add latency and cost without fixing it."
+ },
+ "fix": "Read logs, traces and deploys; reproduce a failing request; change one setting at a time; verify the fix before rollout.",
+ "see": "Phase 1 cannot name a proven cause; Phase 2 finds stop_reason max_tokens after config v42, reproduces it and verifies the fix in staging.",
+ "explain": "Both phases start from the same page and ticket. With symptoms only, Claude can offer a story or a to-do list, and nothing stands behind it. With read-only search_logs, list_traces, get_trace and list_deploys, plus rerun_request in staging, Claude finds a new JSONDecodeError group from Tue 14:05, failing traces on large orders that all stop with stop_reason max_tokens at 1,024 output tokens, and config v42 halving max_tokens. It reproduces the failure, verifies that a higher limit returns end_turn with valid JSON, and rules out the get_inventory timeout, which runs at the same rate as before.",
+ "exam_tip": "In debugging questions, prefer evidence-driven loops: observability access, reproduction, one change at a time, verification before rollout. Retries, model upgrades and fixes guessed from symptoms are distractors, especially when the failure is deterministic, such as a max_tokens truncation.",
+ "source": "Original question written for C740",
+ "headline": "Read the trace before you trust the theory.",
+ "concepts": [
+  {"t": "stop_reason tells you why it stopped", "b": "end_turn means Claude finished. max_tokens means the reply was cut off at the limit; parsing that text as JSON then fails with a confusing error."},
+  {"t": "Traces for LLM features", "b": "Record model, max_tokens, input and output tokens, stop_reason, latency and tool calls per request. Most Claude incidents show up in these fields."},
+  {"t": "Read widely, change narrowly", "b": "Read-only access to logs, traces and deploys is safe to grant for diagnosis. Changes go through a branch, review and an approved rollout."},
+  {"t": "Reproduce, then change one thing", "b": "Replay a failing request as it was sent. If it fails the same way, change one setting and re-run: a pass is evidence, not a hope."},
+  {"t": "Retries don't fix deterministic failures", "b": "A transient 529 is worth a retry. A reply truncated by max_tokens fails the same way every time, so a retry only adds latency and cost."}
+ ]
+}

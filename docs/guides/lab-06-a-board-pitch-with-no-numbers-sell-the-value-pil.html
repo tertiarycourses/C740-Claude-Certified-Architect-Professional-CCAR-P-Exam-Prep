@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 6: A board pitch with no numbers: sell the value pillar and the SLAs</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 6: A board pitch with no numbers: sell the value pillar and the SLAs</h1>
+<blockquote>
+<p>Day 1 · Topic 1: Solution Design &amp; Architecture · Task statement 1.6 · Simulator 5: Lumen Retail Engagement · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 1.6: <strong>Align solutions to business value pillars (efficiency, transformation, productivity, cost, performance SLAs).</strong> You answer one exam-style question, then run the Lumen Retail Engagement simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=6">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=6</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 6</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-06.js">docs/sims/lab-06.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>You are the Claude solution architect engaged by Lumen Retail, a 300-store retailer, to deliver an AI product-support assistant. You run discovery with the sponsor, store operations, IT security and legal; agree the service levels; record architecture decisions; hand the build to Lumen's own team; and run the system through monitoring and iteration after go-live. Claude helps you with each step.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>Five value pillars.</strong> Efficiency, productivity, transformation, cost and performance SLAs. They pull a design in different directions, so name the primary one.</li>
+<li><strong>Each pillar has its own metric.</strong> Efficiency: handle time or cost per task. Productivity: output per person. Transformation: something not possible before. Cost: total cost of ownership.</li>
+<li><strong>SLAs a model can keep.</strong> Availability, p95 latency, answer accuracy on a fixed test set and time to escalate, each with a number and a measurement method, not "fast" and "accurate".</li>
+<li><strong>Cost per resolved answer.</strong> Price tokens per answer from the list prices (Haiku 5.5 $0.10/$0.50 per million tokens), add review cost, and compare with today's cost per call.</li>
+</ul>
+<h2>The question</h2>
+<p>Lumen Retail's board paper for the store product-support assistant is in draft. It leads with the technology: the Claude models, retrieval over every product manual, and what the system can do. The COO says the board will ask what it is buying and how it will know the service is working. Which revision best aligns the solution to business value?</p>
+<ul>
+<li><strong>A.</strong> Add a table comparing the chosen model's benchmark scores with competing models, so that the board can see that Lumen is buying the most capable AI technology on the market.</li>
+<li><strong>B.</strong> Replace the technology section with quotes from staff in the pilot stores and a list of questions the assistant answered well, to show that staff enjoy using it.</li>
+<li><strong>C.</strong> Promise a 50% cut in support costs and full automation of product support within six months, so that the board has one clear, ambitious headline figure to approve and track.</li>
+<li><strong>D.</strong> Name the primary value pillar, give metrics with today's baselines and targets, commit to SLAs for availability, p95 latency, accuracy and escalation, and price each answer.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=6">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=6</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 6
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: The value case anchors its metrics to 7.5 minutes and $11.40 and commits to all four service levels with a number and a measurement method.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Lumen Retail · Grace Lim (COO, sponsor): &quot;We want an AI agent that handles store product support end to end. Our competitors have agents. Can you have a design to me by…
+Price table (code): Haiku 5.5 $0.0008/answer · Sonnet 5.5 $0.0160/answer · Opus 5.5 $0.0320/answer · Fable 5.2 $0.0640/answer; about 6,448 product questions a month; to…
+== Phase 1 · capability pitch: the board summary leads with what makes the solution advanced
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: **Executive summary: AI-assisted product support for store staff** Store staff currently phone head-office product support while customers wait at the counter. L…
+    (audit: capability pitch) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (audit: capability pitch) answer: {&quot;primary_pillar&quot;:&quot;efficiency&quot;,&quot;commitments&quot;:[{&quot;metric&quot;:&quot;Share of current call types answerable by the system&quot;,&quot;kind&quot;:&quot;service_lev…
+Audit of the pitch: primary pillar efficiency · 2 commitments · 0 anchored to a discovery baseline · service levels with a number: 0/4 (none)
+
+== PAUSE · Phase 1 finished: the capability pitch
+   outcome: The audit found **0 of 4 service levels** with a number and **0 value metrics** anchored to a discovery baseline. Primary pillar: efficiency. The board woul…
+   proceed: Phase 2: the same solution written as a value case
+
+== Phase 2 · value case: primary pillar, metrics with baselines, four service levels, model priced per answer
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: {&quot;primary_pillar&quot;:&quot;efficiency&quot;,&quot;pillar_reason&quot;:&quot;The main value is fewer head-office agent minutes per store enquiry, because about 85% of today's calls (product …
+Value case: pillar efficiency · 3 value metrics · 4 service levels · model Claude Sonnet 5.5
+Cost in code: Claude Sonnet 5.5 at $0.0160 per answer × 6,448 answers ≈ $103.17 a month in model spend, against $11.40 per call today.
+    (audit: value case) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    (audit: value case) answer: {&quot;primary_pillar&quot;:&quot;efficiency&quot;,&quot;commitments&quot;:[{&quot;metric&quot;:&quot;Head-office support calls per week&quot;,&quot;kind&quot;:&quot;value&quot;,&quot;target&quot;:1200,&quot;baseline&quot;:240…
+Audit of the value case: primary pillar efficiency · 7 commitments · 3 anchored to a discovery baseline · service levels with a number: 4/4, with a measurement method: …
+
+== Turns
+turn 1: stop_reason=end_turn
+(audit: capability pitch) turn 1: stop_reason=end_turn
+turn 1: stop_reason=end_turn
+(audit: value case) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1 (capability pitch): the audit finds fewer than 4 service levels with a number and fewer than 2 metrics with a discovery baseline
+PASS  Phase 2: the value case names a primary pillar and anchors at least 2 value metrics to discovery baselines
+PASS  Phase 2: all four service levels (availability, p95 latency, accuracy, escalation) have a numeric target and a measurement method
+PASS  The same audit finds more service-level commitments in the value case than in the capability pitch
+PASS  Phase 2: the chosen model is in the price table and code priced it per answer below today's $11.40 per call
+
+== Side by side
+[trap] Phase 1: capability pitch: Built around efficiency: 0/4 service levels with a number, 0 metrics anchored to a baseline. Nothing the board could hold the service …
+[fix] Phase 2: value case: Built around efficiency: 3 metrics anchored to discovery baselines, 4/4 service levels with targets (4 with a measurement method), Claude Son…
+  Primary value pillar (extractor) | efficiency | efficiency (good)
+  Measurable commitments found | 2 | 7
+  Value metrics with a discovery baseline | none (bad) | Head-office support calls per week 2400→1200; Peak-hour call abandonment rate (percent of calls abandoned after…
+  Service levels with a number | 0/4: availability –, p95_latency –, accuracy –, escalation – (bad) | 4/4: availability 99.5, p95_latency 10, accuracy 95, escalation 15…
+  Model choice justified by | what makes it advanced | cost per answer ($0.0160) and the latency target
+
+4 Claude calls · 6462 in / 7932 out tokens · about US$0.0046 · 41.4 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: D.</strong> A board funds an outcome it can measure, not a model. The architect names the primary value pillar (efficiency, productivity, transformation, cost or performance), expresses it as metrics with a measured baseline and a target, and turns performance into service levels a non-deterministic system can be held to: availability, p95 latency, answer accuracy on a test set and time to escalate, each with a number and a measurement method. The model is then chosen by cost per resolved answer and the latency target.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>A.</strong> Benchmark scores describe the model, not Lumen's outcome; the board still has nothing to hold the service to after go-live.</li>
+<li><strong>B.</strong> Anecdotes show that people like it, not that handle time or cost moved; nothing is measured against a baseline.</li>
+<li><strong>C.</strong> A headline promise with no baseline, method or service levels cannot be checked, and "full automation" ignores the tasks that stay with people.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>A board does not fund a model; it funds an outcome it can measure. The value pillars (efficiency, productivity, transformation, cost, performance SLAs) pull a design in different directions, so the architect names the primary one and expresses it as metrics with a measured baseline and a target. Performance becomes service levels a non-deterministic system can actually be held to: availability, p95 latency, answer accuracy on a test set, and time to escalate, each with a number and a way to measure it. Model choice then follows from cost per resolved answer and the latency target, not from which model is newest. The independent extractor makes the difference visible: the same audit, run on both documents, finds the commitments the value case makes and the capability pitch never does.</p>
+<h2>Exam tip</h2>
+<p>When a stem's draft leads with the model or its features, pick the answer that names a value pillar, baselined metrics and measurable SLAs; reject benchmark tables, anecdotes and unmeasured promises.</p>
+<h2>Try this next</h2>
+<p>Change PER_QUERY.calls in shared/d1-lumen.js to 15 (a multi-agent design) and run it again: the cost per answer in the table rises fifteen-fold, and Phase 2's model reasoning has to justify it against the same $11.40 baseline. Then remove the 10-second requirement from the discovery pack and see whether Phase 2's p95 latency target changes.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

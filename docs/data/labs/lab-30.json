@@ -1,0 +1,51 @@
+{
+ "id": 30,
+ "task": "5.5",
+ "task_title": "Address ethical AI considerations (bias, fairness, transparency)",
+ "topic": 5,
+ "topic_name": "Governance, Safety & Risk Management",
+ "sim": 4,
+ "title": "Same case, other language, other outcome: test with pairs",
+ "stem": "Riverton's benefit pre-screener answers residents who write in English, Malay, Tamil or Chinese. Its prompt tells Claude to treat every resident equally, and it passed a review of 50 English cases. Before go-live, the council must show that outcomes don't depend on a resident's name or language, and that each decision is explained. Which approach best does this?",
+ "options": {
+  "A": "Run counterfactual pairs (same case, only name or language changed) through the whole pipeline as a release gate; explain each decision by its rule.",
+  "B": "Strip residents' names and the language field from every request before the model sees it, so that protected attributes can't influence a decision.",
+  "C": "Ask Claude to review each of its own decisions for bias before replying, and to explain its reasoning to the resident in plain language.",
+  "D": "Compare approval rates by language group after the first month live, and investigate any group whose rate differs from the others by over 10 points."
+ },
+ "answer": "A",
+ "why": "A counterfactual pair holds the case constant and changes one protected attribute, so any difference in outcome is caused by that attribute. Run end to end, the pairs catch bias wherever it enters (here an English-only fact extractor, not the model), and as a release gate they stop a regression before residents see it. Explanations built from the rule ids and figures that decided each case are faithful by construction.",
+ "wrong": {
+  "B": "Removing names leaves the language of the message itself, and proxies such as address; it hides inputs instead of measuring outcomes.",
+  "C": "A model's review of its own reasoning is neither a measurement nor reliably faithful to what drove the decision.",
+  "D": "Group rates arrive after residents are affected and mix real differences in cases with unfair treatment."
+ },
+ "fix": "Gate the release on counterfactual pairs run end to end, and explain each decision by the rule and figures that decided it.",
+ "see": "Phase 1 flips 2 of 3 pairs on language; Phase 2 gives all four 'likely eligible' with rule-based explanations and 0 flips.",
+ "explain": "All four messages describe the same household: 3 people, $2,150 a month, 4 years in Riverton. In Phase 1 the pre-screener's facts come from keyword patterns written for English, so both English messages are 'likely eligible' while the same resident writing in Malay or Chinese is asked for information she already gave: the two language pairs flip, the name pair doesn't. In Phase 2 Claude extracts the facts from every language into a schema, the same rules in code give all four 'likely eligible' at $716.67 per person, each resident gets an explanation in her language naming BEN-R1 and BEN-R2, and the gate passes with 0 flips.",
+ "exam_tip": "Fairness questions reward measurement over intention. Prefer paired (counterfactual) tests run before release over prompt instructions, removing attributes, or comparing group rates after launch, and prefer explanations derived from the decision rule over the model's own account of its reasoning.",
+ "source": "Original question written for C740",
+ "headline": "Change one attribute. The outcome must not move.",
+ "concepts": [
+  {
+   "t": "Counterfactual pairs",
+   "b": "Hold a case constant and change one protected attribute, such as name or language. Any difference in outcome is caused by that attribute. Run many cases, several times each."
+  },
+  {
+   "t": "Test the whole pipeline",
+   "b": "Bias can enter outside the model: an English-only parser, a translation step, a retrieval filter. Pairs run end to end catch it wherever it sits."
+  },
+  {
+   "t": "Unawareness is not fairness",
+   "b": "Removing names doesn't remove language, address or other proxies, and a message written in Malay can't hide its language. Measure outcomes instead of hiding inputs."
+  },
+  {
+   "t": "Group rates come too late",
+   "b": "Approval rates by group mix real differences between cases with unfair treatment, and they arrive after residents are affected. Paired tests isolate the attribute before release."
+  },
+  {
+   "t": "Explain by the rule",
+   "b": "An explanation built from the rule ids and figures that decided the case is faithful by construction. A model's after-the-fact account of its reasoning may not be."
+  }
+ ]
+}

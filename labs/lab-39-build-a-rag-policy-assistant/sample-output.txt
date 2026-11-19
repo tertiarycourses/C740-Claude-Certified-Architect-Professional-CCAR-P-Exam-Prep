@@ -1,0 +1,75 @@
+$ uv run check_retrieval.py
+Using CPython 3.13.4
+Creating virtual environment at: .venv
+Installed 17 packages in 33ms
+Loaded 12 documents, 48 chunks
+
+PASS  [teller] What is the maximum unsecured personal loan?
+      top 3: LEND-04#3 (10.234), LEND-04#1 (5.971), LEND-07#4 (5.049)   (expect LEND-04#3)
+PASS  [teller] How many days of annual leave can I carry forward?
+      top 3: HR-03#2 (14.553), HR-03#1 (9.725), HR-03#3 (5.958)   (expect HR-03#2)
+PASS  [teller] When must I report a suspected security incident?
+      top 3: OPS-21#2 (11.344), OPS-21#3 (6.202), OPS-21#1 (5.764)   (expect OPS-21#3)
+PASS  [credit_officer] Who can approve a credit exception above the loan limit?
+      top 3: LEND-11#2 (14.141), LEND-11#1 (12.673), LEND-04#3 (6.825)   (expect LEND-11#2)
+PASS  [teller] Who can approve a credit exception above the loan limit?
+      top 3: LEND-04#3 (6.825), OPS-25#1 (5.598), LEND-07#2 (3.447)   (no LEND-11 chunk)
+
+5/5 retrieval checks passed
+
+$ uv run assistant.py --role teller "What is the maximum unsecured personal loan?"
+Role: teller
+Retrieved: LEND-04#3, LEND-04#1, LEND-07#4, LEND-04#5
+
+The maximum unsecured personal loan is six times the applicant's monthly income, capped at $50,000 across all of the customer's unsecured loans with Northwind. [LEND-04#3]  A request above the cap is a credit exception and is handled under LEND-11. [LEND-04#3]
+
+Sources: LEND-04#3
+Refused: False · 1591 in / 247 out tokens · 1653 ms
+
+$ uv run assistant.py --role teller "My manager cancelled my approved leave in December for a system migration. How many days can I carry forward?"
+Role: teller
+Retrieved: HR-03#2, HR-03#3, HR-03#1, HR-03#4
+
+Because your manager cancelled your approved leave for business needs, up to 10 days may be carried forward, with the HR partner's approval. [HR-03#2]  The usual limit is 5 days, and must be used by 31 March. [HR-03#2]
+
+Sources: HR-03#2
+Refused: False · 1544 in / 319 out tokens · 2075 ms
+
+$ uv run assistant.py --role teller "What is Northwind Bank's share price target for next year?"
+Role: teller
+Retrieved: LEND-07#5, HR-03#2, LEND-07#1, LEND-04#1
+
+I can't answer that from the Northwind policy library.
+
+Sources: none
+Refused: True · 1565 in / 18 out tokens · 838 ms
+
+$ uv run assistant.py --role teller "Who can approve a personal loan more than 10% above the limit?"
+Role: teller
+Retrieved: LEND-04#3, OPS-25#1, LEND-04#2, LEND-04#5
+
+I can't answer that from the Northwind policy library.
+
+Sources: none
+Refused: True · 1655 in / 209 out tokens · 1503 ms
+
+$ uv run assistant.py --role credit_officer "Who can approve a personal loan more than 10% above the limit?"
+Role: credit_officer
+Retrieved: LEND-11#2, LEND-11#1, LEND-04#3, OPS-25#1
+
+Any exception more than 10% above the limit must be approved by the Credit Committee. Any exception more than 10% above the limit must be approved by the Credit Committee, which meets every Tuesday. [LEND-11#2] 
+
+A senior credit officer can approve exceptions only up to 10% above the limit. A senior credit officer may approve a personal loan up to 10% above the limit in LEND-04. [LEND-11#2]
+
+Sources: LEND-11#2
+Refused: False · 1598 in / 250 out tokens · 1453 ms
+
+$ uv run assistant.py --role teller "Can a branch teller work from home two days a week?"
+Role: teller
+Retrieved: HR-09#1, HR-09#3, HR-09#2, OPS-25#3
+
+No. Branch tellers and other roles that must be on site to serve customers are not eligible for remote work. [HR-09#1]  The two-day allowance applies only to employees in office-based roles [HR-09#1] .
+
+Sources: HR-09#1
+Refused: False · 1539 in / 184 out tokens · 1350 ms
+

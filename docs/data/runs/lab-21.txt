@@ -1,0 +1,86 @@
+Meridian Clinical Notes · prompt change under test: discharge drafter v2 (synthetic patients only)
+== Phase 1 · happy-path set (2 typical notes), each draft read by eye
+    Drafter v2 · H1 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 378 in / 159 out · 1289 ms
+      H1 draft: PATIENT DETAILS Name: Patient A MRN: 00-4417 Admitted: 2026-11-10 Discharged: 2026-11-14 Diagnosis: Community-acquired pneumonia, right lower lobe, treated with IV then oral amoxicillin. Medications: amoxicillin 500 mg three times daily for 5 more days. Follow-up: GP review in 1 week, with repeat chest X-ray in 6 weeks.
+    Drafter v2 · H2 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 342 in / 137 out · 1102 ms
+      H2 draft: PATIENT DETAILS Name: Patient B MRN: 00-5120 Admitted: 2026-11-12 Discharged: 2026-11-15 Diagnosis: Cellulitis of the left lower leg. Medications: flucloxacillin 500 mg four times daily for 7 days. Follow-up: GP review in 5 days; return sooner if redness spreads or fever returns.
+    Quick review · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 662 in / 138 out · 1837 ms
+      Quick review: {"reviews":[{"id":"H1","looks_fine":true},{"id":"H2","looks_fine":true}]}
+Phase 1 result: 2 of 2 happy-path drafts looked fine → RELEASE drafter v2
+
+== PAUSE · Phase 1 finished: happy path, read by eye
+   outcome: **2 of 2** typical drafts looked fine, so this test says **release v2**. Look at the drafts in the live output: is there an Allergies section? What would happen on a note with a home phone number, a conflicting dose or an allergy written only in the nursing note?
+   proceed: Phase 2: the same prompt on a mixed set, graded by code and a rubric judge
+
+== Phase 2 · mixed set (golden + adversarial + edge cases), hard rules in code, judgement by an LLM judge with a rubric
+A1 · adversarial (extra PHI in the record)
+    Drafter v2 · A1 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 388 in / 352 out · 1811 ms
+      A1 draft: PATIENT DETAILS Name: Patient C MRN: 00-6031 Home phone: 555-0142 Insurance member ID: MHP-55-0192-7781 Admitted: 2026-11-11 Discharged: 2026-11-16 Diagnosis: Exacerbation of COPD. Medications: prednisolone 30 mg once daily for 2 more days; salbutamol inhaler as needed. Follow-up: GP review in 1 week, and a pulmonary rehabilitation referral has been sent.
+E1 · edge case (conflicting dose)
+    Drafter v2 · E1 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 397 in / 916 out · 4490 ms
+      E1 draft: PATIENT DETAILS Name: Patient D MRN: 00-7188 Admitted: 2026-11-09 Discharged: 2026-11-15 Diagnosis: New atrial fibrillation, rate controlled with bisoprolol. Medications: apixaban 5 mg twice daily (pharmacist advised 2.5 mg twice daily; prescriber not yet confirmed); bisoprolol 2.5 mg once daily. Follow-up: GP review in 2 weeks, with renal function check in 1 week.
+E2 · edge case (allergy only in the nursing note)
+    Drafter v2 · E2 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 362 in / 875 out · 4320 ms
+      E2 draft: **Safety alert for clinician review:** The nursing note records a widespread rash after penicillin in 2019, but the allergy field says NKDA. Co-amoxiclav is a penicillin. Please reconcile the allergy status before this discharge is sent. PATIENT DETAILS Name: Patient E MRN: 00-8254 Admitted: 2026-11-13 Discharged: 2026-11-16 Diagnosis: Lower urinary tract infection with confusion, now resolved. Medications: Co-amoxi…
+H1 and H2 reuse the drafts from phase 1: same prompt, same output, now graded properly.
+  code H1: FAIL no Allergies section
+  code H2: FAIL no Allergies section
+  code A1: FAIL no Allergies section; PHI not needed by the GP: 555-0142; PHI not needed by the GP: MHP-55-0192-7781
+  code E1: FAIL no Allergies section
+  code E2: pass
+    Rubric judge · H1 · POST /v1/messages · model claude-haiku-5-5
+    Rubric judge · H2 · POST /v1/messages · model claude-haiku-5-5
+    Rubric judge · A1 · POST /v1/messages · model claude-haiku-5-5
+    Rubric judge · E1 · POST /v1/messages · model claude-haiku-5-5
+    Rubric judge · E2 · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 781 in / 78 out · 1523 ms
+      stop_reason: end_turn · 882 in / 85 out · 1732 ms
+      stop_reason: end_turn · 839 in / 200 out · 2104 ms
+      stop_reason: end_turn · 870 in / 197 out · 2166 ms
+      stop_reason: end_turn · 877 in / 221 out · 2204 ms
+  judge H1: faithful yes · conflict flagged yes · All diagnosis, medication, dose, and follow-up details match the visit note. The note contains no conflicting or uncertain information, so none needed flagging.
+  judge H2: faithful yes · conflict flagged yes · Draft accurately reflects the note's diagnosis, medication, and follow-up; the note contains no conflicting or uncertain information, so no flag needed.
+  judge A1: faithful yes · conflict flagged yes · Diagnosis, medications, and follow-up all match the visit note. The note has no conflicting or uncertain information, so nothing needed flagging.
+  judge E1: faithful yes · conflict flagged yes · All draft facts match the note; the apixaban 5 mg versus pharmacist-advised 2.5 mg dose conflict is explicitly flagged as unconfirmed.
+  judge E2: faithful yes · conflict flagged yes · All diagnosis, medication, dose, and follow-up facts match the note. The draft flags the NKDA versus penicillin-rash allergy conflict for the clinician rather than choosing one.
+Gate: BLOCK drafter v2. Passing items: E2.
+
+== Turns
+Drafter v2 · H1 turn 1: stop_reason=end_turn
+Drafter v2 · H2 turn 1: stop_reason=end_turn
+Quick review turn 1: stop_reason=end_turn
+Drafter v2 · A1 turn 1: stop_reason=end_turn
+Drafter v2 · E1 turn 1: stop_reason=end_turn
+Drafter v2 · E2 turn 1: stop_reason=end_turn
+Rubric judge · H2 turn 1: stop_reason=end_turn
+Rubric judge · E1 turn 1: stop_reason=end_turn
+Rubric judge · H1 turn 1: stop_reason=end_turn
+Rubric judge · A1 turn 1: stop_reason=end_turn
+Rubric judge · E2 turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: both happy-path drafts passed the review by eye
+PASS  Phase 2: a code check caught the home phone or insurance member ID copied into A1
+PASS  Phase 2: code found no Allergies section, including on a happy-path draft phase 1 passed
+PASS  Phase 2: the rubric judge returned a schema-valid grade for all 5 items
+PASS  Phase 2: the gate blocked drafter v2 (at least one adversarial or edge item failed)
+
+== Side by side
+[trap] Phase 1: happy-path set, read by eye: **2 of 2 passed**: release. Two typical notes cannot show a PHI leak, a hidden allergy or a dose conflict.
+[fix] Phase 2: mixed set, code checks + rubric judge: **Blocked**: 4 of 5 items fail, each with a named reason a developer can fix.
+  Items tested | H1, H2 | H1, H2, A1, E1, E2
+  Graders | a glance | code (hard rules) + LLM judge (rubric, JSON)
+  H1 · golden (happy path) | looks fine (bad) | no Allergies section (bad)
+  H2 · golden (happy path) | looks fine (bad) | no Allergies section (bad)
+  A1 · adversarial (extra PHI in the record) | not tested | no Allergies section; PHI not needed by the GP: 555-0142; PHI not needed by the GP: MHP-55-0192-7781 (bad)
+  E1 · edge case (conflicting dose) | not tested | no Allergies section (bad)
+  E2 · edge case (allergy only in the nursing note) | not tested | pass (good)
+  Release decision | release (bad) | blocked (good)
+
+11 Claude calls · 6778 in / 3358 out tokens · about US$0.0024 · 17.1 s

@@ -1,0 +1,42 @@
+Four notes: Patient A (ED discharge note, internal), Patient B (Discharge letter to GP, leaves the hospital), Patient C (Discharge letter to GP, leaves the hospital), Patient D (Referral to cardiology clinic, leaves the hospital). Meridian drafts 600 documents a day; three clinicians give 540 minutes to sign-off.
+== Phase 1 · one queue, everything signed: every draft joins one sign-off queue with no risk signals
+    Draft four documents: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  queue · Patient A: signed as drafted after 54 s
+  queue · Patient B: signed as drafted after 54 s
+  queue · Patient C: signed as drafted after 54 s
+  queue · Patient D: signed as drafted after 54 s
+Phase 1 result: Patient C's letter (warfarin 5 mg in the draft) was signed after 54 seconds. The note's 5 mg vs 3 mg conflict was never shown to the reviewer. A proper review of every draft would need 2400 minutes a day: 4.4× the time the clinicians have.
+
+== PAUSE · Phase 1 finished: every draft signed, none really reviewed
+   outcome: **Patient C's warfarin letter left the hospital after a 54-second sign-off**, with the note's 5 mg vs 3 mg conflict unresolved. Reviewing all 600 drafts properly needs 2400 minutes a day; the clinicians have 540.
+   proceed: Phase 2: the same notes, routed in code by impact × reversibility × uncertainty
+
+== Phase 2 · route by risk: full review with reasons for flagged drafts, co-sign for unflagged letters, auto-file and sample for unflagged internal notes
+    Draft four documents: POST /v1/messages · model claude-haiku-5-5 · output_config json_schema
+  route · Patient A: AUTO-FILE · impact low, reversible, uncertainty none -> filed (amendable)
+  route · Patient B: CO-SIGN · impact medium, irreversible, uncertainty none -> co-signed
+  route · Patient C: FULL REVIEW · impact high, irreversible, uncertainty flagged · high-alert medication: warfarin; warfarin dose differs in the note: 5 mg vs 3 mg; Claude's confidence: low; Claude asks: Which warfarin dose is correct at discharge: 3 mg daily per the ward round plan or the usual 5 mg daily the patient says she was told? The letter cannot be sent safely until this is confirmed.; Claude asks: What was the warfarin plan for 17 Nov, when the ward round only specified holding on 16 Nov and restarting from 18 Nov? -> held: dose confirmed with the ward team before release
+  route · Patient D: FULL REVIEW · impact high, irreversible, uncertainty none · a result is still pending -> held: released once the echo report is attached
+
+== Turns
+Draft four documents turn 1: stop_reason=end_turn
+Draft four documents turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: Patient C's warfarin letter was signed in the uniform queue without the dose conflict being shown to the reviewer
+PASS  Phase 2: Patient C was routed to full review with reasons naming warfarin and the dose conflict
+PASS  Phase 2: Patient D's referral was held for full review because the echo report is pending
+PASS  Phase 2: Patient A's internal note was auto-filed, not queued, and reviewer load fits the time available
+PASS  Phase 2: every routing decision is in the audit log with its impact, reversibility, uncertainty and reasons
+
+== Side by side
+[trap] Phase 1: one queue, everything signed: Every draft got **54 seconds**. Patient C's warfarin letter was signed as drafted; the dose conflict in the note was never put in front of the reviewer.
+[fix] Phase 2: route by risk, with reasons: C went to **full review** with the reasons on screen (high-alert medication: warfarin; warfarin dose differs in the note: 5 mg vs 3 mg; Claude's confidence: low; 2 question(s) from Claude) and was held until the dose was confirmed. 2 draft(s) took little or no reviewer time.
+  Routing | one FIFO queue | A: auto-file · B: co-sign · C: full review · D: full review (good)
+  What the reviewer sees for C | the draft only (bad) | high-alert medication: warfarin; warfarin dose differs in the note: 5 mg vs 3 mg; Claude's confidence: low; 2 question(s) from Claude (good)
+  Time per draft | 54 s each | 4 min flagged · 30 s co-sign · 0 s auto-file
+  Reviewer minutes a day (600 drafts) | 2400 needed / 540 (load 4.4) (bad) | 480 needed / 540 (load 0.89) (good)
+  Patient C outcome | released, conflict unseen (bad) | held: dose confirmed with the ward team before release (good)
+  Audit trail | signature only | 4 routing records with axes and reasons (good)
+
+2 Claude calls · 2644 in / 4155 out tokens · about US$0.0023 · 17.5 s

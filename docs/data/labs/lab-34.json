@@ -1,0 +1,36 @@
+{
+ "id": 34,
+ "task": "6.4",
+ "task_title": "Document architectures and provide implementation guidance",
+ "topic": 6,
+ "topic_name": "Stakeholder Communication & Lifecycle Management",
+ "sim": 5,
+ "title": "A summary drops the runbook and owners: hand off an ADR and a guide",
+ "stem": "Your engagement with Lumen Retail ends in three weeks. Lumen's in-house team will then run the product-support assistant and change its prompts, retrieval and model on their own. Which documentation best prepares them to do that without you?",
+ "options": {
+  "A": "An ADR per key decision with its context, consequences and rejected alternatives, plus an implementation guide with interfaces, the pinned model ID, runbooks and owners.",
+  "B": "The final steering-committee slide deck with the architecture diagram, the business case and the pilot results, saved on the shared drive where the team can find it later.",
+  "C": "Recorded walkthrough sessions in which the architect explains the code, prompts and retrieval set-up, so the team can replay them whenever a question comes up after handoff.",
+  "D": "Thorough comments throughout the code, prompts and configuration files, so the documentation lives next to the implementation and stays in step with every future change."
+ },
+ "answer": "A",
+ "why": "A receiving team needs the why, the how and the who. Architecture Decision Records keep the context, the consequences and the alternatives that lost, so a later change is made knowingly. The implementation guide keeps the exact interfaces, the pinned model ID and where it is set, numbered runbook steps with thresholds, and a named owner for each part.",
+ "wrong": {
+  "B": "A steering deck is written for executives: it carries the business case, not the interfaces, runbook steps or owners an engineer needs at 2 a.m.",
+  "C": "Recordings cannot be searched or versioned, and they still leave decisions, thresholds and owners for the team to dig out of hours of video.",
+  "D": "Code comments explain local behaviour; they cannot hold why alternatives were rejected, the runbook, or who owns the prompt and the eval suite."
+ },
+ "fix": "Hand off an ADR per decision and an implementation guide with interfaces, configuration, runbooks and named owners.",
+ "see": "The summary has none of the nine sections and the newcomer can answer few questions; ADR-007 and the guide have all nine and the newcomer answers all five.",
+ "explain": "Both phases document the same working notes. Phase 1 writes the usual high-level summary: accurate, readable, and missing what the team needs once the architect has gone. Phase 2 writes ADR-007 (context, decision, status, consequences, alternatives considered) and an implementation guide (interfaces, configuration, runbook, owners). Code checks the nine sections by heading. A new Lumen developer, a separate Claude call that sees only the document, then answers five handoff questions, and code checks each answer for the key fact: claude-haiku-5-5, the /assist fields, the catalogue index check, Arun Pillai, and Sonnet 5.5 as the rejected option.",
+ "exam_tip": "When the question is about handoff to another team, pick the answer that records decisions with their alternatives and gives actionable implementation detail: interfaces, configuration, runbooks and owners. Decks, recordings and code comments each cover only part of it.",
+ "source": "Original question written for C740",
+ "headline": "Write down the why, the how and the who.",
+ "concepts": [
+  {"t": "Architecture Decision Records", "b": "Title, context, decision, status, consequences, and the alternatives that lost. A superseded ADR is marked, not deleted, so the history stays readable."},
+  {"t": "Behaviour lives outside the code", "b": "In a Claude system the model ID, prompts, tools, retrieval corpus and evals shape behaviour. Each must be versioned and documented, not only the code."},
+  {"t": "Pin and record the model ID", "b": "Name the exact model ID and the file it is set in. A change of model is a release, gated by the eval suite like any prompt change."},
+  {"t": "Runbooks with thresholds and steps", "b": "\"Escalation rate above 12% for two days: check index freshness, re-run evals, roll back if below 92%\" can be acted on. \"Monitor quality\" cannot."},
+  {"t": "A named owner per component", "b": "Prompt and evals, retrieval index, on-call, and the decision itself. Without owners, a handoff becomes a question nobody can answer."}
+ ]
+}

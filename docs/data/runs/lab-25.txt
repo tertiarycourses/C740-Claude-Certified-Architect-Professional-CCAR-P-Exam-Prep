@@ -1,0 +1,61 @@
+Kestrel · checkout-assistant · 48 Claude calls between 10:00 and 11:00 · customers report cut-off answers; billing says spend is up
+== Phase 1 · free-text logs: the lines the checkout-assistant prints today
+  10:22:11 INFO  checkout-assistant: answered customer question in 4.6s
+  10:22:11 WARN  checkout-assistant: slow response
+  10:22:58 INFO  checkout-assistant: answered customer question in 5.3s
+  10:22:58 WARN  checkout-assistant: slow response
+  10:22:58 WARN  checkout-assistant: customer reported an incomplete answer (ticket opened)
+  10:23:59 INFO  checkout-assistant: answered customer question in 5.3s
+  10:23:59 WARN  checkout-assistant: slow response
+  10:25:31 INFO  checkout-assistant: answered customer question in 4.7s
+  … 79 lines in all
+  rule "truncation" (stop_reason = max_tokens on more than 5% of calls): CANNOT EVALUATE: no such field in the logs
+  rule "cache miss" (cache_read_input_tokens = 0 on more than 50% of calls): CANNOT EVALUATE: no such field in the logs
+    Diagnosis from logs · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 2725 in / 1231 out · 7478 ms
+  cause: Latency regression starting about 10:20:49: response times rose from roughly 1.3-1.9s to roughly 3.8-5.5s and stayed elevated through 10:59, with a 'slow response' WARN on nearly every call after that point. The log shows the onset and persistence but not the mechanism. No trace_ids are present in the data, so this cannot be tied to specific Claude calls. · evidence: none
+  cause: Customer 'incomplete answer' tickets (10:22:58, 10:34:29, 10:56:22) all occur inside the slow-response window and follow the latency regression. This is a timing correlation only. The log does not show truncation, stop_reason, or max_tokens hits, so it does not establish that slowness causes the cut-off answers. · evidence: none
+  cause: Billing reports Claude API spend this hour at 2.4x the same hour yesterday. The timing overlaps the latency regression, which suggests a shared cause such as longer outputs, retries, or more calls, but the log does not show which. The billing line is also timestamped 10:58:00, out of sequence with the surrounding entries. · evidence: none
+  confidence: low · missing: trace_ids or request IDs for any call, so no cause can be linked to a specific Claude call; stop_reason per call (e.g. max_tokens vs end_turn) to confirm or rule out truncation as the cause of incomplete answers; input and output token counts per call to explain both the latency increase and the 2.4x spend; retry counts and timeout or error logs from the Claude client; model version and any configuration or prompt changes or deploys around 10:20; upstream Claude API latency or status metrics for the same window; request volume and traffic mix for 10:00-11:00 compared with yesterday; billing breakdown by model, endpoint, or feature for the spend anomaly; log entries before 10:00 to establish the baseline and confirm when the change began
+
+== PAUSE · Phase 1 finished: a diagnosis from free text
+   outcome: Neither alert rule could run: the lines have no stop_reason or cache field. Claude's diagnosis: **confidence low**, **0 verifiable trace ids**, and it lists what is missing: trace_ids or request IDs for any call, so no cause can be linked to a specific Claude call; stop_reason per call (e.g. max_tokens vs end_turn) to confirm or rule out truncation as the cause of incomplete answers; input and output token counts per call to explain both the latency increase and the 2.4x spend.
+   proceed: Phase 2: the same calls as structured records
+
+== Phase 2 · structured per-call records in the observability store: the same 48 calls
+  {"ts":"2026-11-19T10:12:57Z","trace_id":"tr-5b82","service":"checkout-assistant","model":"claude-haiku-5-5","prompt_version":"v13","input_tokens":569,"cache_read_input_tokens":3200,"output_tokens":242,"latency_ms":1588,"stop_reason":"end_turn","tool_calls":0}
+  {"ts":"2026-11-19T10:37:50Z","trace_id":"tr-5e66","service":"checkout-assistant","model":"claude-haiku-5-5","prompt_version":"v14","input_tokens":3787,"cache_read_input_tokens":0,"output_tokens":823,"latency_ms":4596,"stop_reason":"end_turn","tool_calls":2}
+  rule "truncation" (stop_reason = max_tokens on more than 5% of calls): FIRED · 9 of 24 calls since 10:30 (38%)
+  rule "cache miss" (cache_read_input_tokens = 0 on more than 50% of calls): FIRED · 24 of 24 calls since 10:30 (100%)
+  v13: 16 calls from 10:00 · avg output 268 · max_tokens stops 0 · avg cache reads 3200 · avg input 495 · p95 1948 ms
+  v14: 32 calls from 10:20 · avg output 885 · max_tokens stops 13 · avg cache reads 0 · avg input 3693 · p95 5457 ms
+    Diagnosis from records · POST /v1/messages · model claude-haiku-5-5
+      stop_reason: end_turn · 7423 in / 2516 out · 12234 ms
+  cause: Customer-facing cut-off answers come from output hitting the 1024-token max_tokens cap. All 13 max_tokens stops are on v14, and each stopped call shows output_tokens exactly 1024. Inside the 10:30-11:00 window, 9 of 24 calls stop this way, which is the 9/24 that fired the truncation alert. · evidence: tr-5caa, tr-5ccf, tr-5d3e, tr-5d63, tr-5dd2, tr-5df7, tr-5e1c, tr-5e8b, tr-5f69, tr-5ffd, tr-6047, tr-6091, tr-60db
+  cause: The v14 prompt change made answers much longer. Average output rose from 268 tokens on v13 to 885 on v14, and v14 calls that finish normally still run 650-1000 output tokens. That leaves many calls close to the 1024 cap, so they get truncated. · evidence: tr-5c60, tr-5c85, tr-5cf4, tr-5d19, tr-5d88, tr-5dad, tr-5e41, tr-5e66, tr-5eb0, tr-5ed5, tr-5efa, tr-5f1f, tr-5f44, tr-5f8e, tr-5fb3, tr-5fd8, tr-6022, tr-606c, tr-60b6, tr-5a10
+  cause: Prompt caching stopped working for the checkout-assistant prompt after the v14 rollout. Every v13 call reads 3200 tokens from cache, while every v14 call has cache_read_input_tokens = 0 and about 3,700 uncached input tokens. This is the cache-miss alert, and it explains most of the spend increase, since the same prompt volume is now billed as uncached input. · evidence: tr-5a10, tr-5bcc, tr-5c60, tr-5caa, tr-5df7, tr-60db
+  cause: v14 increased tool use, which adds model round trips and tokens. Average tool calls rose from 0.2 on v13 to 1.5 on v14, and many v14 calls report 2 tool calls. This likely contributes to higher output and latency (v14 p95 5457 ms vs v13 1948 ms) and to the spend increase. · evidence: tr-5c60, tr-5d19, tr-5d88, tr-5dd2, tr-5eb0, tr-5f8e, tr-6047
+  confidence: medium · cited 34 real trace ids · missing: The v14 prompt diff, so the cause of the cache miss (changed prefix, cache_control placement, or prefix reordering) cannot be confirmed; Configured max_tokens value and whether it was changed in the v14 deployment; Per-call or per-prompt cost and pricing, so spend increase can be quantified and attributed to uncached input versus output tokens; Tool schema and tool result sizes, to confirm how tool calls add input and output tokens; Customer-level or conversation-level data linking truncated answers to specific trace_ids; Data before 10:00 and after 11:00, to confirm the v14 rollout timing and whether the cutoff rate is stable; Whether the 10:20-10:30 truncation and the window truncation share the same user intents or request types; Confirmation that the rollout to v14 was complete at 10:20:49 and that no v13 calls ran after 10:19:34
+
+== Turns
+Diagnosis from logs turn 1: stop_reason=end_turn
+Diagnosis from records turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1: the alert rules could not be evaluated on the free-text log (no stop_reason or cache field)
+PASS  Phase 1: the diagnosis from free text cited no trace_id that exists in the store
+PASS  Phase 2: both alert rules fired on the structured records (max_tokens and cache-miss rates)
+PASS  Phase 2: the diagnosis names prompt v14 and the max_tokens truncation
+PASS  Phase 2: the diagnosis names the lost cache hits and cites at least 2 real trace ids
+
+== Side by side
+[trap] Phase 1: free-text log lines: No rule could run. Diagnosis at **low** confidence with **0 verifiable trace ids**: a guess an engineer cannot check.
+[fix] Phase 2: one structured record per call: Both rules **fired** on their own. Diagnosis at **medium** confidence names **v14's max_tokens truncation** and **the lost cache hits**, with **34 real trace ids**.
+  Fields per call | time, a sentence | trace_id, model, prompt_version, input/output tokens, cache reads, latency_ms, stop_reason, tool_calls
+  Rule: stop_reason = max_tokens on more than 5% of calls | cannot evaluate (bad) | fired (38%) (good)
+  Rule: cache_read_input_tokens = 0 on more than 50% of calls | cannot evaluate (bad) | fired (100%) (good)
+  Root causes found | Latency regression starting about 10:20:49: response times rose from roughly 1.3-1.9s to roughly 3.8-5.5s and… · Customer 'incomplete answer' tickets (10:22:58, 10:34:29, 10:56:22) all occur inside the slow-response window… · Billing reports Claude API spend this hour at 2.4x the same hour yesterday. The timing overlaps the latency r… | Customer-facing cut-off answers come from output hitting the 1024-token max_tokens cap. All 13 max_tokens sto… · The v14 prompt change made answers much longer. Average output rose from 268 tokens on v13 to 885 on v14, and… · Prompt caching stopped working for the checkout-assistant prompt after the v14 rollout. Every v13 call reads … · v14 increased tool use, which adds model round trips and tokens. Average tool calls rose from 0.2 on v13 to 1…
+  Trace ids cited that exist | 0 (bad) | 34 (good)
+  Confidence | low | medium
+
+2 Claude calls · 10148 in / 3747 out tokens · about US$0.0029 · 19.7 s

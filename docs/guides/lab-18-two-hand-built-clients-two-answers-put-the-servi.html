@@ -1,0 +1,138 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 18: Two hand-built clients, two answers: put the service behind MCP</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 18: Two hand-built clients, two answers: put the service behind MCP</h1>
+<blockquote>
+<p>Day 1 · Topic 3: Integration · Task statement 3.7 · Simulator 6: Kestrel Platform Team · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 3.7: <strong>Evaluate connection protocols and select the appropriate integration mechanism (MCP, API/CLI, agent-to-agent).</strong> You answer one exam-style question, then run the Kestrel Platform Team simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=18">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=18</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 18</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-18.js">docs/sims/lab-18.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>Kestrel Software's platform team is rolling Claude Code out to 40 engineers across four product squads, and runs Claude-powered features in production. The team owns the shared Claude Code configuration, the CI pipeline, the evaluation suite for each prompt change, and the on-call runbooks for incidents in Claude-powered services.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>Direct API or CLI.</strong> Your code decides exactly what to call. Right for a fixed workflow one application owns, such as tagging a release with an existing CLI in one pipeline.</li>
+<li><strong>MCP: one server, many hosts.</strong> A server exposes tools, resources and prompts over a standard protocol. Claude Code, CI agents and your own apps discover the same typed tools through tools/list.</li>
+<li><strong>Agent-to-agent: delegate a goal.</strong> Protocols such as A2A hand a whole task to another team's autonomous agent and get results back, without seeing its tools or reasoning.</li>
+<li><strong>Bespoke clients drift.</strong> Each hand-built copy encodes the API as it was when written. One copy calling a retired endpoint can return a stale answer that looks valid.</li>
+<li><strong>Keep credentials out of context.</strong> An MCP server holds the service credential itself, so no API key or personal token appears in a prompt, a tool input or a trace.</li>
+</ul>
+<h2>The question</h2>
+<p>Kestrel's release-calendar service records change freezes. The CI release gate, the on-call agent and 40 engineers' Claude Code sessions all need to check it, and today each team has written its own client from its own copy of the API notes, with its own credential. Which integration mechanism should the platform team choose for the release-calendar service?</p>
+<ul>
+<li><strong>A.</strong> Expose the service once as an MCP server with typed tools and a server-held credential, registered in the shared .mcp.json.</li>
+<li><strong>B.</strong> Give each agent a generic HTTP tool and put the current OpenAPI specification in its context, so it can build its own requests.</li>
+<li><strong>C.</strong> Wrap the service as an autonomous agent behind an agent-to-agent protocol, so other agents delegate freeze checks to it as tasks.</li>
+<li><strong>D.</strong> Publish a small command-line tool for the service and have every agent call it through a shell tool in its own pipeline.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=18">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=18</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 18
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: Bespoke clients call v1 and v2 and disagree about FRZ-118, with keys in prompts; behind one MCP server both agents find FRZ-118 and no key reaches a model.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Kestrel · 2026-11-19T06:30:00Z · two agents need the release calendar for kestrel/checkout-service in prod
+== Phase 1 · each team's own client: a generic HTTP tool plus that team's API notes and credential
+    CI release gate Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: tool_use -&gt; CONTINUE: run the tool, append the result, call Claude again
+      -&gt; call_release_api({&quot;method&quot;:&quot;POST&quot;,&quot;path&quot;:&quot;/v1/freeze-check&quot;,&quot;headers&quot;:{&quot;X-Api-Key&quot;:&quot;rk_ci_4f9a2c&quot;},&quot;body&quot;:{&quot;service&quot;:&quot;checkout-service&quot;,…)
+      &lt;- result: {&quot;status&quot;:200,&quot;service&quot;:&quot;checkout-service&quot;,&quot;environment&quot;:&quot;prod&quot;,&quot;frozen&quot;:false}
+    CI release gate Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    CI release gate answer: DEPLOY. The release calendar freeze check for checkout-service in prod returned frozen: false, so it is clear to deploy. This check covers t…
+    On-call agent Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: tool_use -&gt; CONTINUE: run the tool, append the result, call Claude again
+      -&gt; call_release_api({&quot;method&quot;:&quot;POST&quot;,&quot;path&quot;:&quot;/v2/freezes/check&quot;,&quot;headers&quot;:{&quot;Authorization&quot;:&quot;Bearer pat_dlee_88c1&quot;},&quot;body&quot;:{&quot;service&quot;:&quot;kestr…)
+      &lt;- !! error: {&quot;isError&quot;:true,&quot;status&quot;:404,&quot;error&quot;:&quot;unknown service 'kestrel/checkout-service'. Known services: checkout-service, payments-service, search-service,…
+    On-call agent Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+      Claude: The API doesn't recognize &quot;kestrel/checkout-service,&quot; so I'll retry with the registered name &quot;checkout-service.&quot;
+      stop_reason: tool_use -&gt; CONTINUE: run the tool, append the result, call Claude again
+      -&gt; call_release_api({&quot;method&quot;:&quot;POST&quot;,&quot;path&quot;:&quot;/v2/freezes/check&quot;,&quot;headers&quot;:{&quot;Authorization&quot;:&quot;Bearer pat_dlee_88c1&quot;},&quot;body&quot;:{&quot;service&quot;:&quot;check…)
+      &lt;- result: {&quot;status&quot;:200,&quot;frozen&quot;:true,&quot;freeze_id&quot;:&quot;FRZ-118&quot;,&quot;service&quot;:&quot;checkout-service&quot;,&quot;env&quot;:&quot;prod&quot;,&quot;start&quot;:&quot;2026-11-19T00:00:00Z&quot;,&quot;end&quot;:&quot;2026-11-21T23:59:00…
+    On-call agent Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    On-call agent answer: Yes, prod is frozen for checkout-service at 2026-11-19T06:30:00Z under freeze FRZ-118 (Payments ledger migration, running 2026-11-19 00:00 to …
+
+== PAUSE · Phase 1 finished: each team's own client
+   outcome: CI release gate called **/v1/freeze-check** and was told **frozen: false**, so it said **DEPLOY**. On-call agent called **/v2/freezes/check** and found **FR…
+   proceed: Phase 2: both agents connected to one release-calendar MCP server
+
+== Phase 2 · one release-calendar MCP server: the same typed tool for both agents, credential held by the server
+  .mcp.json: {&quot;mcpServers&quot;:{&quot;release-calendar&quot;:{&quot;type&quot;:&quot;http&quot;,&quot;url&quot;:&quot;https://mcp.kestrel.internal/release-calendar&quot;}}}
+  tools/list → check_freeze (each host sees mcp__release-calendar__check_freeze)
+    CI release gate Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: tool_use -&gt; CONTINUE: run the tool, append the result, call Claude again
+      -&gt; mcp__release-calendar__check_freeze({&quot;service&quot;:&quot;checkout-service&quot;,&quot;env&quot;:&quot;prod&quot;,&quot;at&quot;:&quot;2026-11-19T06:30:00Z&quot;})
+      &lt;- result: {&quot;frozen&quot;:true,&quot;freeze_id&quot;:&quot;FRZ-118&quot;,&quot;service&quot;:&quot;checkout-service&quot;,&quot;env&quot;:&quot;prod&quot;,&quot;start&quot;:&quot;2026-11-19T00:00:00Z&quot;,&quot;end&quot;:&quot;2026-11-21T23:59:00Z&quot;,&quot;reason&quot;:&quot;…
+    CI release gate Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    CI release gate answer: HOLD. Production for checkout-service is under change freeze FRZ-118 (Payments ledger migration) from 2026-11-19T00:00Z to 2026-11-21T23:59Z…
+    On-call agent Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: tool_use -&gt; CONTINUE: run the tool, append the result, call Claude again
+      -&gt; mcp__release-calendar__check_freeze({&quot;service&quot;:&quot;checkout-service&quot;,&quot;env&quot;:&quot;prod&quot;,&quot;at&quot;:&quot;2026-11-19T06:30:00Z&quot;})
+      &lt;- result: {&quot;frozen&quot;:true,&quot;freeze_id&quot;:&quot;FRZ-118&quot;,&quot;service&quot;:&quot;checkout-service&quot;,&quot;env&quot;:&quot;prod&quot;,&quot;start&quot;:&quot;2026-11-19T00:00:00Z&quot;,&quot;end&quot;:&quot;2026-11-21T23:59:00Z&quot;,&quot;reason&quot;:&quot;…
+    On-call agent Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+      stop_reason: end_turn -&gt; STOP: Claude has finished (the subagent returns its answer)
+    On-call agent answer: Yes, prod is in a change freeze for checkout-service at 2026-11-19T06:30:00Z: freeze FRZ-118 (Payments ledger migration), running 2026-11-19 0…
+
+…
+PASS  Phase 1: a credential travelled in a prompt or tool input
+PASS  Phase 2: both agents called the same MCP tool and got FRZ-118, with no credential in any prompt or tool input
+PASS  Phase 2: both replies name FRZ-118 and the CI gate says HOLD
+
+== Side by side
+[trap] Phase 1: each team's own client: CI: frozen: false → DEPLOY · on-call: FRZ-118. **Two agents, one service, opposite answers**: the CI client still calls the reti…
+[fix] Phase 2: one release-calendar MCP server: CI: FRZ-118 → HOLD · on-call: FRZ-118. Both agents called the **same typed tool** from tools/list; the server held the c…
+  Integration | generic HTTP tool + each team's notes | mcp__release-calendar__check_freeze from tools/list (good)
+  Endpoints actually called | /v1/freeze-check, /v2/freezes/check (bad) | the server calls /v2/freezes/check
+  What each agent was told | CI: frozen: false → DEPLOY · on-call: FRZ-118 (bad) | CI: FRZ-118 → HOLD · on-call: FRZ-118 (good)
+  Credentials in prompts or tool inputs | rk_ci_4f9a2c, pat_dlee_88c1 (bad) | none (good)
+  Cost of a third consumer | another client, another key, another copy of the notes | add the server to its .mcp.json (good)
+
+9 Claude calls · 7787 in / 1265 out tokens · about US$0.0014 · 10.6 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: A.</strong> A shared internal capability that many AI hosts call is the case MCP was designed for. The platform team writes one server; every host discovers the same typed tools through tools/list; the credential stays in the server; and a change to the API is made once. Direct API or CLI calls suit a one-off scripted step one pipeline owns, and agent-to-agent protocols suit delegating a whole goal to another team's autonomous agent.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>B.</strong> Every host still builds its own requests and holds a credential in context, and the specification costs tokens on every call while each copy drifts.</li>
+<li><strong>C.</strong> A freeze check is a typed function call, not a goal to delegate; agent-to-agent protocols are for another team's opaque autonomous agent.</li>
+<li><strong>D.</strong> A CLI suits a scripted step in one place; across many hosts each still wires its own shell tool, credential handling and output parsing.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Choose the mechanism by who owns each side and who reuses it. A shared internal service that many AI hosts call (CI agents, the on-call agent, 40 engineers' Claude Code sessions) is what MCP is for: write the server once, every host discovers the same typed tools through tools/list, and the credential stays in the server. Hand-built clients drift: each copy encodes the API as it was when that team wrote it, so one still calls a retired endpoint and gets a stale answer that looks valid. A direct API or CLI call is still right for a one-off scripted step that one pipeline owns, such as tagging a release with an existing CLI. An agent-to-agent protocol fits when you hand a whole goal to another team's autonomous agent whose tools you cannot see. A freeze check is neither: it is a typed function call many hosts share.</p>
+<h2>Exam tip</h2>
+<p>Pick the mechanism by the boundary. Many AI hosts reusing one capability: MCP. One application calling a service it owns in a fixed step: direct API or CLI. Handing a goal to another organisation's autonomous agent: agent-to-agent (A2A). Subagents inside your own system are orchestration, not A2A.</p>
+<h2>Try this next</h2>
+<p>Add a third consumer to TASKS in this lab's code, for example a release-notes agent. In Phase 1 it needs its own NOTES entry, its own key and its own copy of the request shape; in Phase 2 it needs nothing new, because tools/list already describes check_freeze to every host. That difference, N bespoke clients against one server, is the MCP argument.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

@@ -1,0 +1,51 @@
+{
+ "id": 1,
+ "task": "1.1",
+ "task_title": "Translate business problems into Claude-based AI solutions",
+ "topic": 1,
+ "topic_name": "Solution Design & Architecture",
+ "sim": 5,
+ "title": "Grace asks for an agent: frame the problem before choosing the build",
+ "stem": "Lumen Retail's COO asks you for \"an AI agent that handles store product support end to end\" and wants a design by Friday. Discovery data already exists: 2,400 support calls a week, a 7.5-minute average handle time, and a call mix of product questions, stock and price checks, and refund decisions. Which first step best translates this request into a Claude solution?",
+ "options": {
+  "A": "Frame the problem first: the business outcome, a success metric with today's baseline and a target, the constraints, and whether Claude, code or a person does each task; then pick the simplest tier.",
+  "B": "Build a prototype of the agent Grace asked for with every available tool, pilot it in ten stores, and derive the scope and the success measures from the feedback that store staff give during the pilot.",
+  "C": "Choose the most capable Claude model and a multi-agent architecture first, because product support spans many domains, then write the prompts and tools for each specialist agent.",
+  "D": "Build a general chat assistant over all of Lumen's documents and systems, and measure success by weekly active users and staff satisfaction scores after the first month."
+ },
+ "answer": "A",
+ "why": "A sponsor's request names a solution; the architect's first deliverable is the problem. Framing turns the request and the discovery data into an outcome, a success metric with a measured baseline and a numeric target, the constraints, and a split of the work: Claude for product questions over the manuals, code for exact stock and price lookups, the store manager for refund decisions. The tier is chosen last, and the simplest one that meets the frame wins. In the lab that was Claude with retrieval, not an agent.",
+ "wrong": {
+  "B": "Building first lets the request set the scope, and success measures derived from pilot feedback have no baseline to be compared with.",
+  "C": "Choosing the model and the architecture before the problem buys autonomy and cost before anyone knows they are needed.",
+  "D": "Adoption and satisfaction are not the business outcome; nothing ties them to handle time or cost per call, so the value cannot be shown."
+ },
+ "fix": "Run a framing step (outcome, baselined metric, constraints, who does each task) before any design, then choose the simplest tier that meets it.",
+ "see": "The framed design drops to Claude with retrieval, stock checks in code and refunds with people, measured against a discovery baseline.",
+ "explain": "Phase 1 behaves like a team that starts building before discovery: it designs the agent the sponsor named, and its success metric has no measured baseline. Phase 2 runs a framing pass over the discovery pack first. It names the outcome Grace reports to the board, anchors a metric to a measured figure (the 7.5-minute handle time) with a numeric target, lists the constraints (10-second answers, SSO, no customer personal data, the run-cost budget), and gives each task in the call mix to its cheapest capable owner: Claude for product questions, code for stock and price checks, the store manager for refunds. The design pass then picks the simplest tier that meets that frame: Claude with retrieval over the manuals, not an agent loop.",
+ "exam_tip": "When a stem quotes a sponsor asking for a technology (\"an agent\", \"multi-agent\"), the best answer starts from the problem: outcome, baselined metric, constraints, then the least autonomous tier that meets them.",
+ "source": "Original question written for C740",
+ "headline": "Frame the outcome first. The tier follows.",
+ "concepts": [
+  {
+   "t": "The task is the unit of design",
+   "b": "\"Automate support\" cannot be designed. Split it into tasks (product questions, stock checks, refunds) and give each its own owner: Claude, code or a person."
+  },
+  {
+   "t": "A success metric needs a baseline",
+   "b": "A success criterion names today's measured value, a numeric target and how it will be measured. Without the baseline nobody can show the solution worked."
+  },
+  {
+   "t": "Code for lookups and fixed rules",
+   "b": "Exact stock and price checks, arithmetic and fixed business rules belong in code or an API, which Claude may call. Claude handles judgement over language."
+  },
+  {
+   "t": "The simplest tier that meets the need",
+   "b": "Single call, augmented LLM (retrieval and tools), workflow, agent, multi-agent: each step up buys flexibility with cost, latency and variance. Start low."
+  },
+  {
+   "t": "Constraints are design inputs",
+   "b": "Answer time on the store tablet, SSO, no customer personal data, legal wording and the run-cost budget shape the design before any model is chosen."
+  }
+ ]
+}

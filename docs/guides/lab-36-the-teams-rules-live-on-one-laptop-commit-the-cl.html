@@ -1,0 +1,138 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Lab 36: The team&#x27;s rules live on one laptop: commit the Claude Code config</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font: 10.5pt/1.5 Calibri, "Segoe UI", system-ui, sans-serif; color: #21201C; max-width: 900px; margin: 0 auto; padding: 18px; }
+h1 { font: bold 20pt Cambria, Georgia, serif; color: #21201C; margin: 0 0 4px; }
+h2 { font: bold 13.5pt Cambria, Georgia, serif; color: #C9603A; border-bottom: 1px solid #E8E5DE; padding-bottom: 2px; margin: 18px 0 6px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+blockquote { margin: 0 0 10px; padding: 6px 12px; background: #FAF9F5; border-left: 4px solid #2F6F6D; color: #5F5C56; }
+code { font: 9pt Consolas, Menlo, monospace; background: #F6EEDD; padding: 0 3px; border-radius: 3px; }
+pre { background: #21201C; color: #F4F1EA; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; font: 8.3pt/1.45 Consolas, Menlo, monospace; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0; } th { background: #21201C; color: #fff; text-align: left; }
+th, td { border: 1px solid #E8E5DE; padding: 4px 6px; vertical-align: top; } tr:nth-child(even) td { background: #FAF9F5; }
+a { color: #2F6F6D; } li { margin: 2px 0; }
+.foot { margin-top: 22px; color: #8A867D; font-size: 8.5pt; border-top: 1px solid #E8E5DE; padding-top: 6px; }
+</style></head><body><h1>Lab 36: The team's rules live on one laptop: commit the Claude Code config</h1>
+<blockquote>
+<p>Day 2 · Topic 7: Developer Productivity &amp; Operational Enablement · Task statement 7.1 · Simulator 6: Kestrel Platform Team · About 12 minutes · Claude Haiku 5.5</p>
+</blockquote>
+<h2>Goal</h2>
+<p>Task statement 7.1: <strong>Configure Claude tools and environments for teams (e.g., Claude Code).</strong> You answer one exam-style question, then run the Kestrel Platform Team simulator and watch the tempting design fail and the right one work, with real Claude calls.</p>
+<h2>Open this lab</h2>
+<ul>
+<li><strong>The main lab page:</strong> <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/</a>. It lists all 38 simulator labs, the Day 2 builds (Labs 39 to 41) and the practice exam, and holds the API key box.</li>
+<li><strong>Run it live in your browser (nothing to install):</strong> open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=36">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=36</a>, paste your Anthropic API key into the sidebar once, then press <strong>Simulate it live</strong>. Every call uses <code>claude-haiku-5-5</code>. The run <strong>stops after the first method</strong> and shows its outcome; press <strong>Proceed</strong> to run the fix, then read the two <strong>side by side</strong> under The observation explained.</li>
+<li><strong>In a terminal, one click:</strong> double-click <code>run-lab.command</code> (Mac) or <code>run-lab.cmd</code> (Windows) in this folder. It runs <code>node docs/tools/test_lab.mjs 36</code> from the repository root, with the same engine the site uses. It needs Node.js and your key in a <code>.env</code> file at the repository root (one line: <code>ANTHROPIC_API_KEY=sk-ant-...</code>).</li>
+<li><strong>The code it runs:</strong> <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/sims/lab-36.js">docs/sims/lab-36.js</a>, on the shared engine <a href="https://github.com/tertiarycourses/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/blob/main/docs/assets/engine.js">docs/assets/engine.js</a>.</li>
+</ul>
+<h2>The scenario</h2>
+<p>Kestrel Software's platform team is rolling Claude Code out to 40 engineers across four product squads, and runs Claude-powered features in production. The team owns the shared Claude Code configuration, the CI pipeline, the evaluation suite for each prompt change, and the on-call runbooks for incidents in Claude-powered services.</p>
+<h2>Key concepts</h2>
+<ul>
+<li><strong>Scopes: user, project, local.</strong> ~/.claude reaches only you. .claude/settings.json and CLAUDE.md in the repository reach everyone. .claude/settings.local.json is yours, kept out of git.</li>
+<li><strong>Guidance versus enforcement.</strong> CLAUDE.md and skills are read by Claude and followed most of the time. Permission rules, hooks and managed settings are enforced by the harness.</li>
+<li><strong>Allow and deny lists merge.</strong> Permission lists combine across scopes, and a deny anywhere beats an allow. A team deny on git push --force holds even if someone allows more.</li>
+<li><strong>Shared skills.</strong> A skill in .claude/skills/<name>/SKILL.md gives all 40 engineers the same /pr-review workflow, versioned and reviewed like code.</li>
+<li><strong>MCP config without secrets.</strong> Commit .mcp.json with ${SENTRY_AUTH_TOKEN}; each engineer's environment supplies the value. A token written into the file is a secret in git.</li>
+</ul>
+<h2>The question</h2>
+<p>Kestrel is rolling Claude Code out to 40 engineers in four squads. Today each engineer keeps the team's conventions and permissions in their own ~/.claude files; two of them allow Bash(*), and one has a Sentry token pasted into a personal MCP config. A new engineer's first sessions follow none of the conventions. What should the platform team do?</p>
+<ul>
+<li><strong>A.</strong> Publish the recommended ~/.claude settings on the team wiki, and ask each engineer to copy them onto their own machine as part of their onboarding.</li>
+<li><strong>B.</strong> Commit a project CLAUDE.md, .claude/settings.json allow and deny rules, shared skills and an .mcp.json that reads its token from an environment variable.</li>
+<li><strong>C.</strong> Put the team's conventions, permission rules and each MCP server's token into one shared CLAUDE.md at the repository root, so that every session reads them.</li>
+<li><strong>D.</strong> Have each squad lead review their engineers' ~/.claude folders every quarter, and remove any risky permissions or pasted tokens that they find in them.</li>
+</ul>
+<p>Pick your answer before you run anything. The answer and the reasoning are at the end, under <strong>Check your answer</strong>.</p>
+<h2>Steps on the simulator site</h2>
+<ol>
+<li>Open <a href="https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=36">https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/lab.html?n=36</a>. The left sidebar should say the API key is <strong>saved</strong>. If it says <strong>not set</strong>, paste your key into the <strong>Anthropic API key</strong> box, press <strong>Save</strong>, then <strong>Test</strong>.</li>
+<li>Read the task statement card and the question. Click the answer you chose. The page tells you at once whether it is right, and why. Open <strong>Why the other answers fall short</strong>.</li>
+<li>Press <strong>▶ Simulate it live</strong>. The scenario board shows the story, the code runs on the left and Claude's live output appears on the right.</li>
+<li>When the run pauses, read the outcome of the first method (the trap). Then press <strong>▶ Proceed</strong> to run the fix.</li>
+<li>Read <strong>Claude's final output</strong>, then <strong>The observation explained</strong>: the two methods side by side, turn by turn, and the checks on what Claude actually did.</li>
+<li>Open <strong>See the full code this lab runs</strong> and find the lines that make the difference.</li>
+</ol>
+<h2>Or run it from a terminal</h2>
+<p>From the repository root:</p>
+<pre><code>node docs/tools/test_lab.mjs 36
+</code></pre>
+<h2>What you will see</h2>
+<p>What to look for: Phase 1: Ben's session loads 0 of 5 team policies. Phase 2: all 5 reach his first session, and Claude's report of what loads matches the loader.</p>
+<p>These lines are from our own run of this lab on Claude Haiku 5.5. Your wording will differ, because Claude writes each reply fresh; the tool calls, decisions and checks should match. This is an excerpt: wherever … appears, text has been shortened, and a line with only … marks lines left out. Run the lab to see the full output.</p>
+<pre><code>Kestrel · Ben Okoye joined squad 2 today and installed Claude Code on a new laptop; his home folder has no ~/.claude files yet. He clones kestrel/checkout-service and r…
+== Phase 1 · personal ~/.claude: the team's rules live in Ana's home folder; Ben's session sees only the repository
+Ana's own session (her laptop): 1/5 policies; risky: Bash(*); literal secret in ~/.claude.json
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -&gt; CONTINUE: run the tool, append the result, call Claude again
+  -&gt; Glob({&quot;pattern&quot;:&quot;**/*&quot;})
+  &lt;- result: .env.example .gitignore README.md pyproject.toml src/checkout/cart.py tests/test_cart.py
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: tool_use -&gt; CONTINUE: run the tools, append the results, call Claude again
+  -&gt; Glob({&quot;pattern&quot;:&quot;~/.claude/**&quot;})
+  &lt;- result: No files match.
+  -&gt; Glob({&quot;pattern&quot;:&quot;{.claude/**,.mcp.json,CLAUDE.md,~/.claude.json}&quot;})
+  &lt;- result: No files match.
+Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: {&quot;instruction_files&quot;:[],&quot;allow&quot;:[],&quot;deny&quot;:[],&quot;skills&quot;:[],&quot;mcp_servers&quot;:[],&quot;summary&quot;:&quot;Ben's session loads no instruction files, permission rules, skills, or MCP s…
+Phase 1 result: Ben's session loads 0 of 5 team policies. Claude reported: Ben's session loads no instruction files, permission rules, skills, or MCP servers: the repos…
+
+== PAUSE · Phase 1 finished: the team's rules in one engineer's home folder
+   outcome: **Ben's first session loads 0 of 5 team policies**: no test rule, no deny on force-push or .env, no pr-review skill, no Sentry server. Meanwhile Ana's perso…
+   proceed: Phase 2: the same conventions committed to the repository, with the secret moved to an environment variable
+
+== Phase 2 · committed project config: CLAUDE.md, .claude/settings.json allow/deny, .claude/skills/pr-review, .mcp.json with ${SENTRY_AUTH_TOKEN}
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: tool_use -&gt; CONTINUE: run the tool, append the result, call Claude again
+  -&gt; Glob({&quot;pattern&quot;:&quot;**/*&quot;})
+  &lt;- result: .claude/settings.json .claude/skills/pr-review/SKILL.md .env.example .gitignore .mcp.json CLAUDE.md README.md pyproject.toml src/checkout/cart.py tes…
+Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results appended)
+  stop_reason: tool_use -&gt; CONTINUE: run the tools, append the results, call Claude again
+  -&gt; Read({&quot;path&quot;:&quot;.claude/settings.json&quot;})
+  &lt;- result: { &quot;permissions&quot;: { &quot;allow&quot;: [ &quot;Bash(uv run pytest:*)&quot;, &quot;Bash(uv run ruff:*)&quot;, &quot;Bash(git diff:*)&quot;, &quot;Bash(git status)&quot; ], &quot;deny&quot;: [ &quot;Bash(git push --fo…
+  -&gt; Read({&quot;path&quot;:&quot;.claude/skills/pr-review/SKILL.md&quot;})
+  &lt;- result: --- name: pr-review description: Review a Kestrel pull request against the team checklist (KR-1..KR-4) and report findings as JSON. --- Check the dif…
+  -&gt; Read({&quot;path&quot;:&quot;.mcp.json&quot;})
+  &lt;- result: { &quot;mcpServers&quot;: { &quot;sentry&quot;: { &quot;type&quot;: &quot;http&quot;, &quot;url&quot;: &quot;https://sentry.kestrel.example/mcp&quot;, &quot;headers&quot;: { &quot;Authorization&quot;: &quot;Bearer ${SENTRY_AUTH_TOKEN}…
+  -&gt; Read({&quot;path&quot;:&quot;CLAUDE.md&quot;})
+  &lt;- result: # checkout-service ## Commands - Test: `uv run pytest -q`. Run it before saying a change is done. - Lint: `uv run ruff check .` ## Conventions - Bran…
+  -&gt; Glob({&quot;pattern&quot;:&quot;~/.claude/**&quot;})
+  &lt;- result: No files match.
+Turn 3: POST /v1/messages · model claude-haiku-5-5 · 5 messages (tool results appended)
+  stop_reason: end_turn -&gt; STOP: Claude has finished
+Reply: {&quot;instruction_files&quot;:[&quot;CLAUDE.md&quot;],&quot;allow&quot;:[&quot;Bash(uv run pytest:*)&quot;,&quot;Bash(uv run ruff:*)&quot;,&quot;Bash(git diff:*)&quot;,&quot;Bash(git status)&quot;],&quot;deny&quot;:[&quot;Bash(git push --force:*…
+Claude's report vs the loader: matches on files, allow, deny, skills and MCP
+
+…
+[trap] Phase 1: rules in Ana's ~/.claude: **Ben's session loads 0 of 5 team policies.** The rules exist, but only on Ana's laptop, next to `Bash(*)` and a pasted token …
+[fix] Phase 2: committed project config: **All 5 policies reach Ben's first session**, no rule allows Bash(*), the token is a ${SENTRY_AUTH_TOKEN} reference, and Claude…
+  Where the rules live | ~/.claude on Ana's laptop | the repository, reviewed in pull requests (good)
+  Instruction files Ben loads | none | CLAUDE.md
+  Deny rules Ben loads | none (bad) | Bash(git push --force:*), Bash(rm -rf:*), Read(./.env) (good)
+  Test command rule in an instruction file | no (bad) | yes (good)
+  Deny git push --force | no (bad) | yes (good)
+  Deny reading .env | no (bad) | yes (good)
+  Shared pr-review skill | no (bad) | yes (good)
+  Sentry MCP with no secret in the file | no (bad) | yes (good)
+  Risky rules or secrets in the shared config | unseen: Bash(*) and a literal token on Ana's laptop | none (good)
+  Claude's report matches the loader | yes | yes (good)
+
+6 Claude calls · 10809 in / 1730 out tokens · about US$0.0019 · 12.1 s
+</code></pre>
+<h2>Check your answer</h2>
+<p><strong>Answer: B.</strong> Configuration in the repository reaches every engineer's session from the first run and changes only through review. CLAUDE.md carries the guidance Claude reads; .claude/settings.json carries allow and deny rules the harness enforces; shared skills give everyone the same workflows; and .mcp.json can reference ${SENTRY_AUTH_TOKEN}, so the secret stays in each engineer's environment and out of git.</p>
+<p>Why the other answers fall short:</p>
+<ul>
+<li><strong>A.</strong> Copied personal settings drift from day one, nobody can see what each engineer actually runs, and the team still has no shared deny rules.</li>
+<li><strong>C.</strong> CLAUDE.md is guidance Claude reads, not permissions the harness enforces, and tokens written into a committed file are secrets in git.</li>
+<li><strong>D.</strong> A quarterly review watches the risk instead of removing it: between reviews Bash(*) and pasted tokens stay live, and new engineers still get nothing.</li>
+</ul>
+<h2>Why it happens</h2>
+<p>Both phases ask the same question about the same new engineer. When the team's rules live in one engineer's ~/.claude files, they reach only that engineer: Ben's first session follows none of them, and the risky parts (Bash(*) allowed, a token pasted into ~/.claude.json) sit where no review can see them. Committing the configuration puts it where every session loads it and every change is reviewed: CLAUDE.md for guidance Claude reads, .claude/settings.json for allow and deny rules the harness enforces, .claude/skills/ for shared workflows, and .mcp.json with ${SENTRY_AUTH_TOKEN} so the secret stays in each engineer's environment. Claude reads the configuration with Glob and Read; plain code computes what the session loads and checks it against the team's policy.</p>
+<h2>Exam tip</h2>
+<p>For team-wide Claude Code behaviour, choose committed project configuration: CLAUDE.md for guidance, .claude/settings.json for enforced permissions, .claude/skills/ for shared workflows, and .mcp.json with environment-variable references. Organisation-wide must-holds go further, into managed settings.</p>
+<h2>Try this next</h2>
+<p>Add "Bash(*)" to the allow list in TEAM_CONFIG's .claude/settings.json and run Phase 2: policy still passes, but risky() now flags it for every engineer at once. Then move the deny rules into a .claude/settings.local.json and see them vanish from the committed config.</p>
+<hr />
+<p>Source: Original question written for C740. Course: Claude Certified Architect - Professional (CCAR-P) Exam Prep (C740). © Tertiary Infotech Academy Pte Ltd · UEN 201200696W</p><div class='foot'>Claude Certified Architect - Professional (CCAR-P) Exam Prep · C740 · © Tertiary Infotech Academy Pte Ltd</div></body></html>

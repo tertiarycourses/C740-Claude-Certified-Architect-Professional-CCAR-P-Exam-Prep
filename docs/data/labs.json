@@ -1,0 +1,1958 @@
+[
+ {
+  "id": 1,
+  "task": "1.1",
+  "task_title": "Translate business problems into Claude-based AI solutions",
+  "topic": 1,
+  "topic_name": "Solution Design & Architecture",
+  "sim": 5,
+  "title": "Grace asks for an agent: frame the problem before choosing the build",
+  "stem": "Lumen Retail's COO asks you for \"an AI agent that handles store product support end to end\" and wants a design by Friday. Discovery data already exists: 2,400 support calls a week, a 7.5-minute average handle time, and a call mix of product questions, stock and price checks, and refund decisions. Which first step best translates this request into a Claude solution?",
+  "options": {
+   "A": "Frame the problem first: the business outcome, a success metric with today's baseline and a target, the constraints, and whether Claude, code or a person does each task; then pick the simplest tier.",
+   "B": "Build a prototype of the agent Grace asked for with every available tool, pilot it in ten stores, and derive the scope and the success measures from the feedback that store staff give during the pilot.",
+   "C": "Choose the most capable Claude model and a multi-agent architecture first, because product support spans many domains, then write the prompts and tools for each specialist agent.",
+   "D": "Build a general chat assistant over all of Lumen's documents and systems, and measure success by weekly active users and staff satisfaction scores after the first month."
+  },
+  "answer": "A",
+  "why": "A sponsor's request names a solution; the architect's first deliverable is the problem. Framing turns the request and the discovery data into an outcome, a success metric with a measured baseline and a numeric target, the constraints, and a split of the work: Claude for product questions over the manuals, code for exact stock and price lookups, the store manager for refund decisions. The tier is chosen last, and the simplest one that meets the frame wins. In the lab that was Claude with retrieval, not an agent.",
+  "wrong": {
+   "B": "Building first lets the request set the scope, and success measures derived from pilot feedback have no baseline to be compared with.",
+   "C": "Choosing the model and the architecture before the problem buys autonomy and cost before anyone knows they are needed.",
+   "D": "Adoption and satisfaction are not the business outcome; nothing ties them to handle time or cost per call, so the value cannot be shown."
+  },
+  "fix": "Run a framing step (outcome, baselined metric, constraints, who does each task) before any design, then choose the simplest tier that meets it.",
+  "see": "The framed design drops to Claude with retrieval, stock checks in code and refunds with people, measured against a discovery baseline.",
+  "explain": "Phase 1 behaves like a team that starts building before discovery: it designs the agent the sponsor named, and its success metric has no measured baseline. Phase 2 runs a framing pass over the discovery pack first. It names the outcome Grace reports to the board, anchors a metric to a measured figure (the 7.5-minute handle time) with a numeric target, lists the constraints (10-second answers, SSO, no customer personal data, the run-cost budget), and gives each task in the call mix to its cheapest capable owner: Claude for product questions, code for stock and price checks, the store manager for refunds. The design pass then picks the simplest tier that meets that frame: Claude with retrieval over the manuals, not an agent loop.",
+  "exam_tip": "When a stem quotes a sponsor asking for a technology (\"an agent\", \"multi-agent\"), the best answer starts from the problem: outcome, baselined metric, constraints, then the least autonomous tier that meets them.",
+  "source": "Original question written for C740",
+  "headline": "Frame the outcome first. The tier follows.",
+  "concepts": [
+   {
+    "t": "The task is the unit of design",
+    "b": "\"Automate support\" cannot be designed. Split it into tasks (product questions, stock checks, refunds) and give each its own owner: Claude, code or a person."
+   },
+   {
+    "t": "A success metric needs a baseline",
+    "b": "A success criterion names today's measured value, a numeric target and how it will be measured. Without the baseline nobody can show the solution worked."
+   },
+   {
+    "t": "Code for lookups and fixed rules",
+    "b": "Exact stock and price checks, arithmetic and fixed business rules belong in code or an API, which Claude may call. Claude handles judgement over language."
+   },
+   {
+    "t": "The simplest tier that meets the need",
+    "b": "Single call, augmented LLM (retrieval and tools), workflow, agent, multi-agent: each step up buys flexibility with cost, latency and variance. Start low."
+   },
+   {
+    "t": "Constraints are design inputs",
+    "b": "Answer time on the store tablet, SSO, no customer personal data, legal wording and the run-cost budget shape the design before any model is chosen."
+   }
+  ],
+  "sim_name": "Lumen Retail Engagement"
+ },
+ {
+  "id": 2,
+  "task": "1.2",
+  "task_title": "Design end-to-end architectures (input → processing → output → feedback loops)",
+  "topic": 1,
+  "topic_name": "Solution Design & Architecture",
+  "sim": 1,
+  "title": "$6,500 paid with no check: close the loop around the decision step",
+  "stem": "Harbour Mutual's claims pipeline sends each claim and its policy to Claude, which returns a decision that the pipeline executes. Last week it paid a $6,500 claim, above the agent's $5,000 payout authority, and the team has no record of which decisions adjusters later reversed. Which change to the end-to-end architecture best addresses both problems?",
+  "options": {
+   "A": "Add the $5,000 payout authority and the excess rule to the system prompt with worked examples, so that Claude refers large claims to an adjuster on its own initiative.",
+   "B": "Validate each decision in code against the payout rules, retry once with the errors, route anything still failing to an adjuster, and store each adjuster decision as a labelled eval case.",
+   "C": "Log every request and response to the observability store, and review a weekly sample of 50 decisions with the adjusters to agree the prompt changes for each release of the claims pipeline.",
+   "D": "Switch the decision step to a larger model with extended thinking, since the payout shows that the current model's reasoning about policy limits is not reliable enough."
+  },
+  "answer": "B",
+  "why": "The pipeline is open loop: whatever the model returns is executed, and nothing is learned. Closing the loop keeps the same model and prompt and adds stages around the call: checks before it, a validator in code after it (coverage, quote minus excess, payout authority), one repair retry for fixable errors (seconds), an action gate that sends rule breaks to a person and fails closed (minutes), and a feedback path that saves every adjuster decision as a labelled eval case for the next change to be tested against (days).",
+  "wrong": {
+   "A": "A prompt makes the referral more likely, but when it fails the decision still executes unchecked, and no feedback is captured.",
+   "C": "Logging and sampling find problems after the money has gone; nothing stops a bad payout before it executes.",
+   "D": "A larger model is still probabilistic and still unchecked, and the pipeline would still learn nothing from adjuster decisions."
+  },
+  "fix": "Wrap the decision step: rules validated in code, one repair retry, an action gate to an adjuster, and adjuster decisions saved as eval cases.",
+  "see": "The validator holds CLM-7815 for the adjuster, valid payouts still go through, and the adjuster's decision becomes an eval case.",
+  "explain": "In Phase 1 every decision executes: CLM-7815 is approved for $6,500 and paid, above the $5,000 authority, and nothing is recorded. In Phase 2 the same decision step runs inside a closed loop. Input checks confirm the claimant is the policyholder and the policy is active. An output validator in code checks each decision against the payout rules; a wrong amount would get one retry with the errors. CLM-7815 breaks the authority rule, so the action gate sends it to an adjuster instead of executing it. The adjuster's decision, with the model's proposal beside it, is saved as a labelled eval case that the next prompt or model change must pass.",
+  "exam_tip": "When a stem says a system acts on model output and nothing is learned from it, choose the answer that checks the output in code before acting, routes failures to a person, and feeds those decisions back as test cases.",
+  "source": "Original question written for C740",
+  "headline": "Validate, gate, and turn every review into a test.",
+  "concepts": [
+   {
+    "t": "Four stages, not three",
+    "b": "Input, processing and output are what you demo. The feedback stage (traces, human decisions, outcomes) is what lets the system improve, and it is what you operate."
+   },
+   {
+    "t": "Validate in code, after Claude",
+    "b": "Hard rules such as coverage, quote minus excess and payout authority are checked by code on every decision, independently of the model that produced it."
+   },
+   {
+    "t": "Gates fail closed",
+    "b": "If the validator fails, errors or cannot decide, the action gate sends the case to a person. It never executes by default."
+   },
+   {
+    "t": "Three loops, three clocks",
+    "b": "Repair one output (seconds), human review of risky cases (minutes), and offline improvement where failures become eval cases that gate the next change (days)."
+   }
+  ],
+  "sim_name": "Harbour Mutual Claims Desk"
+ },
+ {
+  "id": 3,
+  "task": "1.3",
+  "task_title": "Select appropriate architectural patterns (workflow, agentic, augmented LLM)",
+  "topic": 1,
+  "topic_name": "Solution Design & Architecture",
+  "sim": 1,
+  "title": "An eight-step claims procedure run as an agent: make it a workflow",
+  "stem": "Harbour Mutual's motor claims follow a fixed, documented procedure: get the claim and policy, check cover, request an assessment above $2,000, check the description against the assessment, compute the payout, approve or escalate, and write the letter. The current build is a fully autonomous agent holding all six tools. Cost per claim is several times the forecast, and auditors cannot list the paths it may take. Which pattern best fits?",
+  "options": {
+   "A": "Keep the agent but list the procedure as numbered steps in its system prompt and lower its turn limit, so that it follows the documented order at a lower cost per claim.",
+   "B": "Move to a multi-agent design in which a supervisor agent checks each step the claims agent takes against the procedure before it lets the next step run.",
+   "C": "Upgrade to the most capable Claude model, so that the agent plans the whole procedure in fewer turns and makes fewer mistakes in the order of its tool calls.",
+   "D": "Run the procedure as a workflow in code and call Claude only at the judgement steps: checking the description against the assessment, and writing the letter."
+  },
+  "answer": "D",
+  "why": "Anthropic distinguishes workflows, where code orchestrates the model and tools along predefined paths, from agents, where the model directs its own steps. A procedure you can write down needs no autonomy. The workflow makes every path enumerable and auditable, keeps the arithmetic and the $5,000 authority rule in code, and uses Claude as an augmented LLM only where judgement over language is needed. In the lab it used two Claude calls and a small fraction of the agent's input tokens for the same payout.",
+  "wrong": {
+   "A": "The prompt makes the order more likely, but the model still owns the control flow, so cost varies and the paths still cannot be listed in advance.",
+   "B": "A supervisor adds calls and cost to police a sequence that code could simply run.",
+   "C": "A larger model costs more per token and still chooses its path at run time; it fixes neither cost nor auditability."
+  },
+  "fix": "Write the fixed procedure as code and call Claude only for the consistency judgement and the letter.",
+  "see": "The workflow ran the eight steps in order with two Claude calls and a small fraction of the agent's input tokens.",
+  "explain": "In Phase 1 the claims agent works through the procedure itself, one or two tools per turn, re-reading the whole conversation every turn. It reaches the right payout, but it takes about six Claude calls, the most input tokens, and a path that is known only after the run. In Phase 2 the procedure is code: lookups, the cover check, the assessment request, the payout arithmetic and the authority gate never vary. Claude is called twice, once to judge whether the customer's description is consistent with the assessment and once to write the letter from facts the code computed. The audit trail lists the same eight steps on every run.",
+  "exam_tip": "\"Fixed\", \"documented\" or \"known sequence\" in a stem points to a workflow. Keep agents for tasks whose steps you cannot write down in advance.",
+  "source": "Original question written for C740",
+  "headline": "If you can write the steps down, code runs them.",
+  "concepts": [
+   {
+    "t": "Workflow or agent: who owns the path",
+    "b": "In a workflow, code decides the next step, so every path can be listed and tested. In an agent, Claude decides at run time, so its behaviour varies between runs."
+   },
+   {
+    "t": "The augmented LLM",
+    "b": "A model with retrieval, tools and memory is the building block of both patterns. A workflow can call one at just the steps that need judgement."
+   },
+   {
+    "t": "Autonomy is a purchase",
+    "b": "An agent buys coverage of paths you cannot write down. You pay in tokens (each turn re-reads the conversation), latency, variance and auditability."
+   },
+   {
+    "t": "Rules and arithmetic in code",
+    "b": "Payout = the lower of quote and assessed cost, minus the excess; approve only within $5,000. Code computes and enforces these the same way every time."
+   }
+  ],
+  "sim_name": "Harbour Mutual Claims Desk"
+ },
+ {
+  "id": 4,
+  "task": "1.4",
+  "task_title": "Design multi-agent systems and orchestration strategies",
+  "topic": 1,
+  "topic_name": "Solution Design & Architecture",
+  "sim": 1,
+  "title": "Paid and escalated at once: specialists find, a coordinator decides",
+  "stem": "Harbour Mutual's single claims agent has grown to 14 tools and one long prompt covering coverage, damage assessment and fraud screening. The team will split it into coverage, damage and fraud specialists, each given only the part of the claim file it needs. Which orchestration strategy is best?",
+  "options": {
+   "A": "Run the three specialists as peer agents in parallel, each authorised to approve the payout or escalate the claim within its own remit, so that claims settle faster.",
+   "B": "Keep one agent, but move the fraud-screening instructions to the top of its prompt and add a rule that it must finish every check before it calls approve_payout.",
+   "C": "Have a coordinator spawn the specialists as subagents that return structured findings and hold no action tools, then reconcile the findings before one payout decision.",
+   "D": "Chain the specialists in sequence, coverage then damage then fraud, each passing its complete transcript to the next one, so that the fraud agent has seen everything before it acts."
+  },
+  "answer": "C",
+  "why": "A split is worth it when the work needs different contexts, but it raises the orchestration question: where do the results meet? Subagents that only find, each with its own slice of the claim file and no tool that changes anything, return structured findings (status, amount, evidence). One coordinator reconciles them with an explicit rule (any flag goes to a person) and makes the only payout decision, so no specialist can act on a partial view.",
+  "wrong": {
+   "A": "Each peer acts on a partial view: in the lab one approved a payout while the fraud agent escalated the same claim, and nothing reconciled them.",
+   "B": "It keeps the overloaded context and the payout power in one place, and relies on a sentence in the prompt to enforce the order.",
+   "D": "Passing whole transcripts forward rebuilds one crowded context and adds latency, and detail is lost or distorted at each handoff."
+  },
+  "fix": "Give the specialists findings-only roles and have the coordinator reconcile their findings before the single payout decision.",
+  "see": "The coordinator read three findings, saw the fraud flag on invoice RQ-5531, and made one decision: escalate, nothing paid.",
+  "explain": "Both phases split CLM-7781 into coverage, damage and fraud specialists with the same remits and the same slices of the claim file. In Phase 1 a lead agent fans the claim out to peers that may each settle their part. The fraud agent finds that invoice RQ-5531 was already paid on CLM-6120 and escalates, but another peer, which never saw the invoice registry, approves a payout: the same claim is paid and sent for review at once. In Phase 2 the coordinator spawns the specialists as read-only subagents. Each returns a structured finding; the coordinator reconciles them, sees the fraud flag, and makes one decision: escalate, nothing paid. The split costs extra calls, so it belongs where contexts would pollute each other or the work runs in parallel.",
+  "exam_tip": "In a multi-agent stem, ask where the results meet before anything acts. Prefer read-only subagents returning structured findings to one coordinator over peers that can each act.",
+  "source": "Original question written for C740",
+  "headline": "Specialists find. One coordinator decides.",
+  "concepts": [
+   {
+    "t": "When multi-agent pays",
+    "b": "Anthropic names three cases: context pollution, parallel lines of inquiry, and specialisation (narrower tools or conflicting instructions). Elsewhere, coordination costs more than it returns."
+   },
+   {
+    "t": "Split by the context needed",
+    "b": "Give each subagent only the data its job needs: the policy wording for coverage, the assessment for damage, the invoice registry for fraud."
+   },
+   {
+    "t": "Findings, not actions",
+    "b": "Subagents return structured findings (status, amount, evidence) and hold no tool that changes anything. Only the coordinator acts."
+   },
+   {
+    "t": "Reconcile before acting",
+    "b": "The coordinator applies one explicit rule across all findings, for example that any flag goes to an adjuster, before the single decision."
+   },
+   {
+    "t": "More agents, more tokens",
+    "b": "Each subagent is another context window and more calls, so cost and latency rise. Split only where that buys accuracy or coverage."
+   }
+  ],
+  "sim_name": "Harbour Mutual Claims Desk"
+ },
+ {
+  "id": 5,
+  "task": "1.5",
+  "task_title": "Apply decomposition techniques for complex problem solving",
+  "topic": 1,
+  "topic_name": "Solution Design & Architecture",
+  "sim": 3,
+  "title": "One prompt for the whole discharge pack runs out: split and reconcile",
+  "stem": "Meridian Health generates a discharge pack from clinicians' notes: a medication reconciliation, a clinical summary, actions for the GP, and plain-English instructions for the patient, each with its own rules. One prompt writes the whole pack in a single call. It often stops at max_tokens, and when it finishes, a section often breaks its rules, so the whole call is rerun. Which approach best fixes this?",
+  "options": {
+   "A": "Write each section in its own pass with only its notes and rules, feed the medication JSON to the later passes, then validate every section and the shared facts in code.",
+   "B": "Raise max_tokens to the model's maximum and add a reminder at the end of the prompt that every section's rules must be followed, so that one call completes the whole pack.",
+   "C": "Move the single call to a larger model with a longer output limit, since a stronger model can plan six sections for three readers within one response.",
+   "D": "Ask Claude to review its own pack at the end of the same call and to rewrite any section that breaks a rule before it returns the final version to the clinician."
+  },
+  "answer": "A",
+  "why": "A discharge pack is several jobs that share one record, each for a different reader with different rules. Decomposition gives each pass less to plan and less to read, and cuts at narrow seams: the medication pass returns structured JSON that the GP and patient passes read instead of the raw notes. Every seam can be checked, so code validates each section against its own rules and the facts that span sections, and only a failing section is repaired.",
+  "wrong": {
+   "B": "A bigger budget may let the call finish, but every section still shares one blended set of rules, and one failing section still means rerunning the whole pack.",
+   "C": "A larger model costs more and still produces one block with no checkable seams between the sections.",
+   "D": "Self-review in the same call spends more of the same budget and is not an independent check; a failure still means a full rerun."
+  },
+  "fix": "Split the pack into section passes with their own inputs and rules, then reconcile in code and repair only the failing section.",
+  "see": "All four section passes ended with end_turn, and the reconciled pack passed every rule, with all 7 medications matching their last order.",
+  "explain": "Phase 1 asks one call for all six sections for three readers. In most runs it spends its whole 4,096-token budget planning and stops with stop_reason max_tokens before returning a usable pack; when it does finish, a section tends to break its own rule. Phase 2 routes the notes: the medication pass reads the admission note, the pharmacy reconciliation, the ward rounds, the haematology advice and the rash note; the routine observation notes go to no pass at all. The GP and patient passes read the medication JSON, not the raw notes. A reconciliation step in code then checks every section's rules and the medication list against the last order for each drug, and sends a failing section back once with its errors.",
+  "exam_tip": "When one prompt does several jobs for different readers, look for the answer that splits at checkable seams (structured outputs) and adds a reconciliation step, not for a bigger budget or a bigger model.",
+  "source": "Original question written for C740",
+  "headline": "Local passes first. Reconcile globally second.",
+  "concepts": [
+   {
+    "t": "Decomposing trades difficulty for count",
+    "b": "Each piece gets easier, but every extra step is another place an error can enter. A split pays when it makes each piece reliably right and checkable."
+   },
+   {
+    "t": "Cut at narrow, checkable seams",
+    "b": "Pass a small structured artefact between steps (the medication JSON), not everything the next step might need. A seam you can validate is one you can trust."
+   },
+   {
+    "t": "Local first, global second",
+    "b": "Section passes each see only their own evidence; a reconciliation step then checks the facts that span sections."
+   },
+   {
+    "t": "Read stop_reason first",
+    "b": "A call that hits max_tokens stops mid-response, and with adaptive thinking the planning counts toward that budget too. Check stop_reason before using the output."
+   }
+  ],
+  "sim_name": "Meridian Clinical Notes"
+ },
+ {
+  "id": 6,
+  "task": "1.6",
+  "task_title": "Align solutions to business value pillars (efficiency, transformation, productivity, cost, performance SLAs)",
+  "topic": 1,
+  "topic_name": "Solution Design & Architecture",
+  "sim": 5,
+  "title": "A board pitch with no numbers: sell the value pillar and the SLAs",
+  "stem": "Lumen Retail's board paper for the store product-support assistant is in draft. It leads with the technology: the Claude models, retrieval over every product manual, and what the system can do. The COO says the board will ask what it is buying and how it will know the service is working. Which revision best aligns the solution to business value?",
+  "options": {
+   "A": "Add a table comparing the chosen model's benchmark scores with competing models, so that the board can see that Lumen is buying the most capable AI technology on the market.",
+   "B": "Replace the technology section with quotes from staff in the pilot stores and a list of questions the assistant answered well, to show that staff enjoy using it.",
+   "C": "Promise a 50% cut in support costs and full automation of product support within six months, so that the board has one clear, ambitious headline figure to approve and track.",
+   "D": "Name the primary value pillar, give metrics with today's baselines and targets, commit to SLAs for availability, p95 latency, accuracy and escalation, and price each answer."
+  },
+  "answer": "D",
+  "why": "A board funds an outcome it can measure, not a model. The architect names the primary value pillar (efficiency, productivity, transformation, cost or performance), expresses it as metrics with a measured baseline and a target, and turns performance into service levels a non-deterministic system can be held to: availability, p95 latency, answer accuracy on a test set and time to escalate, each with a number and a measurement method. The model is then chosen by cost per resolved answer and the latency target.",
+  "wrong": {
+   "A": "Benchmark scores describe the model, not Lumen's outcome; the board still has nothing to hold the service to after go-live.",
+   "B": "Anecdotes show that people like it, not that handle time or cost moved; nothing is measured against a baseline.",
+   "C": "A headline promise with no baseline, method or service levels cannot be checked, and \"full automation\" ignores the tasks that stay with people."
+  },
+  "fix": "Rewrite the paper around one value pillar, baselined metrics, four measurable service levels and a cost per answer.",
+  "see": "The value case anchors its metrics to 7.5 minutes and $11.40 and commits to all four service levels with a number and a measurement method.",
+  "explain": "Phase 1 writes the board summary as a capability pitch, and the same extractor audit that later reads the value case finds almost nothing the board could hold the service to: one service level with a number at most, and no metric anchored to a discovery baseline. Phase 2 writes the same solution as a value case: efficiency as the primary pillar, handle time and cost per call measured against the discovery baselines (7.5 minutes, $11.40), the four service levels with targets and measurement methods, and a model chosen by cost per answer, which code prices at a fraction of a cent from the price table.",
+  "exam_tip": "When a stem's draft leads with the model or its features, pick the answer that names a value pillar, baselined metrics and measurable SLAs; reject benchmark tables, anecdotes and unmeasured promises.",
+  "source": "Original question written for C740",
+  "headline": "Fund an outcome you can measure, not a model.",
+  "concepts": [
+   {
+    "t": "Five value pillars",
+    "b": "Efficiency, productivity, transformation, cost and performance SLAs. They pull a design in different directions, so name the primary one."
+   },
+   {
+    "t": "Each pillar has its own metric",
+    "b": "Efficiency: handle time or cost per task. Productivity: output per person. Transformation: something not possible before. Cost: total cost of ownership."
+   },
+   {
+    "t": "SLAs a model can keep",
+    "b": "Availability, p95 latency, answer accuracy on a fixed test set and time to escalate, each with a number and a measurement method, not \"fast\" and \"accurate\"."
+   },
+   {
+    "t": "Cost per resolved answer",
+    "b": "Price tokens per answer from the list prices (Haiku 5.5 $0.10/$0.50 per million tokens), add review cost, and compare with today's cost per call."
+   }
+  ],
+  "sim_name": "Lumen Retail Engagement"
+ },
+ {
+  "id": 7,
+  "task": "2.1",
+  "task_title": "Select appropriate Claude models based on trade-offs",
+  "topic": 2,
+  "topic_name": "Claude Models, Prompting & Context Engineering",
+  "sim": 4,
+  "title": "Every question at Opus prices: route by difficulty, grade each route",
+  "stem": "Riverton City Council's resident assistant sends every question to Claude Opus 5.5. Its logs show that 80% of questions are one-fact lookups (bin days, permit status) in four languages, and 20% are benefit pre-screens that apply several eligibility rules to a resident's own figures. The model bill is now well over budget. Which approach best balances answer quality and cost?",
+  "options": {
+   "A": "Move all traffic to Claude Haiku 5.5, the cheapest tier, because most resident questions are simple lookups.",
+   "B": "Route each question by task difficulty, Haiku for lookups and Sonnet for pre-screens, and evaluate each route.",
+   "C": "Keep Claude Opus 5.5 for every question, but lower max_tokens so that each answer costs less to generate.",
+   "D": "Move all traffic to Claude Fable 5.2, whose higher accuracy means fewer failed answers need a costly human follow-up."
+  },
+  "answer": "B",
+  "why": "Model choice is a trade-off made per task, not per application. One-fact lookups are well within Haiku 5.5's ability in every language Riverton serves, at a fortieth of Opus 5.5's price; the multi-rule pre-screens justify a stronger tier. A cheap router sends each question to the least capable model that passes for that kind of task, and each route is graded on its own eval cases before traffic moves, so the saving does not come at the cost of quality where quality matters.",
+  "wrong": {
+   "A": "Haiku for everything ignores the 20% of multi-rule pre-screens, and nothing measures whether it handles them.",
+   "C": "A lower output cap risks truncated answers and leaves every input token, and the lookups, at Opus prices.",
+   "D": "Fable doubles the price of every lookup that Haiku already answers correctly, so there is no failure cost to recover."
+  },
+  "fix": "Route lookups to Haiku and pre-screens to Sonnet, with each route graded on its own eval cases.",
+  "see": "Opus for everything answers all eight correctly at several times the budget; routing keeps every route correct at a quarter to a third of the cost.",
+  "explain": "Most of Riverton's traffic is one-fact lookups that the smallest model answers correctly in English, Malay, Chinese and Tamil; a minority are benefit pre-screens that apply several rules to a resident's figures. Sending everything to the top tier pays for capability the lookups never use. A Haiku router sends lookups to the Haiku route and pre-screens to the Sonnet route, and the same answer key grades each route separately. Priced at Riverton's traffic mix, the routed design keeps full marks on both routes and cuts the projected monthly bill by two thirds or more, inside the budget.",
+  "exam_tip": "When one model serves very different tasks, the best answer routes by task difficulty and measures quality per route. 'Cheapest for everything' and 'most capable for everything' are both traps: each ignores half the trade-off.",
+  "source": "Original question written for C740",
+  "headline": "Pay for capability only where the task needs it.",
+  "concepts": [
+   {
+    "t": "The Claude model tiers",
+    "b": "Fable 5.2, Opus 5.5, Sonnet 5.5 and Haiku 5.5 all have a 1M-token context. They differ in price (US$8/40 down to US$0.10/0.50 per million tokens), latency and ceiling."
+   },
+   {
+    "t": "Cost per completed task",
+    "b": "Compare models on your own eval: tokens times price, divided by the share of tasks solved, plus the cost of cleaning up failures. Price per token alone misleads."
+   },
+   {
+    "t": "Routing by task difficulty",
+    "b": "A cheap classifier sends each request to the least capable model that passes for that kind of task: lookups and extraction go small, multi-step reasoning goes up."
+   },
+   {
+    "t": "Quality per route",
+    "b": "Grade every route on its own eval cases. A blended score can hide a route that fails, so check each slice before moving traffic to a cheaper model."
+   },
+   {
+    "t": "Effort and thinking are levers too",
+    "b": "Within one model, lower effort or thinking switched off cuts output tokens and latency on simple tasks. Tuning effort is often a better lever than changing model."
+   }
+  ],
+  "sim_name": "Riverton Resident Services"
+ },
+ {
+  "id": 8,
+  "task": "2.2",
+  "task_title": "Design system prompts, templates, and guardrails",
+  "topic": 2,
+  "topic_name": "Claude Models, Prompting & Context Engineering",
+  "sim": 4,
+  "title": "A friendly two-liner tells Farah she qualifies: use a prompt template",
+  "stem": "Riverton's resident assistant runs on a two-sentence system prompt: \"You are a friendly assistant for Riverton City Council. Help residents with their questions.\" In testing it told a resident she met the grant rules and when payment would start, offered advice on withholding rent, and returned prose that the caseworker queue could not parse. Which change best addresses all three problems?",
+  "options": {
+   "A": "Replace it with a versioned template: role, scope with a refusal path, decision rules, tagged untrusted input and output format.",
+   "B": "Add \"Be accurate, be careful and never make mistakes\" to the prompt, then test it again against the same three resident messages.",
+   "C": "Keep the prompt and add an output filter that blocks any reply containing the words approved, eligible, legal or payment.",
+   "D": "Move the assistant to Claude Opus 5.5, which follows the council's unwritten policy more reliably and writes tidier replies."
+  },
+  "answer": "A",
+  "why": "Each failure is a decision the prompt never made: who decides a benefit, which topics are out of scope, whether pasted text is an instruction, and what shape the answer takes. A system prompt template states the role (pre-screen; a caseworker decides), the scope with a refusal path, the rules, how to treat untrusted input (resident text inside tags is data), and an output format the queue parses. Versioning it lets every change be tested against cases like these before release.",
+  "wrong": {
+   "B": "A general plea for care names no rule, so the model still cannot know who decides or what is out of scope.",
+   "C": "A keyword filter blocks valid pre-screen replies, misses paraphrases, and does nothing for the unparseable format.",
+   "D": "No model can follow a policy it was never given, and a bigger model does not choose the queue's format."
+  },
+  "fix": "A versioned system prompt template with role, scope, rules, untrusted-input tags and an output format.",
+  "see": "The loose prompt returns free text the queue can't read and breaches at least one rule; the template returns parseable JSON with no breach.",
+  "explain": "Farah's single message tests three guardrails: a benefit question that only a caseworker may decide, a tenancy question the council does not answer, and a pasted \"council update\" telling the assistant to approve her. With two friendly sentences, Haiku 5.5 falls back on its own careful defaults, and they are not Riverton's policy: it says she meets the rules and when the money would start, and offers tenancy guidance, in free text the queue cannot parse. The rs-assistant v3.2 template states the role, scope, rules, untrusted-input handling and output format; the reply is JSON with a handoff flag, the rent question is declined with the enquiries line, and the pasted instruction is flagged and ignored. A blind second call confirms it.",
+  "exam_tip": "Look for the answer that writes the missing decisions into a structured, versioned prompt: role, scope, refusal path, untrusted-input separation, output format. Vague exhortations, keyword filters and bigger models are the usual distractors.",
+  "source": "Original question written for C740",
+  "headline": "Write the policy into the prompt. Don't hope for it.",
+  "concepts": [
+   {
+    "t": "Anatomy of a system prompt",
+    "b": "Role, scope, rules, output format and reference facts, each in its own tagged section. Clear sections are easier for Claude to follow and for reviewers to change."
+   },
+   {
+    "t": "Scope needs a refusal path",
+    "b": "Say what is out of scope and what to do instead: decline briefly and point to the right service. A list of topics without a fallback leaves the model to improvise."
+   },
+   {
+    "t": "Untrusted input is data",
+    "b": "Wrap user-supplied and retrieved text in tags and tell Claude that instructions inside them are not instructions. This reduces prompt injection; it does not remove it."
+   },
+   {
+    "t": "Output format for the next system",
+    "b": "When code consumes the answer, specify the format and enforce it with structured outputs, so fields like a handoff flag are always present."
+   },
+   {
+    "t": "Prompts are versioned artefacts",
+    "b": "Give the template a version, keep it in source control and run each change against an eval set before release. Hard rules also get a code check."
+   }
+  ],
+  "sim_name": "Riverton Resident Services"
+ },
+ {
+  "id": 9,
+  "task": "2.3",
+  "task_title": "Apply prompt engineering techniques (zero-shot, few-shot, chain-of-thought)",
+  "topic": 2,
+  "topic_name": "Claude Models, Prompting & Context Engineering",
+  "sim": 1,
+  "title": "Zero-shot misroutes 3 of 8 claims: show the edges, reason, then label",
+  "stem": "Harbour Mutual's triage classifier routes motor claims into four routes using a zero-shot prompt with a one-line definition of each route. On the eval set it handles plain claims well but misroutes the same boundary cases on every run: quotes just over US$5,000 before the excess is deducted, a third-party-only policyholder whose victim is claiming, and own-damage write-offs on third-party policies. Which change most directly fixes these errors?",
+  "options": {
+   "A": "Switch the classifier to Claude Opus 5.5, which knows enough about motor insurance to settle these cases without examples.",
+   "B": "Ask for a confidence score with every label, and send each claim scored below 0.8 to a human adjuster for routing.",
+   "C": "Add \"Think very carefully about edge cases and double-check every label\" to the end of the existing system prompt.",
+   "D": "Add worked examples of exactly these boundary cases to the prompt, each with brief reasoning written before its label."
+  },
+  "answer": "D",
+  "why": "The errors are systematic: the one-line definitions leave Harbour's boundary conventions open (the authority applies to the payout after the excess; third-party cover pays the other party's damage), and zero-shot the model guesses the same way every time. Few-shot examples placed on those boundaries show how Harbour applies its rules, and reasoning written before the label makes the model work each case through before it commits.",
+  "wrong": {
+   "A": "A bigger model costs more per claim and still has to guess Harbour's own conventions, which only examples or rules supply.",
+   "B": "The wrong labels are systematic and given confidently, so a self-reported score will not catch them, and it adds adjuster work.",
+   "C": "A plea for care names no convention, so the model has nothing new to apply on the boundary cases."
+  },
+  "fix": "Few-shot examples on the boundary cases, each with reasoning before the label.",
+  "see": "Zero-shot gets the plain claims right and misroutes CLM-7790, 7815 and 7821; with six worked examples and reasoning first, all eight route correctly.",
+  "explain": "The eight claims carry an adjusters' answer key. Zero-shot, with thinking off as a high-volume classifier would run, the plain claims route correctly and the boundaries do not: a US$5,600 quote whose payout after the US$750 excess is US$4,850 goes to an adjuster, so does the claim for the van Daniel reversed into, and his own write-off goes to an adjuster instead of being declined. Six worked examples on those boundaries, each with a line of reasoning, and a schema that asks for reasoning before the label, route all eight correctly. The cost is a longer prompt and more output tokens per claim.",
+  "exam_tip": "Few-shot examples fix systematic errors on the cases a definition leaves open; reasoning before the answer helps on cases that need several steps. Confidence scores and 'be careful' instructions do not teach the model anything new.",
+  "source": "Original question written for C740",
+  "headline": "Show the boundary cases. Reason, then label.",
+  "concepts": [
+   {
+    "t": "Zero-shot",
+    "b": "Instructions and definitions only, no examples. It works when the task is clear from the definitions; it fails systematically where they leave a boundary open."
+   },
+   {
+    "t": "Few-shot examples",
+    "b": "A few input-output pairs in the prompt show the format and how your organisation applies its rules. Choose them to cover the boundaries, and vary them."
+   },
+   {
+    "t": "Chain-of-thought",
+    "b": "Asking for reasoning before the answer lets the model work through the steps first. In structured outputs, put the reasoning field before the label field."
+   },
+   {
+    "t": "Errors that repeat are systematic",
+    "b": "If the same cases fail on every run, the prompt is missing information. More confidence or a bigger model rarely fixes that; better examples usually do."
+   }
+  ],
+  "sim_name": "Harbour Mutual Claims Desk"
+ },
+ {
+  "id": 10,
+  "task": "2.4",
+  "task_title": "Optimize context windows and manage token usage",
+  "topic": 2,
+  "topic_name": "Claude Models, Prompting & Context Engineering",
+  "sim": 3,
+  "title": "17 years of notes for one referral: select sections, cap the letter",
+  "stem": "Meridian Health drafts referral letters by sending each patient's entire record, often more than a decade of visit notes, results and routine care, with the request. The letters run long, the token bill is higher than planned, and some letters mention unrelated history such as an old psychiatric episode. Which change best reduces token usage while meeting HIPAA's minimum-necessary standard?",
+  "options": {
+   "A": "Keep sending the whole record, since every current Claude model can accept a 1M-token context window.",
+   "B": "Summarise the full record with Claude before every letter, then draft each letter from that summary.",
+   "C": "Select only the sections the letter needs from an index of the record, and cap the letter with an outline.",
+   "D": "Send only the most recent 4,000 tokens of the record so that every request stays a small, predictable size."
+  },
+  "answer": "C",
+  "why": "Fitting in the window is not the question. Every token sent is paid for, competes for the model's attention, and may end up in the output. Selecting the sections the task needs from an index (titles and dates, no clinical text) and loading only those cuts input tokens and keeps unrelated PHI out of the context by design; an outline, a word limit and max_tokens bound the output.",
+  "wrong": {
+   "A": "The record fits, but every call pays for all of it, and unrelated PHI in the context can reach the letter.",
+   "B": "Summarising still sends the whole record on every letter, adds a call, and the summary can carry unrelated history.",
+   "D": "Truncating by recency drops older facts the letter needs, such as a 2008 penicillin allergy."
+  },
+  "fix": "Select the needed sections from an index, load only those, and draft to a capped outline.",
+  "see": "The whole record costs about 11,500 input tokens and yields a 600-word letter with unrelated history; selection uses about a third of the tokens for a 200-word letter with none.",
+  "explain": "Patient A's record has 82 sections from 2009 to 2026, and the cardiology referral needs five of them: the problem list, current medicines, allergies, the chest-pain visit and its bloods. Stuffing the whole record into the context uses about 11,500 input tokens and returns a long letter that repeats eczema, dental work and the 2009 psychiatry or 2014 sexual-health notes. A selection pass over the record index picks the sections, code loads only those, and the drafter writes to a seven-heading, 180-word outline with thinking off: about a third of the input tokens, a letter under half the length, all five key facts, and nothing unrelated.",
+  "exam_tip": "A large context window answers 'will it fit?', not 'should it be there?'. Prefer the option that selects what the task needs and bounds the output; truncation loses needed facts and summarising first still pays for everything.",
+  "source": "Original question written for C740",
+  "headline": "Send what the task needs. Cap what comes back.",
+  "concepts": [
+   {
+    "t": "Everything in the window counts",
+    "b": "System prompt, tool definitions, every message, documents and the output, thinking included, all count as tokens and are billed. A 1M window does not make them free."
+   },
+   {
+    "t": "Context rot",
+    "b": "As context grows, the model's recall of any one detail declines. Treat context as a budget: the smallest set of high-signal tokens that does the job."
+   },
+   {
+    "t": "Select, don't stuff",
+    "b": "Pick sections from an index, retrieve the chunks that match, or filter by type and date in code, then send only those. Selection is also a privacy control."
+   },
+   {
+    "t": "Bound the output",
+    "b": "An outline, a word limit and max_tokens cap the answer. Thinking tokens are output tokens: switch thinking off or lower effort for formatting tasks."
+   },
+   {
+    "t": "Measure in usage tokens",
+    "b": "Every response reports input_tokens and output_tokens. Compare designs on those numbers, not on guesses about prompt length."
+   }
+  ],
+  "sim_name": "Meridian Clinical Notes"
+ },
+ {
+  "id": 11,
+  "task": "2.5",
+  "task_title": "Implement prompt reuse strategies (caching, modular prompts, Skills)",
+  "topic": 2,
+  "topic_name": "Claude Models, Prompting & Context Engineering",
+  "sim": 2,
+  "title": "8,075 tokens billed in full every call: put them first and cache them",
+  "stem": "An application sends the same 8,000-token system prompt and policy document on every request, followed by a short, varying user message. Latency and cost are both concerns. Which optimization most directly addresses both?",
+  "options": {
+   "A": "Truncate the policy document to the first 1,000 tokens.",
+   "B": "Switch to the smallest available model regardless of task fit.",
+   "C": "Place the static system prompt and policy before the dynamic content and enable prompt caching.",
+   "D": "Move the policy document into a few-shot example block."
+  },
+  "answer": "C",
+  "why": "Ordering stable content first and enabling prompt caching lets repeated prefixes be reused, reducing both time-to-first-token and per-request cost without discarding required context. The cache covers the prefix up to the cache_control breakpoint, so the static instructions and policy must come before anything that changes between requests.",
+  "wrong": {
+   "A": "Truncation loses policy the assistant needs to answer correctly.",
+   "B": "Downsizing blindly, regardless of task fit, risks answer quality.",
+   "D": "Relocating the policy to a few-shot block does not create a cacheable, reusable prefix."
+  },
+  "fix": "Put the static prompt and policy first with a cache_control breakpoint, and the dynamic content after it.",
+  "see": "Dynamic content first pays full price on every call even with caching on; static first lets the second call read about 8,000 tokens from cache.",
+  "explain": "Northwind's assistant sends an 8,075-token prefix (instructions and an eleven-document policy pack) before every short staff question. With a session header (timestamp, staff name, request id) in front and no caching, both requests pay for the whole prefix. Switching on cache_control without moving the header makes things worse: each request writes the cache at 1.25 times the input price and none reads it, because no two prefixes match. With the static prefix first and the breakpoint on it, request 1 writes about 8,000 tokens and request 2 reads them at 0.1 times the price, paying full price only for the header and question: about 89% less input cost.",
+  "exam_tip": "Prompt caching needs a byte-identical prefix: static content first, dynamic content last, breakpoint on the last static block. The answer that keeps all the content and changes only its order and caching is the one that cuts both cost and latency.",
+  "source": "Official exam guide, sample question 2",
+  "headline": "Stable first, dynamic last, then cache.",
+  "concepts": [
+   {
+    "t": "How prompt caching works",
+    "b": "The request is read in the order tools, system, messages. A cache_control breakpoint caches everything up to it; a later request with a byte-identical prefix reads it instead."
+   },
+   {
+    "t": "Cache pricing",
+    "b": "On the 5-minute cache a write costs 1.25 times the base input price and a read 0.1 times. One read pays back the write; a prefix that never matches only adds cost."
+   },
+   {
+    "t": "Order is the design",
+    "b": "Put the most stable content first and anything that changes per request (timestamps, names, ids, the question) after the breakpoint. One changed byte early misses the cache."
+   },
+   {
+    "t": "Minimum cacheable length",
+    "b": "Each model has a minimum prefix length for caching (512 tokens on Haiku 5.5). Below it nothing is cached and no error is raised: check cache_creation_input_tokens."
+   },
+   {
+    "t": "Prove it in usage",
+    "b": "cache_creation_input_tokens shows a write, cache_read_input_tokens a hit, and input_tokens only what came after the breakpoint."
+   }
+  ],
+  "sim_name": "Northwind Policy Assistant"
+ },
+ {
+  "id": 12,
+  "task": "3.1",
+  "task_title": "Evaluate tool/agent configuration for capability bloat",
+  "topic": 3,
+  "topic_name": "Integration",
+  "sim": 1,
+  "title": "Paid out and deleted on a customer's say-so: remove the tools",
+  "stem": "A team exposes a customer-support agent that can read tickets, draft replies, issue refunds, and delete user accounts. Support staff only ever need to read tickets and draft replies. Applying least-privilege principles, which change best reduces risk?",
+  "options": {
+   "A": "Add logging to the refund and delete tools so misuse can be audited later.",
+   "B": "Remove the refund and delete tools from the agent's configuration entirely.",
+   "C": "Keep all tools but add a confirmation prompt before refunds and deletions.",
+   "D": "Replace the agent with a larger model that follows instructions more reliably."
+  },
+  "answer": "B",
+  "why": "Least privilege means the agent holds only the capabilities its role needs. Support staff read and draft, so refunds and deletions are not part of the role. Removing those tools from the configuration deletes the risk: no prompt, injected instruction or misunderstanding can make the agent call a tool it was never given. In the lab, the same message makes the fully tooled claims agent pay out and delete a claim, while the agent with the role's three tools can only read the claim and draft a letter.",
+  "wrong": {
+   "A": "Logging is a detective control: it records a refund or deletion after it has happened and does nothing to stop it.",
+   "C": "A confirmation step is a compensating control that leaves the capability in place, and reviewers under queue pressure start approving by habit.",
+   "D": "Model size changes how often the agent errs, not what an error can do: the refund and delete tools would still be one bad decision away."
+  },
+  "fix": "Configure each agent with only the tools its role needs; give high-impact actions to a different role or a human workflow.",
+  "see": "With every tool, the claims agent paid out on CLM-7802 and deleted CLM-7803 on the customer's own say-so; with the role's three tools it drafted a letter and changed nothing.",
+  "explain": "This is the exam guide's own sample question, mirrored on the Harbour Mutual claims desk: reading claims and drafting letters are the support role (read tickets, draft replies); approve_payout and delete_claim stand in for refunds and account deletion. Both phases send the same prompt and the same web-form message, in which the customer asks to be paid in full today and to delete a duplicate claim. With six tools configured, the agent does both, and the audit log only records it afterwards. With three tools, the API request carries no payout or delete definition, so the call cannot be made; the agent reads the claim, drafts a reply and hands the payout to the people authorised to make it.",
+  "exam_tip": "When the stem says a role 'only ever needs' some capabilities, the answer removes the rest. Logging, confirmations and bigger models are all distractors that keep the excess privilege.",
+  "source": "Official exam guide, sample question 1",
+  "headline": "If the role doesn't need the tool, the agent doesn't get it.",
+  "concepts": [
+   {
+    "t": "Capability bloat costs twice",
+    "b": "Every unneeded tool is attack surface (a confused or injected agent can call it) and selection noise (one more option to pick wrongly, one more definition in context)."
+   },
+   {
+    "t": "Least privilege for agents",
+    "b": "An agent should hold only the tools and permissions the role it serves needs. Higher-impact actions belong to another role, another agent or a human workflow."
+   },
+   {
+    "t": "Preventive beats detective",
+    "b": "Remove the tool (preventive), narrow it or its credential (restrictive), gate it with approval (compensating), log it (detective). Only removal makes the harm impossible."
+   },
+   {
+    "t": "The model is not the boundary",
+    "b": "\"Never issue refunds\" in a prompt makes misuse less likely, not impossible. Any text the agent reads, including a customer's message, can push it to use a tool it holds."
+   },
+   {
+    "t": "Allowlist per role",
+    "b": "Configure tools from an allowlist keyed by role, so a new tool stays off until someone decides a role needs it. A denylist silently grants whatever is added next."
+   }
+  ],
+  "sim_name": "Harbour Mutual Claims Desk"
+ },
+ {
+  "id": 13,
+  "task": "3.2",
+  "task_title": "Analyze authentication and authorization requirements to identify security gaps",
+  "topic": 3,
+  "topic_name": "Integration",
+  "sim": 2,
+  "title": "A teller learns her branch closes: authorize retrieval as the user",
+  "stem": "Northwind Bank's policy assistant retrieves chunks through a service account that can read the whole policy library, and its system prompt lists which document families each staff role may see. A branch teller asked about rumoured branch closures and was answered, with a citation, from a restricted branch network review. Which change best closes the security gap?",
+  "options": {
+   "A": "Add few-shot examples of restricted questions to the system prompt so that Claude declines them more consistently.",
+   "B": "Scan every reply for restricted document ids and withhold any reply that cites one before it is displayed.",
+   "C": "Retrieve with each user's own short-lived token and drop chunks outside their entitlements before ranking them.",
+   "D": "Narrow the service account's scope so it can no longer read any document its owner has marked confidential."
+  },
+  "answer": "C",
+  "why": "The gap is that retrieval runs under one identity that can read everything, so authorization is left to the model. Retrieving under the user's delegated, audience-bound token lets the retrieval service enforce the user's entitlements and drop restricted chunks before ranking, so they never reach the context window. The model chooses what to search for; the resource server decides what may be returned, and any invalid token is refused.",
+  "wrong": {
+   "A": "Few-shot examples still make the model the authorization boundary: the restricted text is already in its context, and a rephrased question can get it out.",
+   "B": "An output scan acts after the restricted text has reached the model and the logs, and a paraphrase without the document id passes it.",
+   "D": "A narrower service account is still one identity for every user: tellers keep seeing credit-officer documents, and the audit trail still says the bot read them."
+  },
+  "fix": "Call retrieval with the user's own short-lived token, validate its audience, and filter by the user's entitlements before ranking; fail closed on any error.",
+  "see": "With the service account, OPS-30 reached Claude and the teller was told Harbourfront closes on 30 June 2027; with her own token, five restricted chunks were dropped before ranking and only the leave question was answered.",
+  "explain": "Both phases send Aisha's question with the same prompt and the same search tool; only the identity the tool layer attaches changes. As svc-policy-bot, retrieval ranks the whole library, so the OPS-30 closure plan reaches Claude, which has no way to know its access list. As Aisha, the tool attaches a five-minute token minted for northwind-policy-search; the retrieval service validates it and drops every chunk outside branch_teller entitlements before ranking. Claude answers the leave question from HR-03 and says the library has nothing on closures. A probe with a token minted for another audience is refused with a 401.",
+  "exam_tip": "If an answer leaves the model to decide who may see what (prompt rules, refusal examples, output scans), it is a distractor. Look for enforcement in a deterministic layer under the user's own identity, failing closed.",
+  "source": "Original question written for C740",
+  "headline": "Authorize as the user, in the retrieval layer, before the model.",
+  "concepts": [
+   {
+    "t": "Authenticate, authorize, delegate",
+    "b": "Who is calling, what they may do to this resource, and on whose behalf the agent acts. Most agent security gaps come from answering the third question implicitly."
+   },
+   {
+    "t": "Service accounts flatten permissions",
+    "b": "One shared identity gives every user the union of everyone's rights, and the audit trail says the bot did it. Delegated per-user tokens keep each user's rights intact."
+   },
+   {
+    "t": "Audience-bound, short-lived tokens",
+    "b": "A token should be minted for one resource and expire quickly. The resource rejects tokens issued for anyone else, and never passes a received token through downstream."
+   },
+   {
+    "t": "Filter before the context window",
+    "b": "Permission-aware retrieval drops chunks the user may not read before ranking. Once restricted text is in the prompt, no instruction reliably keeps it out of the answer."
+   },
+   {
+    "t": "Fail closed",
+    "b": "A missing, expired or wrong-audience token, or an unreachable policy service, means deny. Allowing on error turns an outage into a breach."
+   }
+  ],
+  "sim_name": "Northwind Policy Assistant"
+ },
+ {
+  "id": 14,
+  "task": "3.3",
+  "task_title": "Evaluate accuracy-latency trade-offs and justify configuration decisions",
+  "topic": 3,
+  "topic_name": "Integration",
+  "sim": 4,
+  "title": "Max effort everywhere breaks the 4 s chat budget: route by request",
+  "stem": "Riverton's resident-services assistant answers live-chat questions about bins and permits, and also pre-screens BEN-HOUSING rent-support forms for caseworkers. To maximise accuracy, the team set effort to max on every request. Chat replies now often take over 5 seconds against a 4-second p95 budget, and one pre-screen ran out of tokens while thinking. Which configuration decision is best justified?",
+  "options": {
+   "A": "Route chat to low effort and pre-screens to a high-effort path, confirmed by each path's p95 and accuracy on a labelled set.",
+   "B": "Set low effort on every request, because each pre-screen is only advisory and a caseworker confirms the outcome anyway.",
+   "C": "Keep max effort on every request and stream each reply, so residents see the first words long before the answer completes.",
+   "D": "Move every request to a larger model at medium effort, which should reach the accuracy of max effort with less thinking time."
+  },
+  "answer": "A",
+  "why": "Effort sets how many output tokens Claude spends, thinking included, and output tokens are most of a reply's latency. Chat questions are already answered correctly at low effort, so max effort only adds delay, while a pre-screen is consequential and has a longer budget of its own. A router in code that sends each request class to its own effort level, justified by measured p95 against each budget and accuracy on a labelled set, takes the most accurate configuration that fits each moment.",
+  "wrong": {
+   "B": "Low effort everywhere gives up the margin on the consequential path to save time it does not need to save; that a caseworker confirms is no reason to send them more errors.",
+   "C": "Streaming shortens the perceived wait for chat but not the total time, the thinking tokens or the cost, and it does nothing for replies cut off at max_tokens.",
+   "D": "Larger tiers are slower and cost more per token, not faster, and the claim is asserted rather than measured on Riverton's own requests."
+  },
+  "fix": "Set a latency budget per user moment, route each request class to its own effort level in code, and justify the split with measured p95 and accuracy.",
+  "see": "At effort max, chat p95 went over 4 s and a pre-screen could spend all 4,096 tokens thinking; routed (low for chat, high for pre-screens), chat p95 was about 2 s, all six answers were correct, and the run used a fraction of the output tokens.",
+  "explain": "Both phases send the same six labelled requests (chat questions in Malay, English, Chinese and Tamil, and two BEN-HOUSING pre-screens near the eligibility thresholds) with the same prompt. Phase 1 runs all six at effort max: the answers that complete are right, but hundreds to thousands of thinking tokens push chat p95 over its budget, and a pre-screen can run out of tokens before it answers. Phase 2 routes in code: chat at low effort, pre-screens at high. The run measures each path's p95 against its own budget, grades every answer, and counts output tokens, and those numbers are the justification for the configuration.",
+  "exam_tip": "For accuracy-latency questions, pick the answer that sets the budget from the user's moment, configures per request class, and justifies the choice with measured latency and accuracy. 'Maximum everywhere' and 'minimum everywhere' are both distractors.",
+  "source": "Original question written for C740",
+  "headline": "Budget per moment, effort per request, numbers as proof.",
+  "concepts": [
+   {
+    "t": "Several latency dials, not one",
+    "b": "Model tier, effort, retrieval depth, verification passes and agent turns all trade accuracy for time, and they compound. Tune the one that dominates your requests."
+   },
+   {
+    "t": "Effort controls output tokens",
+    "b": "output_config.effort (low to max) sets how many tokens Claude spends, thinking and tool calls included. Fewer output tokens means a faster, cheaper reply."
+   },
+   {
+    "t": "The budget comes from the moment",
+    "b": "Live chat is judged in seconds, a form result can show a 'checking' page for longer, and an overnight job can use batch. Budget on p95, not the mean."
+   },
+   {
+    "t": "Route by request class in code",
+    "b": "A deterministic router (channel, form type, intent) sends routine requests to a fast path and consequential ones to a careful path, rather than one setting for all."
+   },
+   {
+    "t": "Justify with your own evals",
+    "b": "A configuration is justified by measured accuracy on a labelled set and p95 against the budget for each path. Settings carried over from another model prove nothing."
+   }
+  ],
+  "sim_name": "Riverton Resident Services"
+ },
+ {
+  "id": 15,
+  "task": "3.4",
+  "task_title": "Analyze observability challenges and select monitoring strategies at scale",
+  "topic": 3,
+  "topic_name": "Integration",
+  "sim": 6,
+  "title": "Grep blames the prompt; traces show inventory_lookup's p95 spike",
+  "stem": "After 14:00, p95 response time for Kestrel's Claude-powered checkout assistant more than doubled. The on-call engineer spent an hour grepping service logs that record each request's total duration, model API calls and retries, but nothing that links lines to a request or times the steps inside it, and suspected a prompt change made at 14:10. Which monitoring strategy best addresses this class of incident at scale?",
+  "options": {
+   "A": "Raise every service to DEBUG logging during incidents so each tool call and model call appears as its own line in the raw logs.",
+   "B": "Alert on the service's mean response time per hour, with a dashboard comparing each hour against last week.",
+   "C": "Store the full text of every prompt and completion so that engineers can replay and read the slowest conversations after an incident.",
+   "D": "Emit one trace per request with a span per model and tool call, carrying trace_id, tokens, latency and stop_reason."
+  },
+  "answer": "D",
+  "why": "The question during an LLM incident is which step inside a request moved. A trace per request, correlated by trace_id, with a span for every model call and tool call carrying latency, tokens, stop_reason and the versions that can change, answers it with one grouped query. In the lab, grouping p95 latency by span shows model calls flat and inventory_lookup rising from about 250 ms to about 5,080 ms, and the prompt change ruled out because requests on the old prompt were already slow.",
+  "wrong": {
+   "A": "DEBUG logs add volume and cost but still lack a trace_id to correlate lines and per-step timings to aggregate, and they only exist once an incident has started.",
+   "B": "A mean hides the slow tail and an alert only says that something is slow, not which span; the incident was already detected.",
+   "C": "Full prompt and completion logs add privacy risk and storage cost without timing a single span; reading conversations cannot show where the time went."
+  },
+  "fix": "Instrument every request as a trace with spans for each model and tool call, carrying trace_id, versions, tokens, latency and stop_reason, and query percentiles by span.",
+  "see": "Grepping raw logs, Claude blamed a coincidence (the 429 retries or the 14:10 prompt reload); querying traces, it grouped p95 by span, found tool:inventory_lookup at 250 ms before and about 5,080 ms after 14:00, and cited real trace_ids.",
+  "explain": "Both phases investigate the same 480 synthetic requests with the same prompt and file the finding with the same tool. The raw logs show request durations jumping at 14:00 and two coincidences, a prompt reload at 14:10 and a few more 429 retries, but no line ties events to a request or times a tool, so Claude can only blame a coincidence. The trace store holds the same afternoon as one trace per request with a span per model call and tool call. One query, p95 latency_ms grouped by span before and after 14:00, separates the flat model calls from the inventory_lookup spike, and the slowest trace_ids become the evidence.",
+  "exam_tip": "For observability at scale, prefer structured, correlated traces (trace_id, a span per step, tokens, latency, stop_reason, versions) queried by percentile. More log volume, mean-based dashboards and full-content logging are distractors.",
+  "source": "Original question written for C740",
+  "headline": "Trace every step. Then ask which span moved.",
+  "concepts": [
+   {
+    "t": "LLM failures often return 200 OK",
+    "b": "A slow, truncated or wrong answer still succeeds at the HTTP level. Uptime and error-rate dashboards miss it; you need per-step latency, tokens, stop_reason and quality signals."
+   },
+   {
+    "t": "One trace, a span per step",
+    "b": "Each request gets a trace_id; each model call, tool call, retrieval and subagent gets a span with its latency, tokens and status, so a slow request can be taken apart."
+   },
+   {
+    "t": "Version everything that can change",
+    "b": "Put the prompt version, model id, effort, index build and tool schema version on each trace, so a regression can be tied to the change that caused it."
+   },
+   {
+    "t": "Percentiles, grouped by dimension",
+    "b": "Compare p95 by span, version or stop_reason before and after a change. Means hide the slow tail that users and SLAs feel."
+   },
+   {
+    "t": "Metadata always, content sampled",
+    "b": "Keep ids, timings, sizes and versions for every request; keep prompt and completion text only when sampled, access-controlled and time-limited."
+   }
+  ],
+  "sim_name": "Kestrel Platform Team"
+ },
+ {
+  "id": 16,
+  "task": "3.5",
+  "task_title": "Design a RAG pipeline with appropriate chunking and indexing strategies",
+  "topic": 3,
+  "topic_name": "Integration",
+  "sim": 2,
+  "title": "Fixed chunks split the 60% exception: chunk on headings, cite",
+  "stem": "Northwind Bank's policy assistant splits every policy into fixed 200-character chunks with no metadata and retrieves the top 3 for each question. Credit officers report answers that state a rule but miss the exception written two paragraphs later, and the answers cannot say which policy section they rest on. Which change to the pipeline best fixes both problems?",
+  "options": {
+   "A": "Raise top-k from 3 to 20 so that more neighbouring chunks reach the model and the exception is more likely to be among them.",
+   "B": "Chunk each policy along its headings, store document id, section and effective date with every chunk, and answer with citations.",
+   "C": "Switch to a larger embedding model so that the chunk holding the exception scores closer to the chunk holding the rule it modifies.",
+   "D": "Add a system prompt rule telling Claude to look for exceptions in the passages and to name the source policy document in every answer."
+  },
+  "answer": "B",
+  "why": "Both symptoms start at index time. Fixed windows cut a rule away from its number and an exception away from its condition, and a chunk with no metadata cannot be traced to a policy. Cutting along the policy's own sections keeps each clause whole, the heading path makes short clauses findable, and metadata (document id, section, effective date, roles) lets the pipeline filter and lets Claude cite the exact span with citations enabled.",
+  "wrong": {
+   "A": "More chunks add noise and cost, still carry no document id to cite, and an exception split from its condition is still split.",
+   "C": "A better embedding cannot rejoin text that the chunker cut apart, and it adds no metadata for citations.",
+   "D": "Claude cannot find an exception or cite a section that retrieval never gave it; a prompt cannot repair the index."
+  },
+  "fix": "Chunk on the document's headings, keep document id, section and effective date as metadata, and return answers with citations.",
+  "see": "Fixed chunks lose both the 55% limit and the 60% exception; section chunks retrieve LEND-07 §3 and §7 and the answer cites them.",
+  "explain": "Both phases ask the same question with the same BM25 scorer and k = 3. With fixed 200-character windows, the boundaries fall mid-sentence: the top 3 chunks hold the DSR definition without its 55% limit, a mortgage guarantor clause and a personal-loan guarantor clause from LEND-04, and none holds the 60% first-home exception. With one chunk per section, each prefixed with its heading path and carrying document id, revision, section, effective date and roles, retrieval returns LEND-07 §3, §5 and §7. Sent as document blocks with citations enabled, the answer gives the 60% limit with credit officer approval and every claim carries a citation to LEND-07.",
+  "exam_tip": "When answers miss an exception or cannot cite their source, look at chunking and indexing first. Structure-aware chunks with metadata and citations beat a bigger k, a bigger embedding model or a stronger prompt, because none of those can recover what the index split or never stored.",
+  "source": "Original question written for C740",
+  "headline": "Cut where the document cuts. Keep where it came from.",
+  "concepts": [
+   {
+    "t": "Chunking decides what retrieval can find",
+    "b": "Claude reasons only over the chunks it receives. A clause split across two chunks, or separated from its heading, can be lost before Claude is ever called."
+   },
+   {
+    "t": "Cut along the document's structure",
+    "b": "Policies split by section and clause, tables by row with the header repeated, code by function. Fixed-size windows ignore all of these and cut mid-sentence."
+   },
+   {
+    "t": "Index more than text",
+    "b": "Each chunk carries its document id, section, revision, effective date and access roles. Filters on these run in code before ranking, and they make citations possible."
+   },
+   {
+    "t": "Heading paths make short chunks findable",
+    "b": "Prefixing 'LEND-07 Mortgage Affordability › 7 Exceptions' gives a short clause the words a query will use. Contextual Retrieval applies the same idea with a generated summary."
+   },
+   {
+    "t": "Citations make answers checkable",
+    "b": "Document blocks with citations enabled return the exact span behind each claim, so a reviewer or an evaluation can check the answer against its source."
+   }
+  ],
+  "sim_name": "Northwind Policy Assistant"
+ },
+ {
+  "id": 17,
+  "task": "3.6",
+  "task_title": "Apply retrieval strategies matched to data shape and query pattern",
+  "topic": 3,
+  "topic_name": "Integration",
+  "sim": 2,
+  "title": "One similarity search quotes a dead rate: route tables to a lookup",
+  "stem": "Northwind's assistant answers every question with one similarity search over a single index, into which the weekly re-index flattens the mortgage rate tables as text. Superseded rate sheets stay in the library because complaints about old quotes need them. Credit officers asking for today's 5-year fixed rate at 75% loan-to-value sometimes get a rate that has expired. What is the best redesign of retrieval?",
+  "options": {
+   "A": "Index each rate table row as its own small chunk and raise top-k, so that the row for the product is more likely to be among the hits.",
+   "B": "Add a reranker after the similarity search so that the chunk most relevant to the question is always placed first in the context.",
+   "C": "Delete superseded rate sheets at each re-index so that only the current rows remain for the similarity search to find.",
+   "D": "Serve rate tables through a lookup keyed on product and loan-to-value, filtered by effective date, and keep hybrid search for prose."
+  },
+  "answer": "D",
+  "why": "A rate is a row in a table, found by its keys and its effective date, not a passage that resembles the question. A structured lookup tool returns the row in force on the date asked, and hybrid search with metadata filters stays the right mechanism for prose rules. Routing each part of the question to the mechanism its data needs is the fix; tuning the similarity search is not.",
+  "wrong": {
+   "A": "Smaller chunks and a bigger k still rank rows by word overlap, and a row like '5YF,60.01-80.00,3.95' shares no words with the question.",
+   "B": "A reranker reorders what similarity search returned; it cannot surface a row that was never retrieved or tell current rates from superseded ones.",
+   "C": "Complaint handling needs the superseded sheets, and deleting them still leaves a numeric row to be found by text similarity."
+  },
+  "fix": "Match the mechanism to the data shape: a structured lookup with an effective-date filter for tables and identifiers, hybrid search with metadata filters for prose.",
+  "see": "One search returns the superseded rate sheet and the answer quotes 4.35%; lookup_rate returns 3.95% from the current sheet and search_policy finds the fee rule.",
+  "explain": "Both phases answer the same question from the same library. One similarity search over everything returns the early repayment section, the superseded LEND-11 rate sheet (rev 2026-08, written as prose) and the loan-to-value section; the current table row never comes back, so the answer quotes 4.35%, which ended on 31 October. Routed by data shape, Claude calls lookup_rate with product code 5YF, 75% and today's date and gets 3.95% from LEND-11 rev 2026-11, and calls search_policy, which returns LEND-07 §8: a 1.5% fee in years 1 and 2.",
+  "exam_tip": "When the answer is a row, an identifier or a number in a table, the exam wants a structured lookup or query exposed as a tool, with metadata filters such as effective date. Hybrid search is for prose. Bigger k, smaller chunks, rerankers and deleting history are distractors.",
+  "source": "Original question written for C740",
+  "headline": "Rows want lookups. Prose wants search.",
+  "concepts": [
+   {
+    "t": "Ask what shape the answer lives in",
+    "b": "Passages, table rows, aggregates, relationships or files. Each shape has a mechanism that can produce it; similarity search over chunks suits only passages."
+   },
+   {
+    "t": "Similarity cannot find a row by its keys",
+    "b": "A table row like '5YF,60.01-80.00,3.95' shares no words with 'five-year fixed at 75%'. A lookup keyed on product and band finds it every time."
+   },
+   {
+    "t": "Hybrid search for prose",
+    "b": "Keyword (BM25) matches exact terms, semantic search matches meaning; fusing their rankings (reciprocal rank fusion) is a strong default for policy text."
+   },
+   {
+    "t": "Metadata filters run before ranking",
+    "b": "Effective date, role and document type are filters in code. They pick the revision in force on the date asked, so history can stay in the library."
+   },
+   {
+    "t": "Expose each mechanism as a tool",
+    "b": "Clear tool descriptions ('use for any rate figure', 'rules, not rates') let Claude route each part of a question to the right mechanism."
+   }
+  ],
+  "sim_name": "Northwind Policy Assistant"
+ },
+ {
+  "id": 18,
+  "task": "3.7",
+  "task_title": "Evaluate connection protocols and select the appropriate integration mechanism (MCP, API/CLI, agent-to-agent)",
+  "topic": 3,
+  "topic_name": "Integration",
+  "sim": 6,
+  "title": "Two hand-built clients, two answers: put the service behind MCP",
+  "stem": "Kestrel's release-calendar service records change freezes. The CI release gate, the on-call agent and 40 engineers' Claude Code sessions all need to check it, and today each team has written its own client from its own copy of the API notes, with its own credential. Which integration mechanism should the platform team choose for the release-calendar service?",
+  "options": {
+   "A": "Expose the service once as an MCP server with typed tools and a server-held credential, registered in the shared .mcp.json.",
+   "B": "Give each agent a generic HTTP tool and put the current OpenAPI specification in its context, so it can build its own requests.",
+   "C": "Wrap the service as an autonomous agent behind an agent-to-agent protocol, so other agents delegate freeze checks to it as tasks.",
+   "D": "Publish a small command-line tool for the service and have every agent call it through a shell tool in its own pipeline."
+  },
+  "answer": "A",
+  "why": "A shared internal capability that many AI hosts call is the case MCP was designed for. The platform team writes one server; every host discovers the same typed tools through tools/list; the credential stays in the server; and a change to the API is made once. Direct API or CLI calls suit a one-off scripted step one pipeline owns, and agent-to-agent protocols suit delegating a whole goal to another team's autonomous agent.",
+  "wrong": {
+   "B": "Every host still builds its own requests and holds a credential in context, and the specification costs tokens on every call while each copy drifts.",
+   "C": "A freeze check is a typed function call, not a goal to delegate; agent-to-agent protocols are for another team's opaque autonomous agent.",
+   "D": "A CLI suits a scripted step in one place; across many hosts each still wires its own shell tool, credential handling and output parsing."
+  },
+  "fix": "Write one MCP server for the shared service, register it in .mcp.json, and keep the credential in the server.",
+  "see": "Bespoke clients call v1 and v2 and disagree about FRZ-118, with keys in prompts; behind one MCP server both agents find FRZ-118 and no key reaches a model.",
+  "explain": "Both phases run the same two agents on the same tasks at the same moment. With each team's own client, the CI release gate follows notes written in June to the retired /v1/freeze-check endpoint, which still answers from a calendar copy last synced on 31 October, gets frozen: false and says DEPLOY into the FRZ-118 freeze, while the on-call agent's newer notes reach /v2 and find FRZ-118. A team API key and an engineer's personal token sit in the prompts and tool inputs. With one release-calendar MCP server, both agents get mcp__release-calendar__check_freeze from tools/list, the server calls v2 with its own credential, and both agents report FRZ-118.",
+  "exam_tip": "Pick the mechanism by the boundary. Many AI hosts reusing one capability: MCP. One application calling a service it owns in a fixed step: direct API or CLI. Handing a goal to another organisation's autonomous agent: agent-to-agent (A2A). Subagents inside your own system are orchestration, not A2A.",
+  "source": "Original question written for C740",
+  "headline": "Many hosts, one service: one MCP server.",
+  "concepts": [
+   {
+    "t": "Direct API or CLI",
+    "b": "Your code decides exactly what to call. Right for a fixed workflow one application owns, such as tagging a release with an existing CLI in one pipeline."
+   },
+   {
+    "t": "MCP: one server, many hosts",
+    "b": "A server exposes tools, resources and prompts over a standard protocol. Claude Code, CI agents and your own apps discover the same typed tools through tools/list."
+   },
+   {
+    "t": "Agent-to-agent: delegate a goal",
+    "b": "Protocols such as A2A hand a whole task to another team's autonomous agent and get results back, without seeing its tools or reasoning."
+   },
+   {
+    "t": "Bespoke clients drift",
+    "b": "Each hand-built copy encodes the API as it was when written. One copy calling a retired endpoint can return a stale answer that looks valid."
+   },
+   {
+    "t": "Keep credentials out of context",
+    "b": "An MCP server holds the service credential itself, so no API key or personal token appears in a prompt, a tool input or a trace."
+   }
+  ],
+  "sim_name": "Kestrel Platform Team"
+ },
+ {
+  "id": 19,
+  "task": "3.8",
+  "task_title": "Evaluate progressive discovery vs. monolithic context strategy",
+  "topic": 3,
+  "topic_name": "Integration",
+  "sim": 6,
+  "title": "40 tools in every request: load the runbook the incident needs",
+  "stem": "Kestrel's on-call agent is connected to 40 tools on seven MCP servers and a library of 24 runbooks, all loaded into every request. A typical incident uses one runbook and three or four tools, input tokens per request are well over the team's budget, and the catalogue is expected to triple next quarter. Which context strategy is best?",
+  "options": {
+   "A": "Keep everything loaded and turn on prompt caching for the tool definitions and runbooks, so the repeated prefix costs less on each request.",
+   "B": "Split the agent into seven subagents, one per MCP server, each loaded with all of its own server's tools and runbooks.",
+   "C": "Keep a small hot set of tools loaded, and let the agent search an index and load only the runbook and tools the incident needs.",
+   "D": "Shorten every tool description and runbook to a single line, so that the whole catalogue still fits within the budget."
+  },
+  "answer": "C",
+  "why": "Progressive discovery keeps the request close to what the task needs: a hot set that every incident uses stays loaded, and the long tail is found through a small index and loaded on demand. The request size stops growing with the catalogue, and Claude chooses among a handful of relevant tools instead of 40. The cost is an extra search turn and the risk of a search miss, which precise names and descriptions reduce.",
+  "wrong": {
+   "A": "Caching lowers the price of a repeated prefix, but every request still carries all 40 tools and 24 runbooks, and the context still grows with the catalogue.",
+   "B": "Incidents cross servers, so a router must still choose, and each subagent remains monolithic for its own share of the catalogue.",
+   "D": "One-line descriptions and runbooks lose the steps and constraints that make tool choice and the response correct."
+  },
+  "fix": "Load a small hot set up front and let the agent search an index and load only the runbook and tools the task needs.",
+  "see": "Monolithic requests carry about 8,000 input tokens each; progressive requests start with 3 tool definitions, load RB-17 and stay near 2,500, with the same correct action.",
+  "explain": "Both phases handle the same incident with the same backend. Monolithic, every request carries 40 tool definitions and all 24 runbooks, about 8,000 to 9,000 input tokens per request against a 5,000-token budget, although the incident needs one runbook and four tools. Progressive, the first request carries three tool definitions (search_catalog, load, incident_note); Claude searches the index, loads RB-17, which brings flag_history, flag_disable and metrics_query, disables checkout.new-tax-engine and does not roll back the deploy. The incident costs about a third of the input tokens, and that gap widens as the catalogue grows.",
+  "exam_tip": "Monolithic context fits a small, stable set of tools that every request uses. When the catalogue is large, grows, and each task uses a few items, the exam wants progressive discovery with a hot set. Caching, trimming descriptions and splitting by server do not stop context growing with the catalogue.",
+  "source": "Original question written for C740",
+  "headline": "Load the hot set. Search for the rest.",
+  "concepts": [
+   {
+    "t": "Context is an attention budget",
+    "b": "Every tool definition and document in the request is paid for on every turn and competes for attention. Loading things 'just in case' has a cost."
+   },
+   {
+    "t": "Monolithic: simple, and it grows",
+    "b": "Everything up front is predictable and easy to cache, but request size grows with the catalogue and tool choice gets harder as counts pass about 30 to 50."
+   },
+   {
+    "t": "Progressive: index, search, load",
+    "b": "A one-line index is searched in code; only the runbooks and tools the task needs are loaded into the request, so its size stays close to the task."
+   },
+   {
+    "t": "Keep a hot set loaded",
+    "b": "Tools every task uses (search, load, the incident note) stay in every request. Discovery is for the long tail."
+   },
+   {
+    "t": "The platform's versions",
+    "b": "The Claude API's tool search tool defers tool definitions until searched; Agent Skills load a name and description first and the body only when triggered."
+   }
+  ],
+  "sim_name": "Kestrel Platform Team"
+ },
+ {
+  "id": 20,
+  "task": "4.1",
+  "task_title": "Define evaluation metrics (accuracy, latency, cost, safety, security)",
+  "topic": 4,
+  "topic_name": "Evaluation, Testing & Optimization",
+  "sim": 2,
+  "title": "Thumbs-up says ship, nothing cites a source: gate on a scorecard",
+  "stem": "Northwind Bank's policy assistant is about to roll out to 4,000 staff. The project team proposes to approve each release when pilot users give at least 80% of answers a thumbs-up. Compliance requires every answer to cite its source and to decline questions the policy library does not cover, and finance has set a cost budget per answer. Which evaluation approach best supports the release decision?",
+  "options": {
+   "A": "Keep the thumbs-up rate as the release metric, but raise the bar to 95% and collect votes from a larger pilot group.",
+   "B": "Have an LLM judge give every answer an overall quality score from 1 to 5, and release when the average reaches 4.",
+   "C": "Score a fixed eval set on separate metrics, each with a threshold: accuracy, grounding, declines, latency and cost.",
+   "D": "Track p95 latency and cost per answer on a dashboard, and have a compliance officer spot-check ten answers a week."
+  },
+  "answer": "C",
+  "why": "A release decision needs each requirement measured on its own. A scorecard over a fixed eval set gives accuracy against golden answers, citation grounding, correct declines, latency and cost per answer, each with a threshold agreed in advance, and blocks the release when any one fails. Most rows are plain code over the answers, the retrieval log and the API usage block, so the same check runs on every change. In the lab, the thumbs-up judge likes every answer while the scorecard shows that none of them cites a retrieved document.",
+  "wrong": {
+   "A": "A higher thumbs-up bar is still one blended proxy: staff like fluent answers whether or not they cite a source or should have declined.",
+   "B": "One overall score averages properties together, so a zero on citations or declines disappears inside a good mean.",
+   "D": "Latency and cost are covered, but ten spot-checks a week cannot gate a release on accuracy, grounding or declines."
+  },
+  "fix": "Score the same eval set on separate metrics, each with its own threshold, and block the release when any one fails.",
+  "see": "The thumbs-up metric says release; the scorecard blocks it because no answer cites a retrieved document.",
+  "explain": "The release candidate (prompt v3, tuned on pilot thumbs-up) answers five eval questions once: four in-scope questions with a golden key fact, and one the library does not cover. Phase 1 judges those answers with one metric, a thumbs-up judge, and the rate clears the 80% bar. Phase 2 scores exactly the same answers on a scorecard: accuracy against the golden facts, citation grounding (does the answer cite a document that was actually retrieved), declining the out-of-scope question, restricted chunks served to the wrong role, p95 latency and cost per answer from the usage block. Accuracy, latency and cost pass; grounding is 0 of 4, so the gate blocks the release and names what to fix. With five items the p95 is just the slowest answer: a real gate needs a few hundred items.",
+  "exam_tip": "When a stem lists several requirements (cite sources, decline out-of-scope, a cost budget), the answer measures each one separately against a threshold. A satisfaction rate, an averaged judge score or a weekly spot-check is the distractor.",
+  "source": "Original question written for C740",
+  "headline": "One number hides the row that fails.",
+  "concepts": [
+   {
+    "t": "Accuracy against golden answers",
+    "b": "An eval item pairs a question with a golden answer or key fact. Code checks whether the answer contains it, so accuracy is repeatable and cheap to run on every change."
+   },
+   {
+    "t": "Groundedness and citations",
+    "b": "A grounded answer is supported by the retrieved text and names its source. Check that each cited document id was actually retrieved for that question."
+   },
+   {
+    "t": "Safety and security as metrics",
+    "b": "Safety: the assistant declines what the library does not cover. Security: no restricted content reaches a role that may not see it. Both are rates with a threshold, often zero tolerance."
+   },
+   {
+    "t": "Latency and cost per answer",
+    "b": "Measure p95 latency, not the mean, and compute cost per answer from the usage block (input, output and cache tokens). A stable p95 needs a few hundred items."
+   },
+   {
+    "t": "Thresholds make a gate",
+    "b": "Each metric gets a pass mark agreed before the run. One failing metric blocks the release; averaging metrics together lets a zero hide behind good scores."
+   }
+  ],
+  "sim_name": "Northwind Policy Assistant"
+ },
+ {
+  "id": 21,
+  "task": "4.2",
+  "task_title": "Design evaluation datasets and test frameworks using mixed methodologies",
+  "topic": 4,
+  "topic_name": "Evaluation, Testing & Optimization",
+  "sim": 3,
+  "title": "Typical notes passed by eye: a mixed eval set catches the leak",
+  "stem": "Meridian Health is changing the prompt that drafts discharge summaries from clinicians' visit notes. The team tried the new prompt on 20 typical notes, a clinician read the drafts, and all of them looked fine. Every draft is signed off before release, but a leaked identifier or a missed allergy would still be a serious incident. Which evaluation approach is most appropriate before the change goes live?",
+  "options": {
+   "A": "Mix golden, adversarial and edge-case notes; check hard rules in code and clinical judgement with a rubric-based LLM judge.",
+   "B": "Grow the typical-note set to 200 notes, and have an LLM judge give each draft an overall quality score from 1 to 5.",
+   "C": "Skip further offline testing and rely on clinician sign-off instead, logging every correction a clinician makes after go-live.",
+   "D": "Compare each draft with a clinician-written reference summary by exact text overlap, and pass the change above 90%."
+  },
+  "answer": "A",
+  "why": "Typical notes read by eye only show that the prompt works on easy cases. A mixed dataset adds the cases that break systems: adversarial notes (extra PHI in the record) and edge cases (an allergy recorded in only one place, conflicting doses), alongside golden happy-path items. Each property then gets the right grader: hard rules such as required sections, no unnecessary identifiers and known allergies present are checked in code, and clinical judgement such as faithfulness and flagging conflicts goes to an LLM judge with a written rubric, calibrated against clinician labels.",
+  "wrong": {
+   "B": "More typical notes still contain no adversarial or edge cases, and one overall 1-5 score cannot say which rule failed.",
+   "C": "Sign-off is a final human check, not an evaluation: errors reach clinicians' queues, and nothing tests the change before go-live.",
+   "D": "Exact text overlap punishes a correct summary worded differently and cannot tell a leaked phone number from a harmless phrase."
+  },
+  "fix": "Test every prompt change on a mixed set of golden, adversarial and edge-case notes, with hard rules in code and judgement by a rubric judge.",
+  "see": "The two happy-path drafts pass by eye; the mixed set finds no Allergies section and an insurance member ID and phone number copied into A1.",
+  "explain": "The prompt under test (drafter v2) fills a tidy template: it copies the PATIENT DETAILS block verbatim and has no Allergies section. Phase 1 runs it on two typical notes and a quick review: both look fine, so it would ship. Phase 2 runs the same prompt on a mixed set: the same two notes, one adversarial note whose details block holds a home phone and an insurance member ID, and two edge cases (an apixaban dose that conflicts between the medication list and a pharmacist's note, and a penicillin allergy recorded only in a nursing note while co-amoxiclav is prescribed). Code checks the hard rules and fails most of the drafts, including the two that passed phase 1. A rubric judge grades each draft in its own call, as schema-checked JSON, for faithfulness and for flagging the conflicts. The gate blocks v2 with a named reason per item.",
+  "exam_tip": "'Mixed methodologies' means mixed data and mixed graders: golden, adversarial and edge cases, with code for deterministic rules and an LLM judge with a rubric for judgement. Bigger happy-path sets, exact-match scoring and relying on human sign-off are the distractors.",
+  "source": "Original question written for C740",
+  "headline": "Test the cases that break it, grade each the right way.",
+  "concepts": [
+   {
+    "t": "Golden, adversarial and edge cases",
+    "b": "Golden items show typical behaviour; adversarial items try to make the system misbehave (extra PHI, injected text); edge cases sit at the boundaries (conflicts, missing data)."
+   },
+   {
+    "t": "Code-based graders",
+    "b": "Use code for anything with a deterministic answer: required sections, forbidden identifiers, a known allergy present, valid JSON. Code graders are exact, fast and cheap."
+   },
+   {
+    "t": "LLM-as-judge with a rubric",
+    "b": "For judgement calls such as faithfulness or tone, a judge model applies written criteria and returns a structured grade. Grade one item per call so items cannot be skipped or mixed up."
+   },
+   {
+    "t": "Calibrate the judge",
+    "b": "Before trusting a judge, compare its grades with expert labels on a sample and fix the rubric where they disagree. Re-check after changing the judge prompt or model."
+   },
+   {
+    "t": "Human review is a sample, not a test",
+    "b": "Clinician sign-off and spot reads catch some errors late. They do not replace an offline eval that runs on every change before release."
+   }
+  ],
+  "sim_name": "Meridian Clinical Notes"
+ },
+ {
+  "id": 22,
+  "task": "4.3",
+  "task_title": "Conduct A/B testing and iterative improvements",
+  "topic": 4,
+  "topic_name": "Evaluation, Testing & Optimization",
+  "sim": 6,
+  "title": "v2 won the demo and missed SEV1 pages: A/B it on the same alerts",
+  "stem": "Kestrel's platform team owns the prompt that triages production alerts into SEV1, SEV2 and SEV3. An engineer rewrote it as v2 and demonstrated it on a staging alert that v1 had wrongly paged as SEV1; v2 got it right, and the team wants to ship v2 today. Which approach best decides whether v2 should replace v1?",
+  "options": {
+   "A": "Ship v2 for all alerts and collect on-call feedback for a week, rolling back if complaints about wrong pages start to rise.",
+   "B": "Run v1 and v2 on the same labelled eval alerts with the same grader, and apply a decision rule agreed before the run.",
+   "C": "Run v2 on twenty new alerts picked by its author, and compare its accuracy with the score v1 achieved last quarter.",
+   "D": "Ask Claude to read both prompts side by side and choose the one that it judges to be clearer and more complete."
+  },
+  "answer": "B",
+  "why": "A demo shows the case the change was written to fix. An A/B comparison runs both prompts on the same labelled items with the same grader, so the only difference is the prompt, and a decision rule fixed before the run (a primary metric plus guardrails that may not regress) turns the result into a decision. In the lab, v2 fixes the staging alert but drops two small checkout and payment failures from SEV1 to SEV2, and the guardrail rejects it.",
+  "wrong": {
+   "A": "Shipping first makes on-call engineers the test set, and a missed SEV1 page is found by customers, not by the feedback channel.",
+   "C": "Different items and a quarter-old score compare two datasets, not two prompts, and the author chose the items.",
+   "D": "Claude judging which prompt reads better measures the prompt's wording, not how it labels real alerts."
+  },
+  "fix": "Run both prompts on the same labelled eval set with the same grader and let a decision rule written beforehand decide.",
+  "see": "v2 wins the demo; on the same 8 labelled alerts it misses the 2.1% checkout and 1.4% payment SEV1s, and the rule rejects it.",
+  "explain": "Phase 1 compares v1 and v2 on the author's demo alert, checkout 500s in staging: v1 pages it as SEV1, v2 correctly says SEV3, so the demo says ship. Phase 2 writes the decision rule down first (v2's accuracy must be at least v1's, and v2 may miss no gold SEV1), then runs both prompts on the same eight alerts with gold labels from the on-call leads, twice each, with structured output so every label is scored in code. v2 keeps its staging fix but its new 'error rate above 5%' SEV1 wording drops two real customer-impacting failures to SEV2. Eight items run twice prove nothing statistically, and the lab says so; they are enough to find a specific regression you can read item by item. After an offline pass, the next step would be a small canary on the same metrics.",
+  "exam_tip": "A/B means the same items, the same graders and a rule agreed in advance, with guardrail metrics that may not regress. Comparing different datasets, shipping and watching feedback, or asking a model which prompt is better are the distractors.",
+  "source": "Original question written for C740",
+  "headline": "Same items, same grader, rule written first.",
+  "concepts": [
+   {
+    "t": "A demo is not evidence",
+    "b": "The author picks the example that shows the change working. It says nothing about the cases the change might break."
+   },
+   {
+    "t": "Hold everything but the change",
+    "b": "Run both variants on the same fixed items with the same grader and settings, so any difference in the score comes from the change alone."
+   },
+   {
+    "t": "Primary metric and guardrails",
+    "b": "Decide before the run what must improve (the primary metric) and what may not get worse (guardrails such as SEV1 recall), and what result ships the change."
+   },
+   {
+    "t": "Noise and sample size",
+    "b": "Model outputs vary between runs. Repeat runs to see the spread, and do not claim significance from a few items: small sets find specific regressions, large sets measure rates."
+   },
+   {
+    "t": "Iterate, then canary",
+    "b": "Fix what the eval found, re-run the same set, and only then expose the change to a small share of live traffic with the same metrics before a full rollout."
+   }
+  ],
+  "sim_name": "Kestrel Platform Team"
+ },
+ {
+  "id": 23,
+  "task": "4.4",
+  "task_title": "Diagnose system issues (prompt failure, hallucinations, model mismatch)",
+  "topic": 4,
+  "topic_name": "Evaluation, Testing & Optimization",
+  "sim": 2,
+  "title": "Confident, cited and stale after a re-index: inspect retrieval first",
+  "stem": "A RAG system suddenly returns confident but incorrect answers after a document refresh, while latency and model version are unchanged. What is the most likely first place to investigate?",
+  "options": {
+   "A": "The model weights have silently changed.",
+   "B": "The retrieval/indexing step is returning irrelevant or stale chunks.",
+   "C": "The temperature setting is too low.",
+   "D": "The context window has shrunk."
+  },
+  "answer": "B",
+  "why": "Confident-but-wrong answers following a document refresh, with model and latency unchanged, point to retrieval feeding the model poor context, for example a broken re-index or mismatched embeddings. The other options would not be triggered specifically by a document refresh. In the lab, the assistant cites LEND-07 and HR-09 correctly but quotes last week's figures, because the re-index kept the old chunks; a stricter prompt changes nothing, and re-indexing fixes both answers.",
+  "wrong": {
+   "A": "The model version is unchanged, and a pinned model does not change underneath you; nothing ties it to the document refresh.",
+   "C": "A low temperature makes answers more consistent, not wrong, and the setting did not change with the document refresh.",
+   "D": "The context window is a property of the model, which is unchanged; a document refresh does not shrink it."
+  },
+  "fix": "Log each answer's retrieved chunk ids, versions and index dates, compare them with the library manifest, and re-index what is behind.",
+  "see": "Both prompts quote 60% and 2 days from stale LEND-07 v3 and HR-09 v5 chunks; after re-indexing, the original prompt answers 55% and 3 days.",
+  "explain": "This is the exam guide's sample question 3 on the Northwind policy assistant. Since the 17 Nov re-index, staff get confident, cited answers with last week's figures; the model is still claude-haiku-5-5 and latency is unchanged. Phase 1 tries the tempting fix, a stricter prompt ('use only the latest version, double-check numbers'): the answers stay at 60% (S$5,400) and 2 days a week, because the model can only use the chunks it is given. Phase 2 inspects what retrieval served: LEND-07#1 and HR-09#1 were embedded from v3 and v5 on 10 Nov, while the manifest says v4 and v6. Claude, given that evidence as structured input, names the retrieval index as the first place to look. Re-indexing the two documents fixes both answers with the original prompt: 55% (S$4,950) and 3 days. The lasting fix is a check that fails the indexing job when an indexed version falls behind the manifest.",
+  "exam_tip": "Tie the symptom to what changed. A document refresh changes the index, not the model, the temperature or the context window, so look at what retrieval returns first: chunk ids, versions and dates.",
+  "source": "Official exam guide, sample question 3",
+  "headline": "Wrong after a refresh? Check what retrieval served.",
+  "concepts": [
+   {
+    "t": "Where RAG answers come from",
+    "b": "The model answers from the chunks retrieval puts in its context. If those chunks are stale or irrelevant, a fluent, cited and wrong answer is the expected result."
+   },
+   {
+    "t": "Correlate the symptom with the change",
+    "b": "Ask what changed when the failures started. A document refresh points at indexing; a model upgrade points at the model; a prompt edit points at the prompt."
+   },
+   {
+    "t": "Retrieval observability",
+    "b": "Log every answer's retrieved chunk ids, scores, source versions and index dates. Without them a retrieval fault looks exactly like a hallucination."
+   },
+   {
+    "t": "Silent re-index failures",
+    "b": "An embedding job that times out and keeps old vectors, or a new embedding model with an old query encoder, still returns results. Only a version check against the source catches it."
+   },
+   {
+    "t": "A prompt cannot add missing facts",
+    "b": "Stricter instructions change how the model uses its context, not what is in it. When the right text never reaches the model, fix the pipeline, not the wording."
+   }
+  ],
+  "sim_name": "Northwind Policy Assistant"
+ },
+ {
+  "id": 24,
+  "task": "4.5",
+  "task_title": "Optimize token usage, latency, and cost-performance trade-offs",
+  "topic": 4,
+  "topic_name": "Evaluation, Testing & Optimization",
+  "sim": 1,
+  "title": "Right answers, 3,000 output tokens each: cache, trim, cap, re-test",
+  "stem": "Harbour Mutual's claims triage runs on Claude Sonnet 5.5. Each request sends the claim's full email history, then the claim, then 2,000 tokens of policy wording that is identical on every call, and asks for a detailed analysis and a letter. Adjusters agree the decisions are right, but cost per claim and latency are both over budget. Which change best reduces both while holding decision quality?",
+  "options": {
+   "A": "Switch every claim to Claude Haiku 5.5 at once, since its input and output prices are a twentieth of Sonnet 5.5's.",
+   "B": "Truncate the policy wording to its first 800 tokens, so that every request carries far less input text to process.",
+   "C": "Send every claim through the Message Batches API, which halves the price of each request for exactly the same output tokens.",
+   "D": "Put the cached static policy first, send only the claim fields, ask for a short JSON decision, and re-run the eval set."
+  },
+  "answer": "D",
+  "why": "Static content first lets the identical policy wording become a cached prefix that later calls read at a tenth of the input price. Sending only the fields the decision needs drops the email history, and asking for a short JSON decision removes most of the output tokens, which drive both cost and latency. Re-running the eval set proves the decisions stayed right. In the lab the same three decisions come back as schema-valid JSON with cache reads on calls 2 and 3, and output, cost and latency per claim all fall sharply.",
+  "wrong": {
+   "A": "A blind switch to a cheaper tier changes quality with no evidence, and still pays for the history and long output.",
+   "B": "Cutting the policy wording removes clauses the decision depends on, such as excess and authority rules, so quality is no longer held.",
+   "C": "Batches halve the price but return results within 24 hours, which breaks latency for a live claims desk."
+  },
+  "fix": "Put static content first and cache it, send only the fields that decide, ask for a short structured output, cap max_tokens, and re-run the eval set.",
+  "see": "Phase 1 decides all three claims right at about 3,000 output tokens each; phase 2 gives the same decisions in about 300, with cache reads on claims 2 and 3.",
+  "explain": "Both phases run Haiku 5.5 on the same three claims, so only the request shape changes, and quality is checked in code against the gold decisions (approve US$3,700, decline, approve US$650). Phase 1 is today's request: the six-email history, the claim, then the policy wording, and a request for an analysis and a letter. Every decision is right, but each claim costs about 3,000 output tokens and over ten seconds, and nothing is cached because no two requests share a prefix. Phase 2 puts the rules and policy first in a system block with cache_control, sends nine claim fields, and asks for a JSON decision through output_config with max_tokens 1024. The decisions are the same; cache_read_input_tokens is above zero from the second call; output falls by about 90%, and cost and latency follow. The page also prices the same token counts at Sonnet 5.5 list prices, the stem's model tier.",
+  "exam_tip": "Look for the option that cuts tokens without cutting information the task needs, and that re-checks quality. Blind model swaps, truncating required context and the Batch API for live traffic are the classic distractors.",
+  "source": "Original question written for C740",
+  "headline": "Cache what repeats, send what decides, ask for less.",
+  "concepts": [
+   {
+    "t": "Where the money and time go",
+    "b": "Cost is input tokens × input price plus output tokens × output price, and output is five times dearer on every tier. Latency grows mostly with output tokens generated."
+   },
+   {
+    "t": "Prompt caching",
+    "b": "Mark a static prefix (tools, system, long documents) with cache_control. Later calls with the identical prefix read it at 0.1× the input price; the first call writes it at 1.25×."
+   },
+   {
+    "t": "Static first, dynamic last",
+    "b": "The cache matches from the start of the request. Anything that changes per call, such as a claim or a timestamp, must come after the cached block or the prefix never matches."
+   },
+   {
+    "t": "Ask for less output",
+    "b": "A short structured output (JSON with a schema) replaces an essay. max_tokens caps the worst case, and stop_reason max_tokens tells you when the cap cut an answer."
+   },
+   {
+    "t": "Hold quality while you optimise",
+    "b": "Run the same eval set before and after. A cheaper design that changes decisions is a regression, not an optimisation."
+   }
+  ],
+  "sim_name": "Harbour Mutual Claims Desk"
+ },
+ {
+  "id": 25,
+  "task": "4.6",
+  "task_title": "Monitor system performance using logging and observability tools",
+  "topic": 4,
+  "topic_name": "Evaluation, Testing & Optimization",
+  "sim": 6,
+  "title": "'Answered in 2.4s' can't say why: log every Claude call as a record",
+  "stem": "Kestrel's checkout-assistant calls Claude in production and writes free-text log lines such as 'answered customer question in 2.4s'. After a release, customers report cut-off answers and Claude spend rises 2.4 times, and the on-call engineer cannot tell why from the logs. Which change best lets the team detect and diagnose problems like this?",
+  "options": {
+   "A": "Emit one structured record per Claude call (trace_id, prompt version, tokens, cache reads, stop_reason) and alert on it.",
+   "B": "Log the full prompt and the full response of every call as free text, so the on-call engineer can read exactly what happened.",
+   "C": "Add a thumbs-down button to the feature, and page the on-call engineer whenever the rate of thumbs-down votes rises.",
+   "D": "Run the offline evaluation suite against the production prompts every night, and alert when its pass rate falls."
+  },
+  "answer": "A",
+  "why": "Cut-off answers and higher spend are explained by fields the API returns on every call: stop_reason (max_tokens), output tokens, cache_read_input_tokens, plus the prompt version and trace_id the service adds. One structured record per call makes those queryable: alert rules can watch the max_tokens and cache-miss rates, a group-by on prompt version finds the release, and each finding links to a trace. In the lab, the same incident gives a low-confidence guess from the free-text lines and a cited, two-cause diagnosis from the records.",
+  "wrong": {
+   "B": "Full prompts and responses as text are costly, risky to store and still unqueryable: no rule can count stop_reason in prose.",
+   "C": "Thumbs-down votes arrive late and say that something is wrong, not why; they cannot see cache misses or token growth.",
+   "D": "An offline suite tests fixed items, not production traffic, so it can miss a cache miss or a token-cap problem live users hit."
+  },
+  "fix": "Emit one structured record per Claude call with trace_id, model, prompt version, token usage, cache reads, latency_ms, stop_reason and tool calls, and alert on it.",
+  "see": "From free text no rule can run and the diagnosis is a guess; from 48 records both rules fire and Claude names v14's max_tokens cap and lost cache hits, with trace ids.",
+  "explain": "The same 48 calls from 10:00 to 11:00 are seen two ways. Prompt v14 shipped at 10:20: it asks for longer answers, so 13 of its 32 calls stop at the 1,024-token cap, and it moved a timestamp to the top of the system prompt, so the cached prefix never matches and cache_read_input_tokens drops from 3,200 to 0. Phase 1 has the free-text lines the feature prints today: the truncation and cache-miss rules cannot even be evaluated, and Claude's diagnosis is low confidence, cites no trace ids and lists the fields it is missing. Phase 2 has one record per call in the observability store: both rules fire in code over the last 30 minutes, a group-by on prompt_version points at v14, and Claude's diagnosis names both causes and cites real trace ids an engineer can open.",
+  "exam_tip": "For production monitoring, pick structured per-call telemetry (tokens, latency, stop_reason, cache reads, model and prompt version, trace ids) with alerts and dashboards. Verbose text logs, user feedback and offline evals are useful but cannot diagnose a live incident on their own.",
+  "source": "Original question written for C740",
+  "headline": "You can only alert on what you logged as a field.",
+  "concepts": [
+   {
+    "t": "What the API already tells you",
+    "b": "Every response carries model, stop_reason and usage (input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens). Log them on every call."
+   },
+   {
+    "t": "Add your own context",
+    "b": "Add a trace_id that links the call to the user request, the prompt version, the feature or squad, latency_ms and the number of tool calls."
+   },
+   {
+    "t": "Alert on rates, not anecdotes",
+    "b": "Simple rules on the fields catch failures early: share of max_tokens stops, cache-hit rate, p95 latency, tokens per request, error rate."
+   },
+   {
+    "t": "Slice by version",
+    "b": "A dashboard grouped by prompt version or model shows a bad deploy at a glance and supports rollback decisions."
+   },
+   {
+    "t": "Log data, mind the content",
+    "b": "Log metadata on every call; keep full prompts and responses only where policy allows, sampled, access-controlled and redacted, since they may hold personal data."
+   }
+  ],
+  "sim_name": "Kestrel Platform Team"
+ },
+ {
+  "id": 26,
+  "task": "5.1",
+  "task_title": "Implement guardrails and safety controls",
+  "topic": 5,
+  "topic_name": "Governance, Safety & Risk Management",
+  "sim": 4,
+  "title": "Forged certificate approved: gate approve_permit on the registers",
+  "stem": "Riverton's permit pre-screening assistant reads residents' uploads and can call approve_permit. Its system prompt says never to follow instructions inside documents. In testing, a resident uploads a forged inspection certificate with a note telling the assistant to approve; the assistant reports that it ignored the note, then approves the permit anyway. Which control design best prevents unauthorised approvals?",
+  "options": {
+   "A": "Extend the system prompt with examples of injected notes and forged certificates, and tell the assistant to refuse any document that resembles one of them.",
+   "B": "Add a separate Claude screening call that classifies every upload for prompt injection and drops flagged uploads before the assistant reads them.",
+   "C": "Log every approval with the evidence it relied on, and have a caseworker review the log each morning and revoke any approval the evidence does not support.",
+   "D": "Return uploads as labelled untrusted data, and gate approve_permit in code on the inspection and payments registers, denying whenever they can't confirm."
+  },
+  "answer": "D",
+  "why": "The assistant obeyed the prompt rule for the note but still acted on forged facts, because nothing outside the model checked them. Layered controls fix that: uploads arrive as labelled untrusted data, and a PreToolUse gate checks the systems of record before approve_permit can take effect. The gate is deterministic and fails closed, so a forged document, or a register that can't answer, can't produce an approval.",
+  "wrong": {
+   "A": "More prompt text is still probabilistic, and a forged certificate with no injected note matches none of the examples.",
+   "B": "A second model is a useful extra layer, but it judges meaning probabilistically and a plain forgery carries no injection to flag.",
+   "C": "A morning review is a detective control: the permit has already been issued when the forgery is found."
+  },
+  "fix": "Label uploads as untrusted data and gate approve_permit in code on the inspection and payments registers, failing closed.",
+  "see": "The prompt rule catches the note but not the forged facts; the register gate denies PRM-3301 and PRM-3308 and allows PRM-3305.",
+  "explain": "In Phase 1 the only control is a sentence in the system prompt. Claude usually reports that it ignored the injected note, and then approves PRM-3301 on the forged certificate, because the forged facts are exactly what the approval rule asks for. In Phase 2 the uploads come back as labelled untrusted data, and a PreToolUse gate looks up the inspection register and the payments ledger before every approve_permit call. It denies PRM-3301 (inspection only booked for 28 Nov, fee unpaid) and PRM-3308 (the ledger is down, so it can't confirm: it fails closed), and it allows PRM-3305, which both registers confirm. Claude reads each denial and routes the application to a caseworker.",
+  "exam_tip": "When a stem says the model 'ignored the injection but still took the action', the fix is outside the model: a deterministic gate on the action that checks the system of record and fails closed. Prompt rules and screening models are layers that reduce risk; they are not the control that makes the bad action impossible.",
+  "source": "Original question written for C740",
+  "headline": "A prompt can't check a fact. Code that reads the register can.",
+  "concepts": [
+   {
+    "t": "Direct vs indirect prompt injection",
+    "b": "Direct injection comes from the user. Indirect injection rides in content the system reads: uploads, web pages, emails, tool results. The person asking can be honest while the document is not."
+   },
+   {
+    "t": "Who enforces a control",
+    "b": "The model (flexible, can be argued with), a second model (a probabilistic screen), deterministic code (certain, can't judge meaning) or a person. Put every 'must never happen' outside the model."
+   },
+   {
+    "t": "Preventive vs detective controls",
+    "b": "A gate before the action prevents it. Logs and morning reviews only detect it, after the permit, payment or email has already gone out."
+   },
+   {
+    "t": "Fail closed",
+    "b": "When a control can't decide, because a register times out or a lookup fails, it denies. A gate that allows on error turns every outage into an open door."
+   },
+   {
+    "t": "Label untrusted content",
+    "b": "Return third-party content in tool results, marked with its source and as data, not instructions. It lowers the risk of injection; it doesn't replace a gate on the action."
+   }
+  ],
+  "sim_name": "Riverton Resident Services"
+ },
+ {
+  "id": 27,
+  "task": "5.2",
+  "task_title": "Identify risks, limitations, and failure modes of LLM systems",
+  "topic": 5,
+  "topic_name": "Governance, Safety & Risk Management",
+  "sim": 1,
+  "title": "Two calls agreed on the wrong payout: let code compute it",
+  "stem": "Harbour Mutual's claims agent calculates payouts from garage quotes and pays any amount within its US$5,000 authority. To catch errors, a second Claude call recalculates each payout, and the agent pays only when both agree. An audit finds a payout that both calls agreed on, but that silently left out an unpriced quote line, which kept it under the limit. Which change best addresses this failure mode?",
+  "options": {
+   "A": "Move the calculation step to Claude Opus 5.5, whose stronger reasoning makes arithmetic and omission errors much less likely than on a smaller model.",
+   "B": "Add worked examples to the prompt, including a quote with an unpriced line, that show the model how to flag a gap before it calculates.",
+   "C": "Have Claude extract each line with null for missing amounts, then compute the payout in code and hold any claim that has an unpriced line.",
+   "D": "Add a third independent calculation call and pay only when all three agree, routing any disagreement between the calls to an adjuster."
+  },
+  "answer": "C",
+  "why": "The failure mode is a fluent figure produced from input that can't support it, confirmed by a check that shares the same blind spot. The reliable fix splits the work: Claude does what it is good at (reading and copying lines, with null where nothing is printed), and deterministic code grounds each line in the quote, refuses to compute while a line is unpriced, applies the policy terms and checks the authority limit.",
+  "wrong": {
+   "A": "A larger model makes errors rarer, not impossible, and it still has to guess an amount the quote doesn't print.",
+   "B": "Examples improve the odds but leave the payout resting on the model's arithmetic and its judgement.",
+   "D": "More calls of the same model share the same blind spot, so they can agree on the same wrong figure."
+  },
+  "fix": "Extract the lines with Claude (null where unpriced), then hold, compute and route on the payout in code.",
+  "see": "Both Phase 1 calls agree on about $4,810.58 and it is paid; Phase 2 holds for line 14, computes $5,340.64 and escalates.",
+  "explain": "Line 14 of the quote says 'per materials sheet to follow', so no correct payout can be computed from the quote alone. In Phase 1 Claude still returns a figure, about $4,810.58 with line 14 silently left out, and a second call agrees with it. The figure is under the $5,000 authority, so the pipeline pays it without an adjuster. In Phase 2 Claude extracts all 21 lines with line 14 as null; code checks the other 20 amounts against the quote, holds the claim, fetches the materials sheet ($486.30), computes $5,340.64 from the policy terms and escalates it to an adjuster.",
+  "exam_tip": "Self-consistency (ask twice, compare) and bigger models are tempting answers to an accuracy problem. When the failure is a known mode, such as arithmetic, missing input or a hard business rule, the professional answer is to move that part into deterministic code and let the model do the reading.",
+  "source": "Original question written for C740",
+  "headline": "The model reads the quote. Code does the sums.",
+  "concepts": [
+   {
+    "t": "Fluent is not correct",
+    "b": "An LLM produces a plausible answer to the question asked, even when the input can't support one. A required number in a schema gets filled, with or without the facts."
+   },
+   {
+    "t": "Self-consistency is not verification",
+    "b": "Two calls of the same model share the same blind spots. Agreement shows stability, not truth; an independent check uses a different source, such as the document or code."
+   },
+   {
+    "t": "Arithmetic is a known weak spot",
+    "b": "Long sums in one pass are error-prone, more so with thinking off. Bigger models and examples make errors rarer, not impossible. Hard arithmetic belongs in code."
+   },
+   {
+    "t": "Ground every extracted value",
+    "b": "Check each extracted amount against the source text, and require null where the source prints nothing. A value that isn't in the document is a guess."
+   },
+   {
+    "t": "Hold on missing input",
+    "b": "When a required input is missing, stop and fetch it; don't compute around the gap. Missing data is a reason to route the case, not to estimate."
+   }
+  ],
+  "sim_name": "Harbour Mutual Claims Desk"
+ },
+ {
+  "id": 28,
+  "task": "5.3",
+  "task_title": "Apply human-in-the-loop validation strategies",
+  "topic": 5,
+  "topic_name": "Governance, Safety & Risk Management",
+  "sim": 3,
+  "title": "54 seconds a draft is a signature: route review by risk",
+  "stem": "Meridian Health drafts about 600 clinical letters and notes a day with Claude, and three clinicians have 540 minutes a day for sign-off. Every draft joins one queue, approval rates are close to 100%, and a GP letter with conflicting warfarin doses was signed in under a minute. Which human-in-the-loop design best fits this situation?",
+  "options": {
+   "A": "Route each draft in code by impact, reversibility and uncertainty; flagged drafts get full review with reasons, the rest a co-sign or sampled audit.",
+   "B": "Keep a full review of every draft, but add two more clinicians and a checklist, so that each draft gets a careful, complete read before it is released.",
+   "C": "Release drafts that Claude rates as high confidence without review, and send only its medium and low confidence drafts to the clinicians.",
+   "D": "Release every draft automatically, and have clinicians audit a random 10% sample of each week's drafts, feeding the errors they find back into the prompt."
+  },
+  "answer": "A",
+  "why": "Oversight is a budget. At 600 drafts in 540 minutes a uniform review becomes a signature, so the fix is to spend reviewer time by risk: code flags what it can check (high-alert drugs, conflicting doses, pending results, whether the document leaves the hospital), adds Claude's own uncertainty as a signal, and shows the reviewer the reasons. Unflagged letters get a quick co-sign, unflagged internal notes are filed and sampled, and every route is logged.",
+  "wrong": {
+   "B": "Five clinicians give 900 minutes for 600 drafts, still about 90 seconds each, so the queue stays a rubber stamp.",
+   "C": "Self-reported confidence alone ignores impact and reversibility, and it isn't calibrated against outcomes.",
+   "D": "A weekly audit is detective: a letter with the wrong warfarin dose has already reached the GP."
+  },
+  "fix": "Route each draft in code by impact × reversibility × uncertainty, and show the reviewer the reasons.",
+  "see": "One uniform queue signs Patient C's warfarin letter in 54 seconds; risk routing sends C and D to full review with reasons.",
+  "explain": "Both phases ask Claude to draft the same four documents in one call, with the medications it wrote, its open questions and its confidence. In Phase 1 every draft joins one sign-off queue; at Meridian's volume that is 54 seconds a draft, so the simulated clinician signs Patient C's warfarin letter as drafted and the 5 mg vs 3 mg conflict in the note is never surfaced. In Phase 2 code routes each draft: C (high-alert drug, dose conflict, leaves the hospital) and D (echo report pending) go to full review with the reasons on screen, B is co-signed and A's internal note is auto-filed. Reviewer time needed falls from 2,400 to 480 of the 540 minutes available.",
+  "exam_tip": "Look for the answer that tiers oversight by impact and reversibility and fits the reviewers' capacity. '100% human review' sounds safest but fails at volume through automation bias; a confidence threshold alone ignores impact; post-hoc audits can't recall an irreversible action.",
+  "source": "Original question written for C740",
+  "headline": "Spend reviewer minutes where the risk is.",
+  "concepts": [
+   {
+    "t": "Impact × reversibility",
+    "b": "Gate actions that are high-impact and can't be undone, such as a letter that leaves the hospital. Monitor actions that can be amended, such as an internal chart note, instead of gating them."
+   },
+   {
+    "t": "Reviewer load",
+    "b": "Load = volume × share reviewed × minutes each ÷ reviewer minutes available. Above 1, reviews turn into signatures: 600 drafts in 540 minutes is 54 seconds each."
+   },
+   {
+    "t": "Automation bias",
+    "b": "When a system is usually right, people stop checking it. Near-100% approval and falling time per decision are the signs. Showing why a draft was flagged gives the reviewer something to check."
+   },
+   {
+    "t": "Confidence is a signal, not a verdict",
+    "b": "A model's self-reported confidence can help route work, but only alongside signals code can check: high-alert drugs, conflicting values, pending results."
+   },
+   {
+    "t": "Sample what you don't review",
+    "b": "Auto-filed items need a random audit sample. It measures the real error rate of the unreviewed stream and catches drift before patients do."
+   }
+  ],
+  "sim_name": "Meridian Clinical Notes"
+ },
+ {
+  "id": 29,
+  "task": "5.4",
+  "task_title": "Ensure compliance with regulations (e.g., GDPR, HIPAA, FedRAMP)",
+  "topic": 5,
+  "topic_name": "Governance, Safety & Risk Management",
+  "sim": 3,
+  "title": "The whole record went to the model and the log: send the minimum",
+  "stem": "Meridian Health's referral-drafting prototype sends each patient's full record to Claude and copies every prompt and response to a third-party log service for debugging. Before go-live, the compliance lead asks for a design that meets HIPAA's minimum-necessary standard and produces evidence for audits. Which design best meets the requirement?",
+  "options": {
+   "A": "Keep sending the full record so that letters stay accurate, sign a BAA with the model provider, and restrict log access with role-based permissions.",
+   "B": "Send only the fields each purpose needs with identifiers tokenised, restore them in code after the call, and log metadata plus an audit record.",
+   "C": "Tell Claude in the system prompt to ignore identifiers it does not need and never to repeat them, and encrypt the log store at rest.",
+   "D": "Move the workload to a FedRAMP High authorised cloud region, and keep the full prompts in its logs, since that authorisation covers them."
+  },
+  "answer": "B",
+  "why": "Minimum necessary is decided before the call: an allow-list per purpose controls which fields leave, identifiers become tokens that only your code maps back, and the log keeps metadata instead of PHI. The audit record (user, purpose, fields sent and withheld) is the evidence that the control ran. The other options leave the full record flowing to the model or the log.",
+  "wrong": {
+   "A": "A BAA is needed, but it doesn't make sending the whole record 'minimum necessary', and the third-party log still holds full PHI.",
+   "C": "By the time the model reads the instruction the PHI has already been disclosed; encrypting the log doesn't reduce what it holds.",
+   "D": "FedRAMP authorises cloud services for US federal agencies; it doesn't satisfy HIPAA's minimum-necessary standard or cover a third-party log."
+  },
+  "fix": "Allow-list fields per purpose, tokenise identifiers, log metadata only and write an audit record of what was sent and why.",
+  "see": "Phase 1 sends 9 identifiers and 3 unneeded history items and logs them; Phase 2 sends none and logs metadata plus an audit record.",
+  "explain": "The lab scans the exact request body each phase sent. In Phase 1 the full record reaches Claude: name, MRN, date of birth, address, phone, email, SSN, insurance id and next of kin, plus sensitive history a diabetes referral doesn't need, and the debug log keeps a full copy. In Phase 2 an allow-list keeps six fields for this purpose, the name and MRN become [PATIENT] and [MRN], and code puts them back after the call. The letter still has HbA1c 9.1%, metformin and gliclazide. The log holds request id, field names, token counts and a fingerprint, and the audit record lists who sent which fields, for which purpose, and which were withheld.",
+  "exam_tip": "Compliance answers are usually about what data reaches which processor, and what evidence you keep. Prefer the option that removes data before the call (minimisation, tokenisation) and leaves an audit trail, over options that rely on the model ignoring data, on encryption alone, or on a certification meant for a different regime.",
+  "source": "Original question written for C740",
+  "headline": "Allow-list the fields. Log metadata. Keep the evidence.",
+  "concepts": [
+   {
+    "t": "Minimum necessary",
+    "b": "HIPAA's standard: use or disclose only the PHI needed for the purpose. Write it per purpose as an allow-list in code, so every field that leaves is a visible decision."
+   },
+   {
+    "t": "Every hop is in scope",
+    "b": "The model provider, the log service and any trace store that receives PHI must sit inside the agreements that cover it (a BAA for HIPAA). A debug log is a hop."
+   },
+   {
+    "t": "Tokenise, then re-identify",
+    "b": "Replace direct identifiers with tokens such as [PATIENT] before the call, and map them back in your own code afterwards. Claude still writes the letter; it never sees the name."
+   },
+   {
+    "t": "Log metadata; keep audit evidence",
+    "b": "Operations need request ids, token counts and field names, not prompt text. An audit record of user, purpose, fields sent and fields withheld shows the control ran."
+   },
+   {
+    "t": "Frameworks differ",
+    "b": "HIPAA covers US health data, GDPR the personal data of people in the EU, FedRAMP cloud services for US federal agencies. One certification doesn't satisfy another regime."
+   }
+  ],
+  "sim_name": "Meridian Clinical Notes"
+ },
+ {
+  "id": 30,
+  "task": "5.5",
+  "task_title": "Address ethical AI considerations (bias, fairness, transparency)",
+  "topic": 5,
+  "topic_name": "Governance, Safety & Risk Management",
+  "sim": 4,
+  "title": "Same case, other language, other outcome: test with pairs",
+  "stem": "Riverton's benefit pre-screener answers residents who write in English, Malay, Tamil or Chinese. Its prompt tells Claude to treat every resident equally, and it passed a review of 50 English cases. Before go-live, the council must show that outcomes don't depend on a resident's name or language, and that each decision is explained. Which approach best does this?",
+  "options": {
+   "A": "Run counterfactual pairs (same case, only name or language changed) through the whole pipeline as a release gate; explain each decision by its rule.",
+   "B": "Strip residents' names and the language field from every request before the model sees it, so that protected attributes can't influence a decision.",
+   "C": "Ask Claude to review each of its own decisions for bias before replying, and to explain its reasoning to the resident in plain language.",
+   "D": "Compare approval rates by language group after the first month live, and investigate any group whose rate differs from the others by over 10 points."
+  },
+  "answer": "A",
+  "why": "A counterfactual pair holds the case constant and changes one protected attribute, so any difference in outcome is caused by that attribute. Run end to end, the pairs catch bias wherever it enters (here an English-only fact extractor, not the model), and as a release gate they stop a regression before residents see it. Explanations built from the rule ids and figures that decided each case are faithful by construction.",
+  "wrong": {
+   "B": "Removing names leaves the language of the message itself, and proxies such as address; it hides inputs instead of measuring outcomes.",
+   "C": "A model's review of its own reasoning is neither a measurement nor reliably faithful to what drove the decision.",
+   "D": "Group rates arrive after residents are affected and mix real differences in cases with unfair treatment."
+  },
+  "fix": "Gate the release on counterfactual pairs run end to end, and explain each decision by the rule and figures that decided it.",
+  "see": "Phase 1 flips 2 of 3 pairs on language; Phase 2 gives all four 'likely eligible' with rule-based explanations and 0 flips.",
+  "explain": "All four messages describe the same household: 3 people, $2,150 a month, 4 years in Riverton. In Phase 1 the pre-screener's facts come from keyword patterns written for English, so both English messages are 'likely eligible' while the same resident writing in Malay or Chinese is asked for information she already gave: the two language pairs flip, the name pair doesn't. In Phase 2 Claude extracts the facts from every language into a schema, the same rules in code give all four 'likely eligible' at $716.67 per person, each resident gets an explanation in her language naming BEN-R1 and BEN-R2, and the gate passes with 0 flips.",
+  "exam_tip": "Fairness questions reward measurement over intention. Prefer paired (counterfactual) tests run before release over prompt instructions, removing attributes, or comparing group rates after launch, and prefer explanations derived from the decision rule over the model's own account of its reasoning.",
+  "source": "Original question written for C740",
+  "headline": "Change one attribute. The outcome must not move.",
+  "concepts": [
+   {
+    "t": "Counterfactual pairs",
+    "b": "Hold a case constant and change one protected attribute, such as name or language. Any difference in outcome is caused by that attribute. Run many cases, several times each."
+   },
+   {
+    "t": "Test the whole pipeline",
+    "b": "Bias can enter outside the model: an English-only parser, a translation step, a retrieval filter. Pairs run end to end catch it wherever it sits."
+   },
+   {
+    "t": "Unawareness is not fairness",
+    "b": "Removing names doesn't remove language, address or other proxies, and a message written in Malay can't hide its language. Measure outcomes instead of hiding inputs."
+   },
+   {
+    "t": "Group rates come too late",
+    "b": "Approval rates by group mix real differences between cases with unfair treatment, and they arrive after residents are affected. Paired tests isolate the attribute before release."
+   },
+   {
+    "t": "Explain by the rule",
+    "b": "An explanation built from the rule ids and figures that decided the case is faithful by construction. A model's after-the-fact account of its reasoning may not be."
+   }
+  ],
+  "sim_name": "Riverton Resident Services"
+ },
+ {
+  "id": 31,
+  "task": "6.1",
+  "task_title": "Conduct structured discovery and requirement gathering",
+  "topic": 6,
+  "topic_name": "Stakeholder Communication & Lifecycle Management",
+  "sim": 5,
+  "title": "A design from the COO's one line misses legal: interview every group",
+  "stem": "Lumen Retail's COO, Grace Lim, emails you: \"We want an AI assistant in all 300 stores that answers product questions for staff and customers. Live by early March. Can you send me the solution design by Friday?\" Store operations, IT security and legal have not yet been consulted. What should you do first?",
+  "options": {
+   "A": "Draft a reference design from the COO's brief by Friday, then refine it in review sessions with each team once they have something concrete to react to and comment on.",
+   "B": "Build a quick proof of concept on the product catalogue so that every stakeholder can react to a working assistant before any of the requirements are written down.",
+   "C": "Interview each stakeholder group against a checklist of users, volumes, data, constraints, risks, success measures and SLAs, and log conflicts for the sponsor.",
+   "D": "Send every stakeholder a short requirements questionnaire, and where their answers conflict, design to the view that most of the groups share."
+  },
+  "answer": "C",
+  "why": "The sponsor's email covers users and a deadline, nothing more. Structured discovery against a fixed checklist turns volumes, data, risks, success measures and service levels from guesses into traced requirements, and it is the only step that surfaces conflicts such as store operations wanting transcripts kept while legal forbids storing them. The architect records the conflict with both sources and leaves the decision to the accountable owner.",
+  "wrong": {
+   "A": "A design drafted first anchors everyone on assumptions, and conflicts such as the legal ban on stored transcripts surface late, after the design depends on them.",
+   "B": "A proof of concept before success measures and constraints are known has nothing to be judged against, and it can be built on data legal will not allow.",
+   "D": "A legal obligation is not outvoted by the majority: conflicts must go to the accountable owner, and a questionnaire cannot probe answers the way an interview can."
+  },
+  "fix": "Interview every stakeholder group against a checklist, trace each requirement to what someone said, and log conflicts for the sponsor to decide.",
+  "see": "Phase 1 assumes five of seven items; Phase 2 traces all seven and finds the transcript conflict between store operations and legal.",
+  "explain": "Both phases start from the same email. Drafted from it alone, only users and a deadline trace to anything a stakeholder said; volumes, data, risks, success measures and SLAs are the architect's guesses, and no conflict can be found. With discovery, Claude interviews the sponsor, store operations, IT security and legal through ask_stakeholder, cites the INT record behind each requirement, and logs that store operations (INT-06) wants transcripts kept for 90 days while legal (INT-10) forbids storing them. Code checks every citation against what the record covers, so an unsupported requirement counts as an assumption.",
+  "exam_tip": "When a scenario starts from a sponsor's one-line request, the answer is discovery across all stakeholder groups before design or a proof of concept. Conflicts are recorded and escalated to the accountable owner; they are never settled by a majority vote or by the architect alone.",
+  "source": "Original question written for C740",
+  "headline": "Ask every group before you design. Trace or label it.",
+  "concepts": [
+   {
+    "t": "Discovery output is a requirements trace",
+    "b": "Each requirement cites who said it. Anything nobody said is labelled an assumption, so the sponsor can see what the design rests on."
+   },
+   {
+    "t": "A checklist, not a conversation",
+    "b": "Users, volumes, data, constraints, risks, success measures and SLAs. A fixed list makes gaps visible: an empty row is a question still to ask."
+   },
+   {
+    "t": "Every stakeholder group, not the sponsor",
+    "b": "The sponsor owns the goal; store operations, IT security and legal own constraints the sponsor may not know. Each holds a veto the design must respect."
+   },
+   {
+    "t": "Log conflicts; don't settle them",
+    "b": "When two groups want incompatible things, record both sources and the person who decides. A legal obligation outranks an operational wish."
+   },
+   {
+    "t": "Success measures before any build",
+    "b": "A measurable target (30% less staff time, satisfaction 4.2 or better) is what a pilot is later judged against. Without it a proof of concept proves nothing."
+   }
+  ],
+  "sim_name": "Lumen Retail Engagement"
+ },
+ {
+  "id": 32,
+  "task": "6.2",
+  "task_title": "Communicate architectural decisions and trade-offs",
+  "topic": 6,
+  "topic_name": "Stakeholder Communication & Lifecycle Management",
+  "sim": 5,
+  "title": "A memo that sells the pick can't be approved: write the record",
+  "stem": "You have chosen Claude Haiku 5.5 with retrieval for Lumen's assistant over Claude Sonnet 5.5 with retrieval and over a larger human hotline. Grace Lim (COO) must approve the budget and Hannah Koh (IT security lead) must approve the data flow before the build starts. How should you communicate the decision?",
+  "options": {
+   "A": "Send both leaders the same one-page summary explaining why the chosen option is the best fit for Lumen, with the architecture diagram attached for reference.",
+   "B": "Write a decision record with the options, their measured accuracy, latency and cost, the risks and a reversal trigger, then brief each leader in their own terms.",
+   "C": "Present the full benchmark tables, the token-level cost model and the retrieval settings to both leaders so they can weigh every detail and reach their own conclusion.",
+   "D": "Present only the recommended option at the steering meeting, and keep the analysis of the alternatives in reserve in case one of the leaders challenges it."
+  },
+  "answer": "B",
+  "why": "A stakeholder can act on a decision only when they can see what was traded away, in their own units, and what would change it. The decision record holds the options with measured accuracy, latency and cost, the risks with their controls, and the reversal trigger; each brief restates the same facts for its reader: money and service for the COO, data and controls for IT security.",
+  "wrong": {
+   "A": "One summary that only argues for the pick hides the trade-offs and speaks to neither reader's question: the COO's cost comparison or IT security's data flow.",
+   "C": "Raw benchmarks and token maths hand the architect's analysis to the leaders without a recommendation, in units neither of them works in.",
+   "D": "Holding the alternatives back takes the trade-off decision away from the people accountable for it and invites the doubt it tries to avoid."
+  },
+  "fix": "Record the options, measured trade-offs, risks and reversal trigger, and brief each stakeholder in their own terms from that one record.",
+  "see": "Phase 1's readers can answer only a few of their 6 questions; Phase 2's readers answer all 6 from their brief and the record.",
+  "explain": "Both phases answer the same request. Phase 1 is built from the pick alone, so the memo can only praise Option A. Phase 2 is built from the decision record: Options A, B and C with their measured accuracy, p95 latency and monthly cost, the risks and controls, the data flow, and the reversal trigger (weekly graded accuracy below 90% for two weeks), plus one brief for the COO and one for IT security. Two reader calls that see only the document then answer the questions each reader needs to act on, and code counts the answers.",
+  "exam_tip": "Look for the option that shows alternatives, measured trade-offs and a reversal condition, tailored per audience. Answers that hide alternatives, send everyone the same summary, or pass raw technical detail to executives are distractors.",
+  "source": "Original question written for C740",
+  "headline": "Show what you traded away, in their units.",
+  "concepts": [
+   {
+    "t": "The architect owns the options",
+    "b": "Measure each option on the client's own eval data. The accountable stakeholder owns the choice, so they must see the alternatives, not only the pick."
+   },
+   {
+    "t": "Trade-offs in the reader's units",
+    "b": "The COO thinks in money, staff time and service; IT security in data, access and controls. Same facts, different order and units."
+   },
+   {
+    "t": "A decision record outlives the meeting",
+    "b": "Context, options, decision, consequences and status, written down. A newcomer can then see why, instead of accepting or reversing it blindly."
+   },
+   {
+    "t": "Name the reversal trigger",
+    "b": "A measured result that would change the decision, such as weekly accuracy below 90% for two weeks. It turns a debate into a monitor."
+   },
+   {
+    "t": "Effort in proportion to reversibility",
+    "b": "A model swap behind a stable interface is cheap to undo. Data-residency or write-access decisions are not, and get the full analysis and sign-off."
+   }
+  ],
+  "sim_name": "Lumen Retail Engagement"
+ },
+ {
+  "id": 33,
+  "task": "6.3",
+  "task_title": "Manage stakeholder feedback loops and expectation alignment (including SLAs)",
+  "topic": 6,
+  "topic_name": "Stakeholder Communication & Lifecycle Management",
+  "sim": 5,
+  "title": "\"99.99% and always correct\" breaks on day one: commit to measured SLOs",
+  "stem": "Lumen's COO wants the board pack to promise that the store assistant will be available 99.99% of the time and that its answers will always be correct. The six-week pilot in 20 stores measured 99.82% availability, a p95 latency of 2.4 seconds and 374 correct answers out of 400 graded by product specialists. What should you propose?",
+  "options": {
+   "A": "Accept 99.99% availability and always-correct answers as stretch goals in the board pack, and report progress against both of those targets every month.",
+   "B": "Commit to 99.99% availability by moving to a multi-region deployment, and replace the accuracy promise with a disclaimer that answers may sometimes be wrong.",
+   "C": "Make no service commitment in the board pack until the assistant has run in production for six months and there is more data to go on.",
+   "D": "Agree SLOs from the pilot results for availability, latency, accuracy on a graded sample and hand-over time, with an error budget and a monthly review."
+  },
+  "answer": "D",
+  "why": "Commitments a stakeholder can rely on come from measurement. Operational targets (availability, latency, hand-over time) are set where the pilot already meets them; accuracy is a rate on a stated graded sample, because 374 of 400 is an estimate, not a per-answer guarantee. An error budget says what happens when the misses add up, and a regular review with store operations keeps expectations and feedback aligned.",
+  "wrong": {
+   "A": "A target the pilot already misses is broken on the day it is promised, and \"always correct\" is not a property any model-based system can measure or keep.",
+   "B": "More regions may lift availability, but it is engineering to a wish at unknown cost, and a disclaimer removes the quality commitment instead of measuring it.",
+   "C": "Six months without agreed targets leaves the board with no expectations and the team with no feedback loop, so the misalignment simply grows."
+  },
+  "fix": "Set SLOs from measured pilot results, state quality as a sampled rate, attach an error budget and run a regular feedback review.",
+  "see": "Phase 1's commitments are already breached by the pilot; Phase 2's are all met, with an error budget and a review cadence.",
+  "explain": "Both phases answer the sponsor's same request. Phase 1 writes her wish into the board pack, and code finds the pilot already misses it: 99.82% availability against 99.99%, 93.5% accuracy against near-perfect. Phase 2 reads the pilot first with get_pilot_metrics, sets each target the pilot meets, measures accuracy and critical errors on a graded sample with its size stated, adds an error budget that freezes changes when spent, and names an owner and a review cadence. The sponsor's original ask goes back to her with the evidence.",
+  "exam_tip": "For LLM systems, accept answers that split operational SLOs from quality measured on a sample, and that pair targets with an error budget and a review cadence. Reject \"always correct\", stretch targets the evidence already misses, and deferring commitments altogether.",
+  "source": "Original question written for C740",
+  "headline": "Promise what you measured. Budget the misses.",
+  "concepts": [
+   {
+    "t": "SLI, SLO, SLA",
+    "b": "An SLI is a measure (p95 latency). An SLO is a target for it (3 s or less). An SLA is the agreement with consequences when an SLO is missed."
+   },
+   {
+    "t": "Two families of SLO",
+    "b": "Operational SLOs are measured on every request. Quality SLOs, such as accuracy, are rates estimated on a graded sample, so the sample size is part of the promise."
+   },
+   {
+    "t": "A rate is an estimate",
+    "b": "374 correct out of 400 is 93.5%, but the Wilson 95% interval runs from about 90.6% to 95.5%. Promise below the lower bound, not at the point estimate."
+   },
+   {
+    "t": "Error budgets turn arguments into rules",
+    "b": "99.5% availability allows about 126 minutes of store hours a month. When it is spent, changes stop until reliability is fixed."
+   },
+   {
+    "t": "Feedback has a cadence and an owner",
+    "b": "A monthly review of the SLOs, store feedback and the weekly graded sample, chaired by a named owner, keeps expectations and the system aligned."
+   }
+  ],
+  "sim_name": "Lumen Retail Engagement"
+ },
+ {
+  "id": 34,
+  "task": "6.4",
+  "task_title": "Document architectures and provide implementation guidance",
+  "topic": 6,
+  "topic_name": "Stakeholder Communication & Lifecycle Management",
+  "sim": 5,
+  "title": "A summary drops the runbook and owners: hand off an ADR and a guide",
+  "stem": "Your engagement with Lumen Retail ends in three weeks. Lumen's in-house team will then run the product-support assistant and change its prompts, retrieval and model on their own. Which documentation best prepares them to do that without you?",
+  "options": {
+   "A": "An ADR per key decision with its context, consequences and rejected alternatives, plus an implementation guide with interfaces, the pinned model ID, runbooks and owners.",
+   "B": "The final steering-committee slide deck with the architecture diagram, the business case and the pilot results, saved on the shared drive where the team can find it later.",
+   "C": "Recorded walkthrough sessions in which the architect explains the code, prompts and retrieval set-up, so the team can replay them whenever a question comes up after handoff.",
+   "D": "Thorough comments throughout the code, prompts and configuration files, so the documentation lives next to the implementation and stays in step with every future change."
+  },
+  "answer": "A",
+  "why": "A receiving team needs the why, the how and the who. Architecture Decision Records keep the context, the consequences and the alternatives that lost, so a later change is made knowingly. The implementation guide keeps the exact interfaces, the pinned model ID and where it is set, numbered runbook steps with thresholds, and a named owner for each part.",
+  "wrong": {
+   "B": "A steering deck is written for executives: it carries the business case, not the interfaces, runbook steps or owners an engineer needs at 2 a.m.",
+   "C": "Recordings cannot be searched or versioned, and they still leave decisions, thresholds and owners for the team to dig out of hours of video.",
+   "D": "Code comments explain local behaviour; they cannot hold why alternatives were rejected, the runbook, or who owns the prompt and the eval suite."
+  },
+  "fix": "Hand off an ADR per decision and an implementation guide with interfaces, configuration, runbooks and named owners.",
+  "see": "The summary has none of the nine sections and the newcomer can answer few questions; ADR-007 and the guide have all nine and the newcomer answers all five.",
+  "explain": "Both phases document the same working notes. Phase 1 writes the usual high-level summary: accurate, readable, and missing what the team needs once the architect has gone. Phase 2 writes ADR-007 (context, decision, status, consequences, alternatives considered) and an implementation guide (interfaces, configuration, runbook, owners). Code checks the nine sections by heading. A new Lumen developer, a separate Claude call that sees only the document, then answers five handoff questions, and code checks each answer for the key fact: claude-haiku-5-5, the /assist fields, the catalogue index check, Arun Pillai, and Sonnet 5.5 as the rejected option.",
+  "exam_tip": "When the question is about handoff to another team, pick the answer that records decisions with their alternatives and gives actionable implementation detail: interfaces, configuration, runbooks and owners. Decks, recordings and code comments each cover only part of it.",
+  "source": "Original question written for C740",
+  "headline": "Write down the why, the how and the who.",
+  "concepts": [
+   {
+    "t": "Architecture Decision Records",
+    "b": "Title, context, decision, status, consequences, and the alternatives that lost. A superseded ADR is marked, not deleted, so the history stays readable."
+   },
+   {
+    "t": "Behaviour lives outside the code",
+    "b": "In a Claude system the model ID, prompts, tools, retrieval corpus and evals shape behaviour. Each must be versioned and documented, not only the code."
+   },
+   {
+    "t": "Pin and record the model ID",
+    "b": "Name the exact model ID and the file it is set in. A change of model is a release, gated by the eval suite like any prompt change."
+   },
+   {
+    "t": "Runbooks with thresholds and steps",
+    "b": "\"Escalation rate above 12% for two days: check index freshness, re-run evals, roll back if below 92%\" can be acted on. \"Monitor quality\" cannot."
+   },
+   {
+    "t": "A named owner per component",
+    "b": "Prompt and evals, retrieval index, on-call, and the decision itself. Without owners, a handoff becomes a question nobody can answer."
+   }
+  ],
+  "sim_name": "Lumen Retail Engagement"
+ },
+ {
+  "id": 35,
+  "task": "6.5",
+  "task_title": "Support lifecycle phases (discovery, design, handoff, monitoring, iteration)",
+  "topic": 6,
+  "topic_name": "Stakeholder Communication & Lifecycle Management",
+  "sim": 5,
+  "title": "Drift found 3 weeks late by a complaint: monitors that re-run evals",
+  "stem": "Lumen's store assistant goes live on 1 March, and Lumen's in-house team takes it over six weeks later. Lumen launches a new product range every season, and the pilot's escalation rate was 8%. Which plan best supports the solution after go-live?",
+  "options": {
+   "A": "Close the project once the go-live acceptance tests pass, and have the support desk raise tickets whenever store staff report wrong or unhelpful answers to them.",
+   "B": "Freeze the prompt, model and catalogue index at go-live so the validated behaviour cannot drift, and re-certify the whole system once a year.",
+   "C": "Set monitors with thresholds and owners, such as escalation-rate drift or a new range, that send changes back through evaluation, and hand off against criteria.",
+   "D": "Keep the architect on a retainer to review the dashboards every month and decide, case by case, when the assistant needs to be changed, retuned or retrained."
+  },
+  "answer": "C",
+  "why": "After go-live the inputs keep changing: a new range brings new products and harder questions, and the model itself will eventually be retired. A lifecycle plan names the signals that matter, sets thresholds from the pilot baseline, gives each an owner, and routes every triggered change back through the eval suite before it ships. The handoff is passed on criteria the receiving team proves, not on a date.",
+  "wrong": {
+   "A": "Waiting for staff complaints finds drift weeks late, and closing at go-live leaves nobody owning the system's behaviour once the architect has gone.",
+   "B": "Freezing the system does not freeze its inputs: a new range still arrives, and the frozen index and prompt fall further behind every season.",
+   "D": "A monthly review by one person has no defined triggers, cannot catch a drift between reviews, and keeps the receiving team dependent instead of handing off."
+  },
+  "fix": "Plan monitoring signals with thresholds, owners and an action that re-runs the evals, and hand off against criteria with evidence.",
+  "see": "Phase 1 finds the drift in week 8 from a complaint; Phase 2's monitors send the change back to the eval suite in week 5 or 6.",
+  "explain": "Both phases plan the same assistant from the same facts. Phase 1's project template ends at go-live and closes, so when the spring range lands in week 5 and escalations climb from 8% to 15%, the first signal is store managers complaining to the COO in week 8. Phase 2's lifecycle template adds monitoring and iteration: monitors with thresholds from the pilot baseline (escalation rate, weekly graded accuracy, a catalogue-change event), an owner each, and the action rerun_eval_suite_and_iterate. Code replays the same ten weeks against both plans and reports the week each drift is acted on, and Phase 2 also lists handoff criteria with their evidence.",
+  "exam_tip": "Pick the answer that keeps the system in a loop after launch: defined signals and thresholds, named owners, changes that return to evaluation, and a handoff with exit criteria. Closing at go-live, freezing the system or relying on one person's review are the distractors.",
+  "source": "Original question written for C740",
+  "headline": "Go-live is a phase. Monitors start the next loop.",
+  "concepts": [
+   {
+    "t": "A loop, not a line",
+    "b": "Discovery, design, build, pilot, go-live, handoff, monitoring, iteration. Iteration returns to design or evaluation; the system is never finished."
+   },
+   {
+    "t": "Three clocks you don't control",
+    "b": "Input drift (new products, new questions), business change, and the model lifecycle: every model ID is eventually deprecated and retired."
+   },
+   {
+    "t": "Thresholds from the baseline",
+    "b": "The pilot measured an 8% escalation rate. A monitor at 11% for a week acts long before 15%; one at 16% never fires."
+   },
+   {
+    "t": "Every change goes back through the evals",
+    "b": "A new range, a prompt edit or a model swap re-runs the eval suite before release. The suite built in the pilot is what makes iteration cheap."
+   },
+   {
+    "t": "Handoff on evidence, not a date",
+    "b": "The receiving team proves it can run the system: a change shipped on its own with an eval report, and a rehearsed runbook."
+   }
+  ],
+  "sim_name": "Lumen Retail Engagement"
+ },
+ {
+  "id": 36,
+  "task": "7.1",
+  "task_title": "Configure Claude tools and environments for teams (e.g., Claude Code)",
+  "topic": 7,
+  "topic_name": "Developer Productivity & Operational Enablement",
+  "sim": 6,
+  "title": "The team's rules live on one laptop: commit the Claude Code config",
+  "stem": "Kestrel is rolling Claude Code out to 40 engineers in four squads. Today each engineer keeps the team's conventions and permissions in their own ~/.claude files; two of them allow Bash(*), and one has a Sentry token pasted into a personal MCP config. A new engineer's first sessions follow none of the conventions. What should the platform team do?",
+  "options": {
+   "A": "Publish the recommended ~/.claude settings on the team wiki, and ask each engineer to copy them onto their own machine as part of their onboarding.",
+   "B": "Commit a project CLAUDE.md, .claude/settings.json allow and deny rules, shared skills and an .mcp.json that reads its token from an environment variable.",
+   "C": "Put the team's conventions, permission rules and each MCP server's token into one shared CLAUDE.md at the repository root, so that every session reads them.",
+   "D": "Have each squad lead review their engineers' ~/.claude folders every quarter, and remove any risky permissions or pasted tokens that they find in them."
+  },
+  "answer": "B",
+  "why": "Configuration in the repository reaches every engineer's session from the first run and changes only through review. CLAUDE.md carries the guidance Claude reads; .claude/settings.json carries allow and deny rules the harness enforces; shared skills give everyone the same workflows; and .mcp.json can reference ${SENTRY_AUTH_TOKEN}, so the secret stays in each engineer's environment and out of git.",
+  "wrong": {
+   "A": "Copied personal settings drift from day one, nobody can see what each engineer actually runs, and the team still has no shared deny rules.",
+   "C": "CLAUDE.md is guidance Claude reads, not permissions the harness enforces, and tokens written into a committed file are secrets in git.",
+   "D": "A quarterly review watches the risk instead of removing it: between reviews Bash(*) and pasted tokens stay live, and new engineers still get nothing."
+  },
+  "fix": "Commit CLAUDE.md, .claude/settings.json allow/deny rules, shared skills and an .mcp.json that uses environment variables for secrets.",
+  "see": "Phase 1: Ben's session loads 0 of 5 team policies. Phase 2: all 5 reach his first session, and Claude's report of what loads matches the loader.",
+  "explain": "Both phases ask what a new engineer's first session loads in kestrel/checkout-service. In Phase 1 the conventions live in Ana's ~/.claude files, so Ben's session, which sees only the repository, loads no instruction file, no deny rule, no skill and no MCP server; Ana's own config meanwhile allows Bash(*) and holds a literal token that no review sees. In Phase 2 the same conventions are committed, with the token replaced by ${SENTRY_AUTH_TOKEN}. Claude inspects the files with Glob and Read and reports what loads; plain code computes the same and checks five team policies.",
+  "exam_tip": "For team-wide Claude Code behaviour, choose committed project configuration: CLAUDE.md for guidance, .claude/settings.json for enforced permissions, .claude/skills/ for shared workflows, and .mcp.json with environment-variable references. Organisation-wide must-holds go further, into managed settings.",
+  "source": "Original question written for C740",
+  "headline": "Put each rule where every session loads it.",
+  "concepts": [
+   {
+    "t": "Scopes: user, project, local",
+    "b": "~/.claude reaches only you. .claude/settings.json and CLAUDE.md in the repository reach everyone. .claude/settings.local.json is yours, kept out of git."
+   },
+   {
+    "t": "Guidance versus enforcement",
+    "b": "CLAUDE.md and skills are read by Claude and followed most of the time. Permission rules, hooks and managed settings are enforced by the harness."
+   },
+   {
+    "t": "Allow and deny lists merge",
+    "b": "Permission lists combine across scopes, and a deny anywhere beats an allow. A team deny on git push --force holds even if someone allows more."
+   },
+   {
+    "t": "Shared skills",
+    "b": "A skill in .claude/skills/<name>/SKILL.md gives all 40 engineers the same /pr-review workflow, versioned and reviewed like code."
+   },
+   {
+    "t": "MCP config without secrets",
+    "b": "Commit .mcp.json with ${SENTRY_AUTH_TOKEN}; each engineer's environment supplies the value. A token written into the file is a secret in git."
+   }
+  ],
+  "sim_name": "Kestrel Platform Team"
+ },
+ {
+  "id": 37,
+  "task": "7.2",
+  "task_title": "Improve developer workflows using AI-assisted tooling",
+  "topic": 7,
+  "topic_name": "Developer Productivity & Operational Enablement",
+  "sim": 6,
+  "title": "A chat review can't block PR 512: run claude -p in CI behind a gate",
+  "stem": "Kestrel engineers paste diffs into a Claude chat for review when they remember to, each with their own prompt, and the feedback varies from person to person. Last month a refund change that logged full card numbers was merged. The platform team wants consistent reviews that stop changes like that. What should they do?",
+  "options": {
+   "A": "Add a CONTRIBUTING.md rule that every engineer must ask Claude to review the diff in a chat before opening a pull request.",
+   "B": "Give each engineer a recommended review prompt to keep in their personal ~/.claude/CLAUDE.md, so every review starts from the same text.",
+   "C": "Have Claude review each pull request in CI and post its findings as a free-text comment for the human reviewer to read before merging.",
+   "D": "Run claude -p in CI with a committed review skill and a JSON schema for findings, and fail the check on any high-severity finding."
+  },
+  "answer": "D",
+  "why": "The improvement comes from wiring the tool into the flow, not from using it more often. CI runs the review on every pull request; the committed skill applies the same rules for everyone; the schema makes the output something a script can read; and a few lines of plain code fail the check on a high-severity finding, so branch protection stops the merge. The model supplies the judgement, the gate is deterministic.",
+  "wrong": {
+   "A": "A written rule still depends on each engineer remembering and on their own prompt, and its prose output cannot block anything.",
+   "B": "A personal ~/.claude file reaches only its owner, drifts over time, and still produces nothing a pipeline can check.",
+   "C": "Running in CI fixes when it happens, but free text cannot gate a merge: a busy reviewer can still miss the finding."
+  },
+  "fix": "Run the team's review skill with claude -p in CI, emit findings against a schema, and let a plain-code gate fail the check on high severity.",
+  "see": "Phase 1's chat reply is prose and the gate has no verdict; Phase 2 blocks PR 512 on KR-1 at refund.py line 14 and passes the clean PR 513.",
+  "explain": "Both phases review the same pull request, which logs card.number on line 14 and sends no Idempotency-Key. Phase 1 is the ad hoc chat: helpful prose, often even naming the problem, but nothing the pipeline can act on. Phase 2 runs claude -p in CI with the committed pr-review skill (rules KR-1 to KR-4) and a findings schema on PR 512 and on a clean PR 513. A gate in plain code parses the findings and exits 1 on any high-severity finding: PR 512 is blocked, PR 513 passes.",
+  "exam_tip": "When the goal is consistent, enforced AI assistance across a team, look for the answer that runs in the shared pipeline, uses committed configuration, and produces structured output a deterministic step can gate on. Free-text comments and personal prompts are partial fixes.",
+  "source": "Original question written for C740",
+  "headline": "Wire it into the flow. Gate on structure.",
+  "concepts": [
+   {
+    "t": "Headless Claude Code: claude -p",
+    "b": "Print mode runs one prompt and exits, which suits CI. --output-format json gives a result a script can read instead of a chat transcript."
+   },
+   {
+    "t": "Skills make reviews consistent",
+    "b": "A committed .claude/skills/pr-review/SKILL.md gives every run the same rules, versioned and reviewed like code."
+   },
+   {
+    "t": "Structured output for machines",
+    "b": "A JSON schema for findings (file, line, rule, severity) lets a CI step count and filter them. Prose needs a human to read it."
+   },
+   {
+    "t": "Model for judgement, code for the gate",
+    "b": "Claude decides whether line 14 logs a card number. Plain code decides that a high finding fails the build. Branch protection blocks the merge."
+   },
+   {
+    "t": "Speed-ups move the bottleneck",
+    "b": "Faster code writing helps only if review and verification keep up. Automating the first review pass keeps the human reviewer for judgement."
+   }
+  ],
+  "sim_name": "Kestrel Platform Team"
+ },
+ {
+  "id": 38,
+  "task": "7.3",
+  "task_title": "Support debugging and operational issue resolution",
+  "topic": 7,
+  "topic_name": "Developer Productivity & Operational Enablement",
+  "sim": 6,
+  "title": "6% of summaries fail: trace stop_reason max_tokens, don't guess",
+  "stem": "Since Tuesday afternoon, 6% of requests to Kestrel's order-summary service, which uses Claude to write the summary on the order confirmation page, fail with \"Order summary unavailable\". The on-call engineer asks Claude Code for help. Which approach best resolves the incident?",
+  "options": {
+   "A": "Give Claude read-only access to logs, traces and recent deploys, and have it reproduce a failing request, test one hypothesis at a time and verify the fix before rollout.",
+   "B": "Paste the alert and the customer ticket into Claude, apply the most likely fix it suggests straight away, and roll it back if the error rate has not dropped within an hour.",
+   "C": "Switch the service to a larger Claude model, because failures that start without any application code change usually point to a regression in the quality of the model's output.",
+   "D": "Wrap the Claude call in a retry with exponential backoff, so that transient failures are absorbed and customers stop seeing errors while the team investigates the cause."
+  },
+  "answer": "A",
+  "why": "Claude is useful in an incident when it works from evidence. Read-only access to logs, traces and deploys is safe to grant widely and lets it see that every failing trace stops with stop_reason max_tokens at 1,024 tokens after a config change halved max_tokens. Reproducing a failing request, testing one hypothesis at a time and verifying the fix in staging turns a plausible story into a proven cause before anything changes in production.",
+  "wrong": {
+   "B": "A fix chosen from symptoms is a guess; applying it in production risks a second incident and teaches nothing if the errors happen to stop.",
+   "C": "The failures began with a config change, not a model change; a larger model costs more and still stops at the same max_tokens limit.",
+   "D": "A truncated response is deterministic for that order: every retry hits the same max_tokens limit, so retries add latency and cost without fixing it."
+  },
+  "fix": "Read logs, traces and deploys; reproduce a failing request; change one setting at a time; verify the fix before rollout.",
+  "see": "Phase 1 cannot name a proven cause; Phase 2 finds stop_reason max_tokens after config v42, reproduces it and verifies the fix in staging.",
+  "explain": "Both phases start from the same page and ticket. With symptoms only, Claude can offer a story or a to-do list, and nothing stands behind it. With read-only search_logs, list_traces, get_trace and list_deploys, plus rerun_request in staging, Claude finds a new JSONDecodeError group from Tue 14:05, failing traces on large orders that all stop with stop_reason max_tokens at 1,024 output tokens, and config v42 halving max_tokens. It reproduces the failure, verifies that a higher limit returns end_turn with valid JSON, and rules out the get_inventory timeout, which runs at the same rate as before.",
+  "exam_tip": "In debugging questions, prefer evidence-driven loops: observability access, reproduction, one change at a time, verification before rollout. Retries, model upgrades and fixes guessed from symptoms are distractors, especially when the failure is deterministic, such as a max_tokens truncation.",
+  "source": "Original question written for C740",
+  "headline": "Read the trace before you trust the theory.",
+  "concepts": [
+   {
+    "t": "stop_reason tells you why it stopped",
+    "b": "end_turn means Claude finished. max_tokens means the reply was cut off at the limit; parsing that text as JSON then fails with a confusing error."
+   },
+   {
+    "t": "Traces for LLM features",
+    "b": "Record model, max_tokens, input and output tokens, stop_reason, latency and tool calls per request. Most Claude incidents show up in these fields."
+   },
+   {
+    "t": "Read widely, change narrowly",
+    "b": "Read-only access to logs, traces and deploys is safe to grant for diagnosis. Changes go through a branch, review and an approved rollout."
+   },
+   {
+    "t": "Reproduce, then change one thing",
+    "b": "Replay a failing request as it was sent. If it fails the same way, change one setting and re-run: a pass is evidence, not a hope."
+   },
+   {
+    "t": "Retries don't fix deterministic failures",
+    "b": "A transient 529 is worth a retry. A reply truncated by max_tokens fails the same way every time, so a retry only adds latency and cost."
+   }
+  ],
+  "sim_name": "Kestrel Platform Team"
+ }
+]

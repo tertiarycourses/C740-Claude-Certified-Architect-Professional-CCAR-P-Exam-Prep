@@ -1,0 +1,59 @@
+Harbour Mutual claims triage: 8 incoming claims, 4 routes, an answer key from the adjusters. Both phases run with thinking off, as a high-volume classifier would.
+== Phase 1 · zero-shot: route definitions only, label only
+  ok    CLM-7781 → auto_approve
+  WRONG CLM-7790 → adjuster_review (answer key: decline)  · edge: a large loss, but own damage on third-party only
+  ok    CLM-7802 → glass_fast_track
+  WRONG CLM-7815 → adjuster_review (answer key: auto_approve)  · edge: quote above US$5,000, payout after the US$750 excess is US$4,850
+  WRONG CLM-7821 → adjuster_review (answer key: auto_approve)  · edge: third-party only covers the other party's van
+  ok    CLM-7833 → adjuster_review  · edge: small amount, but an injury is mentioned
+  ok    CLM-7840 → decline  · edge: glass damage, but on a track day (excluded)
+  ok    CLM-7847 → adjuster_review
+  usage: input_tokens 1199 · output_tokens 213
+
+== PAUSE · Phase 1 finished: zero-shot
+   outcome: **5 of 8** claims routed correctly. Misrouted: **CLM-7790** → adjuster_review (key: decline; a large loss, but own damage on third-party only); **CLM-7815** → adjuster_review (key: auto_approve; quote above US$5,000, payout after the US$750 excess is US$4,850); **CLM-7821** → adjuster_review (key: auto_approve; third-party only covers the other party's van). The plain claims are fine; the boundaries are where a one-line definition leaves Claude guessing.
+   proceed: Phase 2: the same definitions plus six worked edge-case examples, reasoning before the label
+
+== Phase 2 · few-shot: 6 worked edge-case examples, reasoning before the label
+  ok    CLM-7781 → auto_approve
+         reasoning: Comprehensive policy HM-POL-2201 covers collision damage from another car in a car park. Payout is US$4,200 minus US$500 excess, which is US$3,700, within the US$5,000 a…
+  ok    CLM-7790 → decline  · edge: a large loss, but own damage on third-party only
+         reasoning: Third-party only policy HM-POL-2240 does not cover damage to the policyholder's own vehicle. A total loss from hitting a wall is own-damage, so it is not covered.
+  ok    CLM-7802 → glass_fast_track
+         reasoning: Windscreen-only damage from a stone chip on a comprehensive policy with glass cover, with no commercial or track exclusion. Qualifies for glass fast track.
+  ok    CLM-7815 → auto_approve  · edge: quote above US$5,000, payout after the US$750 excess is US$4,850
+         reasoning: Comprehensive policy HM-POL-2255 covers falling-branch damage. Payout is US$5,600 minus US$750 excess, which is US$4,850, within the US$5,000 authority. The quote is abo…
+  ok    CLM-7821 → auto_approve  · edge: third-party only covers the other party's van
+         reasoning: Third-party only policy HM-POL-2240 covers damage the policyholder causes to a third party's vehicle. Reversing into a parked van is covered, and the van owner's US$3,10…
+  ok    CLM-7833 → adjuster_review  · edge: small amount, but an injury is mentioned
+         reasoning: Car damage of US$1,150 is covered under HM-POL-2255, but the policyholder reports wrist soreness and a GP visit. A possible bodily-injury claim requires an adjuster.
+  ok    CLM-7840 → decline  · edge: glass damage, but on a track day (excluded)
+         reasoning: Damage occurred during a track day at Harbour Raceway, which all Harbour motor policies exclude. The glass fast track does not apply because the loss is not covered.
+  ok    CLM-7847 → adjuster_review
+         reasoning: Covered comprehensive collision damage under HM-POL-2255. Payout is US$6,900 minus US$750 excess, which is US$6,150, above the US$5,000 authority, so a human adjuster mu…
+  usage: input_tokens 2020 · output_tokens 802
+== Result: zero-shot 5/8 · few-shot with reasoning 8/8 · fixed: CLM-7790, CLM-7815, CLM-7821
+
+== Turns
+
+== Checks
+PASS  Both phases returned parseable JSON with a route for all 8 claims
+PASS  Zero-shot misrouted at least 2 edge cases (CLM-7790, CLM-7815, CLM-7821)
+PASS  Few-shot with reasoning routed all 8 claims correctly (8/8)
+PASS  Few-shot output carries reasoning for every claim, ahead of the label
+
+== Side by side
+[trap] Phase 1: zero-shot, label only: **5/8** correct. Misrouted CLM-7790, CLM-7815, CLM-7821: the plain claims are right, the boundaries are guessed.
+[fix] Phase 2: few-shot examples, reasoning before the label: **8/8** correct, including CLM-7790, CLM-7815, CLM-7821. Each label follows a line of reasoning a reviewer can check.
+  CLM-7781 (key: auto_approve) | auto_approve (good) | auto_approve (good)
+  CLM-7790 (key: decline) · a large loss, but own damage on third-party only | adjuster_review (bad) | decline (good)
+  CLM-7802 (key: glass_fast_track) | glass_fast_track (good) | glass_fast_track (good)
+  CLM-7815 (key: auto_approve) · quote above US$5,000, payout after the US$750 excess is US$4,850 | adjuster_review (bad) | auto_approve (good)
+  CLM-7821 (key: auto_approve) · third-party only covers the other party's van | adjuster_review (bad) | auto_approve (good)
+  CLM-7833 (key: adjuster_review) · small amount, but an injury is mentioned | adjuster_review (good) | adjuster_review (good)
+  CLM-7840 (key: decline) · glass damage, but on a track day (excluded) | decline (good) | decline (good)
+  CLM-7847 (key: adjuster_review) | adjuster_review (good) | adjuster_review (good)
+  Correct | 5/8 | 8/8
+  Output tokens (the cost of the reasoning) | 213 | 802
+
+2 Claude calls · 3219 in / 1015 out tokens · about US$0.0008 · 6.0 s

@@ -1,0 +1,51 @@
+{
+ "id": 28,
+ "task": "5.3",
+ "task_title": "Apply human-in-the-loop validation strategies",
+ "topic": 5,
+ "topic_name": "Governance, Safety & Risk Management",
+ "sim": 3,
+ "title": "54 seconds a draft is a signature: route review by risk",
+ "stem": "Meridian Health drafts about 600 clinical letters and notes a day with Claude, and three clinicians have 540 minutes a day for sign-off. Every draft joins one queue, approval rates are close to 100%, and a GP letter with conflicting warfarin doses was signed in under a minute. Which human-in-the-loop design best fits this situation?",
+ "options": {
+  "A": "Route each draft in code by impact, reversibility and uncertainty; flagged drafts get full review with reasons, the rest a co-sign or sampled audit.",
+  "B": "Keep a full review of every draft, but add two more clinicians and a checklist, so that each draft gets a careful, complete read before it is released.",
+  "C": "Release drafts that Claude rates as high confidence without review, and send only its medium and low confidence drafts to the clinicians.",
+  "D": "Release every draft automatically, and have clinicians audit a random 10% sample of each week's drafts, feeding the errors they find back into the prompt."
+ },
+ "answer": "A",
+ "why": "Oversight is a budget. At 600 drafts in 540 minutes a uniform review becomes a signature, so the fix is to spend reviewer time by risk: code flags what it can check (high-alert drugs, conflicting doses, pending results, whether the document leaves the hospital), adds Claude's own uncertainty as a signal, and shows the reviewer the reasons. Unflagged letters get a quick co-sign, unflagged internal notes are filed and sampled, and every route is logged.",
+ "wrong": {
+  "B": "Five clinicians give 900 minutes for 600 drafts, still about 90 seconds each, so the queue stays a rubber stamp.",
+  "C": "Self-reported confidence alone ignores impact and reversibility, and it isn't calibrated against outcomes.",
+  "D": "A weekly audit is detective: a letter with the wrong warfarin dose has already reached the GP."
+ },
+ "fix": "Route each draft in code by impact × reversibility × uncertainty, and show the reviewer the reasons.",
+ "see": "One uniform queue signs Patient C's warfarin letter in 54 seconds; risk routing sends C and D to full review with reasons.",
+ "explain": "Both phases ask Claude to draft the same four documents in one call, with the medications it wrote, its open questions and its confidence. In Phase 1 every draft joins one sign-off queue; at Meridian's volume that is 54 seconds a draft, so the simulated clinician signs Patient C's warfarin letter as drafted and the 5 mg vs 3 mg conflict in the note is never surfaced. In Phase 2 code routes each draft: C (high-alert drug, dose conflict, leaves the hospital) and D (echo report pending) go to full review with the reasons on screen, B is co-signed and A's internal note is auto-filed. Reviewer time needed falls from 2,400 to 480 of the 540 minutes available.",
+ "exam_tip": "Look for the answer that tiers oversight by impact and reversibility and fits the reviewers' capacity. '100% human review' sounds safest but fails at volume through automation bias; a confidence threshold alone ignores impact; post-hoc audits can't recall an irreversible action.",
+ "source": "Original question written for C740",
+ "headline": "Spend reviewer minutes where the risk is.",
+ "concepts": [
+  {
+   "t": "Impact × reversibility",
+   "b": "Gate actions that are high-impact and can't be undone, such as a letter that leaves the hospital. Monitor actions that can be amended, such as an internal chart note, instead of gating them."
+  },
+  {
+   "t": "Reviewer load",
+   "b": "Load = volume × share reviewed × minutes each ÷ reviewer minutes available. Above 1, reviews turn into signatures: 600 drafts in 540 minutes is 54 seconds each."
+  },
+  {
+   "t": "Automation bias",
+   "b": "When a system is usually right, people stop checking it. Near-100% approval and falling time per decision are the signs. Showing why a draft was flagged gives the reviewer something to check."
+  },
+  {
+   "t": "Confidence is a signal, not a verdict",
+   "b": "A model's self-reported confidence can help route work, but only alongside signals code can check: high-alert drugs, conflicting values, pending results."
+  },
+  {
+   "t": "Sample what you don't review",
+   "b": "Auto-filed items need a random audit sample. It measures the real error rate of the unreviewed stream and catches drift before patients do."
+  }
+ ]
+}

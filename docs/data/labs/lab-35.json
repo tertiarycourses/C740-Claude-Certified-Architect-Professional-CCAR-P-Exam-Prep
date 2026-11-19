@@ -1,0 +1,51 @@
+{
+ "id": 35,
+ "task": "6.5",
+ "task_title": "Support lifecycle phases (discovery, design, handoff, monitoring, iteration)",
+ "topic": 6,
+ "topic_name": "Stakeholder Communication & Lifecycle Management",
+ "sim": 5,
+ "title": "Drift found 3 weeks late by a complaint: monitors that re-run evals",
+ "stem": "Lumen's store assistant goes live on 1 March, and Lumen's in-house team takes it over six weeks later. Lumen launches a new product range every season, and the pilot's escalation rate was 8%. Which plan best supports the solution after go-live?",
+ "options": {
+  "A": "Close the project once the go-live acceptance tests pass, and have the support desk raise tickets whenever store staff report wrong or unhelpful answers to them.",
+  "B": "Freeze the prompt, model and catalogue index at go-live so the validated behaviour cannot drift, and re-certify the whole system once a year.",
+  "C": "Set monitors with thresholds and owners, such as escalation-rate drift or a new range, that send changes back through evaluation, and hand off against criteria.",
+  "D": "Keep the architect on a retainer to review the dashboards every month and decide, case by case, when the assistant needs to be changed, retuned or retrained."
+ },
+ "answer": "C",
+ "why": "After go-live the inputs keep changing: a new range brings new products and harder questions, and the model itself will eventually be retired. A lifecycle plan names the signals that matter, sets thresholds from the pilot baseline, gives each an owner, and routes every triggered change back through the eval suite before it ships. The handoff is passed on criteria the receiving team proves, not on a date.",
+ "wrong": {
+  "A": "Waiting for staff complaints finds drift weeks late, and closing at go-live leaves nobody owning the system's behaviour once the architect has gone.",
+  "B": "Freezing the system does not freeze its inputs: a new range still arrives, and the frozen index and prompt fall further behind every season.",
+  "D": "A monthly review by one person has no defined triggers, cannot catch a drift between reviews, and keeps the receiving team dependent instead of handing off."
+ },
+ "fix": "Plan monitoring signals with thresholds, owners and an action that re-runs the evals, and hand off against criteria with evidence.",
+ "see": "Phase 1 finds the drift in week 8 from a complaint; Phase 2's monitors send the change back to the eval suite in week 5 or 6.",
+ "explain": "Both phases plan the same assistant from the same facts. Phase 1's project template ends at go-live and closes, so when the spring range lands in week 5 and escalations climb from 8% to 15%, the first signal is store managers complaining to the COO in week 8. Phase 2's lifecycle template adds monitoring and iteration: monitors with thresholds from the pilot baseline (escalation rate, weekly graded accuracy, a catalogue-change event), an owner each, and the action rerun_eval_suite_and_iterate. Code replays the same ten weeks against both plans and reports the week each drift is acted on, and Phase 2 also lists handoff criteria with their evidence.",
+ "exam_tip": "Pick the answer that keeps the system in a loop after launch: defined signals and thresholds, named owners, changes that return to evaluation, and a handoff with exit criteria. Closing at go-live, freezing the system or relying on one person's review are the distractors.",
+ "source": "Original question written for C740",
+ "headline": "Go-live is a phase. Monitors start the next loop.",
+ "concepts": [
+  {
+   "t": "A loop, not a line",
+   "b": "Discovery, design, build, pilot, go-live, handoff, monitoring, iteration. Iteration returns to design or evaluation; the system is never finished."
+  },
+  {
+   "t": "Three clocks you don't control",
+   "b": "Input drift (new products, new questions), business change, and the model lifecycle: every model ID is eventually deprecated and retired."
+  },
+  {
+   "t": "Thresholds from the baseline",
+   "b": "The pilot measured an 8% escalation rate. A monitor at 11% for a week acts long before 15%; one at 16% never fires."
+  },
+  {
+   "t": "Every change goes back through the evals",
+   "b": "A new range, a prompt edit or a model swap re-runs the eval suite before release. The suite built in the pilot is what makes iteration cheap."
+  },
+  {
+   "t": "Handoff on evidence, not a date",
+   "b": "The receiving team proves it can run the system: a change shipped on its own with an eval report, and a rehearsed runbook."
+  }
+ ]
+}

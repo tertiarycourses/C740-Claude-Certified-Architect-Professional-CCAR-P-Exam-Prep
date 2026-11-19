@@ -1,0 +1,51 @@
+{
+ "id": 4,
+ "task": "1.4",
+ "task_title": "Design multi-agent systems and orchestration strategies",
+ "topic": 1,
+ "topic_name": "Solution Design & Architecture",
+ "sim": 1,
+ "title": "Paid and escalated at once: specialists find, a coordinator decides",
+ "stem": "Harbour Mutual's single claims agent has grown to 14 tools and one long prompt covering coverage, damage assessment and fraud screening. The team will split it into coverage, damage and fraud specialists, each given only the part of the claim file it needs. Which orchestration strategy is best?",
+ "options": {
+  "A": "Run the three specialists as peer agents in parallel, each authorised to approve the payout or escalate the claim within its own remit, so that claims settle faster.",
+  "B": "Keep one agent, but move the fraud-screening instructions to the top of its prompt and add a rule that it must finish every check before it calls approve_payout.",
+  "C": "Have a coordinator spawn the specialists as subagents that return structured findings and hold no action tools, then reconcile the findings before one payout decision.",
+  "D": "Chain the specialists in sequence, coverage then damage then fraud, each passing its complete transcript to the next one, so that the fraud agent has seen everything before it acts."
+ },
+ "answer": "C",
+ "why": "A split is worth it when the work needs different contexts, but it raises the orchestration question: where do the results meet? Subagents that only find, each with its own slice of the claim file and no tool that changes anything, return structured findings (status, amount, evidence). One coordinator reconciles them with an explicit rule (any flag goes to a person) and makes the only payout decision, so no specialist can act on a partial view.",
+ "wrong": {
+  "A": "Each peer acts on a partial view: in the lab one approved a payout while the fraud agent escalated the same claim, and nothing reconciled them.",
+  "B": "It keeps the overloaded context and the payout power in one place, and relies on a sentence in the prompt to enforce the order.",
+  "D": "Passing whole transcripts forward rebuilds one crowded context and adds latency, and detail is lost or distorted at each handoff."
+ },
+ "fix": "Give the specialists findings-only roles and have the coordinator reconcile their findings before the single payout decision.",
+ "see": "The coordinator read three findings, saw the fraud flag on invoice RQ-5531, and made one decision: escalate, nothing paid.",
+ "explain": "Both phases split CLM-7781 into coverage, damage and fraud specialists with the same remits and the same slices of the claim file. In Phase 1 a lead agent fans the claim out to peers that may each settle their part. The fraud agent finds that invoice RQ-5531 was already paid on CLM-6120 and escalates, but another peer, which never saw the invoice registry, approves a payout: the same claim is paid and sent for review at once. In Phase 2 the coordinator spawns the specialists as read-only subagents. Each returns a structured finding; the coordinator reconciles them, sees the fraud flag, and makes one decision: escalate, nothing paid. The split costs extra calls, so it belongs where contexts would pollute each other or the work runs in parallel.",
+ "exam_tip": "In a multi-agent stem, ask where the results meet before anything acts. Prefer read-only subagents returning structured findings to one coordinator over peers that can each act.",
+ "source": "Original question written for C740",
+ "headline": "Specialists find. One coordinator decides.",
+ "concepts": [
+  {
+   "t": "When multi-agent pays",
+   "b": "Anthropic names three cases: context pollution, parallel lines of inquiry, and specialisation (narrower tools or conflicting instructions). Elsewhere, coordination costs more than it returns."
+  },
+  {
+   "t": "Split by the context needed",
+   "b": "Give each subagent only the data its job needs: the policy wording for coverage, the assessment for damage, the invoice registry for fraud."
+  },
+  {
+   "t": "Findings, not actions",
+   "b": "Subagents return structured findings (status, amount, evidence) and hold no tool that changes anything. Only the coordinator acts."
+  },
+  {
+   "t": "Reconcile before acting",
+   "b": "The coordinator applies one explicit rule across all findings, for example that any flag goes to an adjuster, before the single decision."
+  },
+  {
+   "t": "More agents, more tokens",
+   "b": "Each subagent is another context window and more calls, so cost and latency rise. Split only where that buys accuracy or coverage."
+  }
+ ]
+}

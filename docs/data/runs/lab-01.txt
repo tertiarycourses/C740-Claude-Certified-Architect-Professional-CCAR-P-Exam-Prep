@@ -1,0 +1,44 @@
+Lumen Retail · Grace Lim (COO, sponsor): "We want an AI agent that handles store product support end to end. Our competitors have agents. Can you have a design to me by Friday?"
+Discovery pack: 2,400 calls a week, 7.5-minute handle time, 62% product questions, 23% stock and price checks, 9% refund decisions; answers in 10 s, SSO, no customer PII, under $4,000 a month.
+== Phase 1 · solution first: design the agent Grace asked for from the request, before discovery
+Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+  stop_reason: end_turn -> STOP: Claude has finished
+Reply: {"pattern":"workflow","pattern_reason":"Store product questions fall into a fairly predictable set of types (stock, specs, returns, procedures), so fixed steps of classify, retrieve, answer or escalate are more reliable and auditable than a fully autonomous agent, which can be added later for multi-step tasks.","success_metric":{"name":"Share of store product support queries resolved without transfer to head-office product support","baseline":null,"target":50,"unit":"percent of queries resolved by AI, measured over 8 weeks after pilot"},"claude_does":["Classify each store query by type (produ…
+Phase 1 design: pattern workflow · metric Share of store product support queries resolved without transfer to head-office product support: ? → 50 percent of queries resolved by AI, measured over 8 weeks after pilot · baseline from discovery: no
+
+== PAUSE · Phase 1 finished: the request became the brief
+   outcome: The design is **workflow**. Its success metric (Share of store product support queries resolved without transfer to head-office product support: ? → 50 percent of queries resolved by AI, measured over 8 weeks after pilot) has **no measured baseline**, so nobody could show it worked, and no step decided which tasks need Claude at all.
+   proceed: Phase 2: a framing pass first (outcome, metric, constraints, who does what), then the design
+
+== Phase 2 · frame the problem first, then design the simplest tier that meets the frame
+    (frame pass) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (frame pass) answer: {"business_outcome":"Store staff get product, warranty, stock and price answers at the counter without waiting on head-office support, which shortens customer waits and lowers support cost.","success_metric":{"name":"Av…
+Frame: outcome "Store staff get product, warranty, stock and price answers at the counter without waiting on head-office support, which…" · metric Average handle time per store support call: 7.5 → 2 minutes · product questions → claude, stock and price → code, refunds → person · simplest tier augmented_llm
+    (design pass) Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
+      stop_reason: end_turn -> STOP: Claude has finished (the subagent returns its answer)
+    (design pass) answer: {"pattern":"augmented_llm","pattern_reason":"Product questions need language judgement over 1,900 manuals and the warranty policy, which a single model call with retrieval over those documents handles within the 10-seco…
+Phase 2 design: pattern augmented_llm · Product questions need language judgement over 1,900 manuals and the warranty policy, which a single model call with retrieval over those documents handles wit…
+
+== Turns
+turn 1: stop_reason=end_turn
+(frame pass) turn 1: stop_reason=end_turn
+(design pass) turn 1: stop_reason=end_turn
+
+== Checks
+PASS  Phase 1 (solution first): the success metric has no baseline from measured data
+PASS  Phase 2 frame: the success metric's baseline is a figure from the discovery pack, with a numeric target
+PASS  Phase 2 frame: stock and price checks go to code, refund decisions to a person
+PASS  Phase 2 design: a tier below agent (augmented LLM or workflow)
+
+== Side by side
+[trap] Phase 1: design the agent that was asked for: Chose **workflow** from the request alone. Metric: Share of store product support queries resolved without transfer to head-office product support: ? → 50 percent of queries resolved by AI, measured over 8 weeks after pilot, with no measured baseline.
+[fix] Phase 2: frame first, then the simplest tier: Framed 4 tasks (stock and price → code, refunds → person), anchored the metric at 7.5 minutes, then chose **augmented_llm**.
+  Framing step before the design | none (bad) | outcome, metric, constraints, tasks (good)
+  Chosen tier | workflow (good) | augmented_llm (good)
+  Success metric | Share of store product support queries resolved without transfer to head-office product support: ? → 50 percent of queries resolved by AI, measured over 8 weeks after pilot (bad) | Average handle time per store support call: 7.5 → 2 minutes (good)
+  Baseline taken from discovery data | no | yes
+  Stock and price checks handled by | code (listed) | code (good)
+  Refund decisions handled by | people (listed) | person (good)
+
+3 Claude calls · 4452 in / 3891 out tokens · about US$0.0024 · 23.2 s

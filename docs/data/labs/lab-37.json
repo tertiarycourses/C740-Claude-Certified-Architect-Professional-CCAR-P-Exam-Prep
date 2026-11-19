@@ -1,0 +1,36 @@
+{
+ "id": 37,
+ "task": "7.2",
+ "task_title": "Improve developer workflows using AI-assisted tooling",
+ "topic": 7,
+ "topic_name": "Developer Productivity & Operational Enablement",
+ "sim": 6,
+ "title": "A chat review can't block PR 512: run claude -p in CI behind a gate",
+ "stem": "Kestrel engineers paste diffs into a Claude chat for review when they remember to, each with their own prompt, and the feedback varies from person to person. Last month a refund change that logged full card numbers was merged. The platform team wants consistent reviews that stop changes like that. What should they do?",
+ "options": {
+  "A": "Add a CONTRIBUTING.md rule that every engineer must ask Claude to review the diff in a chat before opening a pull request.",
+  "B": "Give each engineer a recommended review prompt to keep in their personal ~/.claude/CLAUDE.md, so every review starts from the same text.",
+  "C": "Have Claude review each pull request in CI and post its findings as a free-text comment for the human reviewer to read before merging.",
+  "D": "Run claude -p in CI with a committed review skill and a JSON schema for findings, and fail the check on any high-severity finding."
+ },
+ "answer": "D",
+ "why": "The improvement comes from wiring the tool into the flow, not from using it more often. CI runs the review on every pull request; the committed skill applies the same rules for everyone; the schema makes the output something a script can read; and a few lines of plain code fail the check on a high-severity finding, so branch protection stops the merge. The model supplies the judgement, the gate is deterministic.",
+ "wrong": {
+  "A": "A written rule still depends on each engineer remembering and on their own prompt, and its prose output cannot block anything.",
+  "B": "A personal ~/.claude file reaches only its owner, drifts over time, and still produces nothing a pipeline can check.",
+  "C": "Running in CI fixes when it happens, but free text cannot gate a merge: a busy reviewer can still miss the finding."
+ },
+ "fix": "Run the team's review skill with claude -p in CI, emit findings against a schema, and let a plain-code gate fail the check on high severity.",
+ "see": "Phase 1's chat reply is prose and the gate has no verdict; Phase 2 blocks PR 512 on KR-1 at refund.py line 14 and passes the clean PR 513.",
+ "explain": "Both phases review the same pull request, which logs card.number on line 14 and sends no Idempotency-Key. Phase 1 is the ad hoc chat: helpful prose, often even naming the problem, but nothing the pipeline can act on. Phase 2 runs claude -p in CI with the committed pr-review skill (rules KR-1 to KR-4) and a findings schema on PR 512 and on a clean PR 513. A gate in plain code parses the findings and exits 1 on any high-severity finding: PR 512 is blocked, PR 513 passes.",
+ "exam_tip": "When the goal is consistent, enforced AI assistance across a team, look for the answer that runs in the shared pipeline, uses committed configuration, and produces structured output a deterministic step can gate on. Free-text comments and personal prompts are partial fixes.",
+ "source": "Original question written for C740",
+ "headline": "Wire it into the flow. Gate on structure.",
+ "concepts": [
+  {"t": "Headless Claude Code: claude -p", "b": "Print mode runs one prompt and exits, which suits CI. --output-format json gives a result a script can read instead of a chat transcript."},
+  {"t": "Skills make reviews consistent", "b": "A committed .claude/skills/pr-review/SKILL.md gives every run the same rules, versioned and reviewed like code."},
+  {"t": "Structured output for machines", "b": "A JSON schema for findings (file, line, rule, severity) lets a CI step count and filter them. Prose needs a human to read it."},
+  {"t": "Model for judgement, code for the gate", "b": "Claude decides whether line 14 logs a card number. Plain code decides that a high finding fails the build. Branch protection blocks the merge."},
+  {"t": "Speed-ups move the bottleneck", "b": "Faster code writing helps only if review and verification keep up. Automating the first review pass keeps the human reviewer for judgement."}
+ ]
+}

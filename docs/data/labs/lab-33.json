@@ -1,0 +1,51 @@
+{
+ "id": 33,
+ "task": "6.3",
+ "task_title": "Manage stakeholder feedback loops and expectation alignment (including SLAs)",
+ "topic": 6,
+ "topic_name": "Stakeholder Communication & Lifecycle Management",
+ "sim": 5,
+ "title": "\"99.99% and always correct\" breaks on day one: commit to measured SLOs",
+ "stem": "Lumen's COO wants the board pack to promise that the store assistant will be available 99.99% of the time and that its answers will always be correct. The six-week pilot in 20 stores measured 99.82% availability, a p95 latency of 2.4 seconds and 374 correct answers out of 400 graded by product specialists. What should you propose?",
+ "options": {
+  "A": "Accept 99.99% availability and always-correct answers as stretch goals in the board pack, and report progress against both of those targets every month.",
+  "B": "Commit to 99.99% availability by moving to a multi-region deployment, and replace the accuracy promise with a disclaimer that answers may sometimes be wrong.",
+  "C": "Make no service commitment in the board pack until the assistant has run in production for six months and there is more data to go on.",
+  "D": "Agree SLOs from the pilot results for availability, latency, accuracy on a graded sample and hand-over time, with an error budget and a monthly review."
+ },
+ "answer": "D",
+ "why": "Commitments a stakeholder can rely on come from measurement. Operational targets (availability, latency, hand-over time) are set where the pilot already meets them; accuracy is a rate on a stated graded sample, because 374 of 400 is an estimate, not a per-answer guarantee. An error budget says what happens when the misses add up, and a regular review with store operations keeps expectations and feedback aligned.",
+ "wrong": {
+  "A": "A target the pilot already misses is broken on the day it is promised, and \"always correct\" is not a property any model-based system can measure or keep.",
+  "B": "More regions may lift availability, but it is engineering to a wish at unknown cost, and a disclaimer removes the quality commitment instead of measuring it.",
+  "C": "Six months without agreed targets leaves the board with no expectations and the team with no feedback loop, so the misalignment simply grows."
+ },
+ "fix": "Set SLOs from measured pilot results, state quality as a sampled rate, attach an error budget and run a regular feedback review.",
+ "see": "Phase 1's commitments are already breached by the pilot; Phase 2's are all met, with an error budget and a review cadence.",
+ "explain": "Both phases answer the sponsor's same request. Phase 1 writes her wish into the board pack, and code finds the pilot already misses it: 99.82% availability against 99.99%, 93.5% accuracy against near-perfect. Phase 2 reads the pilot first with get_pilot_metrics, sets each target the pilot meets, measures accuracy and critical errors on a graded sample with its size stated, adds an error budget that freezes changes when spent, and names an owner and a review cadence. The sponsor's original ask goes back to her with the evidence.",
+ "exam_tip": "For LLM systems, accept answers that split operational SLOs from quality measured on a sample, and that pair targets with an error budget and a review cadence. Reject \"always correct\", stretch targets the evidence already misses, and deferring commitments altogether.",
+ "source": "Original question written for C740",
+ "headline": "Promise what you measured. Budget the misses.",
+ "concepts": [
+  {
+   "t": "SLI, SLO, SLA",
+   "b": "An SLI is a measure (p95 latency). An SLO is a target for it (3 s or less). An SLA is the agreement with consequences when an SLO is missed."
+  },
+  {
+   "t": "Two families of SLO",
+   "b": "Operational SLOs are measured on every request. Quality SLOs, such as accuracy, are rates estimated on a graded sample, so the sample size is part of the promise."
+  },
+  {
+   "t": "A rate is an estimate",
+   "b": "374 correct out of 400 is 93.5%, but the Wilson 95% interval runs from about 90.6% to 95.5%. Promise below the lower bound, not at the point estimate."
+  },
+  {
+   "t": "Error budgets turn arguments into rules",
+   "b": "99.5% availability allows about 126 minutes of store hours a month. When it is spent, changes stop until reliability is fixed."
+  },
+  {
+   "t": "Feedback has a cadence and an owner",
+   "b": "A monthly review of the SLOs, store feedback and the weekly graded sample, chaired by a named owner, keeps expectations and the system aligned."
+  }
+ ]
+}

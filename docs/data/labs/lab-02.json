@@ -1,0 +1,47 @@
+{
+ "id": 2,
+ "task": "1.2",
+ "task_title": "Design end-to-end architectures (input → processing → output → feedback loops)",
+ "topic": 1,
+ "topic_name": "Solution Design & Architecture",
+ "sim": 1,
+ "title": "$6,500 paid with no check: close the loop around the decision step",
+ "stem": "Harbour Mutual's claims pipeline sends each claim and its policy to Claude, which returns a decision that the pipeline executes. Last week it paid a $6,500 claim, above the agent's $5,000 payout authority, and the team has no record of which decisions adjusters later reversed. Which change to the end-to-end architecture best addresses both problems?",
+ "options": {
+  "A": "Add the $5,000 payout authority and the excess rule to the system prompt with worked examples, so that Claude refers large claims to an adjuster on its own initiative.",
+  "B": "Validate each decision in code against the payout rules, retry once with the errors, route anything still failing to an adjuster, and store each adjuster decision as a labelled eval case.",
+  "C": "Log every request and response to the observability store, and review a weekly sample of 50 decisions with the adjusters to agree the prompt changes for each release of the claims pipeline.",
+  "D": "Switch the decision step to a larger model with extended thinking, since the payout shows that the current model's reasoning about policy limits is not reliable enough."
+ },
+ "answer": "B",
+ "why": "The pipeline is open loop: whatever the model returns is executed, and nothing is learned. Closing the loop keeps the same model and prompt and adds stages around the call: checks before it, a validator in code after it (coverage, quote minus excess, payout authority), one repair retry for fixable errors (seconds), an action gate that sends rule breaks to a person and fails closed (minutes), and a feedback path that saves every adjuster decision as a labelled eval case for the next change to be tested against (days).",
+ "wrong": {
+  "A": "A prompt makes the referral more likely, but when it fails the decision still executes unchecked, and no feedback is captured.",
+  "C": "Logging and sampling find problems after the money has gone; nothing stops a bad payout before it executes.",
+  "D": "A larger model is still probabilistic and still unchecked, and the pipeline would still learn nothing from adjuster decisions."
+ },
+ "fix": "Wrap the decision step: rules validated in code, one repair retry, an action gate to an adjuster, and adjuster decisions saved as eval cases.",
+ "see": "The validator holds CLM-7815 for the adjuster, valid payouts still go through, and the adjuster's decision becomes an eval case.",
+ "explain": "In Phase 1 every decision executes: CLM-7815 is approved for $6,500 and paid, above the $5,000 authority, and nothing is recorded. In Phase 2 the same decision step runs inside a closed loop. Input checks confirm the claimant is the policyholder and the policy is active. An output validator in code checks each decision against the payout rules; a wrong amount would get one retry with the errors. CLM-7815 breaks the authority rule, so the action gate sends it to an adjuster instead of executing it. The adjuster's decision, with the model's proposal beside it, is saved as a labelled eval case that the next prompt or model change must pass.",
+ "exam_tip": "When a stem says a system acts on model output and nothing is learned from it, choose the answer that checks the output in code before acting, routes failures to a person, and feeds those decisions back as test cases.",
+ "source": "Original question written for C740",
+ "headline": "Validate, gate, and turn every review into a test.",
+ "concepts": [
+  {
+   "t": "Four stages, not three",
+   "b": "Input, processing and output are what you demo. The feedback stage (traces, human decisions, outcomes) is what lets the system improve, and it is what you operate."
+  },
+  {
+   "t": "Validate in code, after Claude",
+   "b": "Hard rules such as coverage, quote minus excess and payout authority are checked by code on every decision, independently of the model that produced it."
+  },
+  {
+   "t": "Gates fail closed",
+   "b": "If the validator fails, errors or cannot decide, the action gate sends the case to a person. It never executes by default."
+  },
+  {
+   "t": "Three loops, three clocks",
+   "b": "Repair one output (seconds), human review of risky cases (minutes), and offline improvement where failures become eval cases that gate the next change (days)."
+  }
+ ]
+}
