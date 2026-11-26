@@ -1,12 +1,13 @@
 # Learner Guide: Claude Certified Architect - Professional (CCAR-P) Exam Prep
 
-Course code C740 · Version 1.0 · 19 Nov 2026 · Tertiary Infotech Academy Pte Ltd · UEN 201200696W
+Course code C740 · Version 1.1 · 26 Nov 2026 · Tertiary Infotech Academy Pte Ltd · UEN 201200696W
 
 ## Document Version Control Record
 
 | Version | Effective date | Summary of changes | Author |
 |---|---|---|---|
 | 1.0 | 19 Nov 2026 | Initial release. Seven topics, one per CCAR-P exam domain; Labs 1 to 38 run one live simulation per task statement on six simulators; Labs 39 to 41 are vibe-coded builds; bonus practice exam. | Dr. Alfred Ang |
+| 1.1 | 26 Nov 2026 | Trainer slide: Dr Alfred Ang is a Claude Certified Architect and Claude Certified Developer; adds the Claude Certified Architect - Professional (CCAR-P) badge (four badges). Deck citations updated to v1.1. | Dr. Alfred Ang |
 
 ## 1. Introduction
 
@@ -196,7 +197,7 @@ turn 1: stop_reason=end_turn
 - **C** falls short: Choosing the model and the architecture before the problem buys autonomy and cost before anyone knows they are needed.
 - **D** falls short: Adoption and satisfaction are not the business outcome; nothing ties them to handle time or cost per call, so the value cannot be shown.
 
-![Figure: Lab 1 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-01.png)
+![Figure: Lab 1 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-01.png)
 
 *Figure: Lab 1 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -268,7 +269,7 @@ CLM-7781: validator passed → executed: approve $3,700
 - **C** falls short: Logging and sampling find problems after the money has gone; nothing stops a bad payout before it executes.
 - **D** falls short: A larger model is still probabilistic and still unchecked, and the pipeline would still learn nothing from adjuster decisions.
 
-![Figure: Lab 2 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-02.png)
+![Figure: Lab 2 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-02.png)
 
 *Figure: Lab 2 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -340,7 +341,7 @@ Turn 5: POST /v1/messages · model claude-haiku-5-5 · 9 messages (tool results 
 - **B** falls short: A supervisor adds calls and cost to police a sequence that code could simply run.
 - **C** falls short: A larger model costs more per token and still chooses its path at run time; it fixes neither cost nor auditability.
 
-![Figure: Lab 3 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-03.png)
+![Figure: Lab 3 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-03.png)
 
 *Figure: Lab 3 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -413,7 +414,7 @@ Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
 - **B** falls short: It keeps the overloaded context and the payout power in one place, and relies on a sentence in the prompt to enforce the order.
 - **D** falls short: Passing whole transcripts forward rebuilds one crowded context and adds latency, and detail is lost or distorted at each handoff.
 
-![Figure: Lab 4 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-04.png)
+![Figure: Lab 4 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-04.png)
 
 *Figure: Lab 4 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -485,7 +486,7 @@ Reconcile (code): patient instructions: patient_instructions is 148 words (rule:
 - **C** falls short: A larger model costs more and still produces one block with no checkable seams between the sections.
 - **D** falls short: Self-review in the same call spends more of the same budget and is not an independent check; a failure still means a full rerun.
 
-![Figure: Lab 5 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-05.png)
+![Figure: Lab 5 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-05.png)
 
 *Figure: Lab 5 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -557,7 +558,7 @@ Audit of the value case: primary pillar efficiency · 7 commitments · 3 anchore
 - **B** falls short: Anecdotes show that people like it, not that handle time or cost moved; nothing is measured against a baseline.
 - **C** falls short: A headline promise with no baseline, method or service levels cannot be checked, and "full automation" ignores the tasks that stay with people.
 
-![Figure: Lab 6 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-06.png)
+![Figure: Lab 6 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-06.png)
 
 *Figure: Lab 6 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -653,7 +654,7 @@ This lab calls only claude-haiku-5-5. Bigger tiers are priced from their list pr
 - **C** falls short: A lower output cap risks truncated answers and leaves every input token, and the lookups, at Opus prices.
 - **D** falls short: Fable doubles the price of every lookup that Haiku already answers correctly, so there is no failure cost to recover.
 
-![Figure: Lab 7 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-07.png)
+![Figure: Lab 7 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-07.png)
 
 *Figure: Lab 7 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -726,7 +727,7 @@ PASS  Phase 2: the rent question was redirected to the enquiries line or Citizen
 - **C** falls short: A keyword filter blocks valid pre-screen replies, misses paraphrases, and does nothing for the unparseable format.
 - **D** falls short: No model can follow a policy it was never given, and a bigger model does not choose the queue's format.
 
-![Figure: Lab 8 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-08.png)
+![Figure: Lab 8 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-08.png)
 
 *Figure: Lab 8 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -798,7 +799,7 @@ Harbour Mutual claims triage: 8 incoming claims, 4 routes, an answer key from th
 - **B** falls short: The wrong labels are systematic and given confidently, so a self-reported score will not catch them, and it adds adjuster work.
 - **C** falls short: A plea for care names no convention, so the model has nothing new to apply on the boundary cases.
 
-![Figure: Lab 9 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-09.png)
+![Figure: Lab 9 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-09.png)
 
 *Figure: Lab 9 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -871,7 +872,7 @@ PASS  Phase 2: the letter carries all 5 key facts and none of the unrelated hist
 - **B** falls short: Summarising still sends the whole record on every letter, adds a call, and the summary can carry unrelated history.
 - **D** falls short: Truncating by recency drops older facts the letter needs, such as a 2008 penicillin allergy.
 
-![Figure: Lab 10 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-10.png)
+![Figure: Lab 10 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-10.png)
 
 *Figure: Lab 10 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -944,7 +945,7 @@ This run's true cost, counting cache writes at 1.25x and reads at 0.1x: US$0.005
 - **B** falls short: Downsizing blindly, regardless of task fit, risks answer quality.
 - **D** falls short: Relocating the policy to a few-shot block does not create a cacheable, reusable prefix.
 
-![Figure: Lab 11 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-11.png)
+![Figure: Lab 11 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-11.png)
 
 *Figure: Lab 11 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1042,7 +1043,7 @@ Turn 5: POST /v1/messages · model claude-haiku-5-5 · 9 messages (tool results 
 - **C** falls short: A confirmation step is a compensating control that leaves the capability in place, and reviewers under queue pressure start approving by habit.
 - **D** falls short: Model size changes how often the agent errs, not what an error can do: the refund and delete tools would still be one bad decision away.
 
-![Figure: Lab 12 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-12.png)
+![Figure: Lab 12 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-12.png)
 
 *Figure: Lab 12 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1115,7 +1116,7 @@ Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results 
 - **B** falls short: An output scan acts after the restricted text has reached the model and the logs, and a paraphrase without the document id passes it.
 - **D** falls short: A narrower service account is still one identity for every user: tellers keep seeing credit-officer documents, and the audit trail still says the bot read them.
 
-![Figure: Lab 13 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-13.png)
+![Figure: Lab 13 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-13.png)
 
 *Figure: Lab 13 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1188,7 +1189,7 @@ PASS  Phase 2: the router sent all 4 chat questions at effort low and both BEN-H
 - **C** falls short: Streaming shortens the perceived wait for chat but not the total time, the thinking tokens or the cost, and it does nothing for replies cut off at max_tokens.
 - **D** falls short: Larger tiers are slower and cost more per token, not faster, and the claim is asserted rather than measured on Riverton's own requests.
 
-![Figure: Lab 14 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-14.png)
+![Figure: Lab 14 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-14.png)
 
 *Figure: Lab 14 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1261,7 +1262,7 @@ Turn 4: POST /v1/messages · model claude-haiku-5-5 · 7 messages (tool results 
 - **B** falls short: A mean hides the slow tail and an alert only says that something is slow, not which span; the incident was already detected.
 - **C** falls short: Full prompt and completion logs add privacy risk and storage cost without timing a single span; reading conversations cannot show where the time went.
 
-![Figure: Lab 15 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-15.png)
+![Figure: Lab 15 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-15.png)
 
 *Figure: Lab 15 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1334,7 +1335,7 @@ turn 1: stop_reason=end_turn
 - **C** falls short: A better embedding cannot rejoin text that the chunker cut apart, and it adds no metadata for citations.
 - **D** falls short: Claude cannot find an exception or cite a section that retrieval never gave it; a prompt cannot repair the index.
 
-![Figure: Lab 16 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-16.png)
+![Figure: Lab 16 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-16.png)
 
 *Figure: Lab 16 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1407,7 +1408,7 @@ turn 1: stop_reason=tool_use tools=lookup_rate,search_policy
 - **B** falls short: A reranker reorders what similarity search returned; it cannot surface a row that was never retrieved or tell current rates from superseded ones.
 - **C** falls short: Complaint handling needs the superseded sheets, and deleting them still leaves a numeric row to be found by text similarity.
 
-![Figure: Lab 17 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-17.png)
+![Figure: Lab 17 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-17.png)
 
 *Figure: Lab 17 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1480,7 +1481,7 @@ Kestrel · 2026-11-19T06:30:00Z · two agents need the release calendar for kest
 - **C** falls short: A freeze check is a typed function call, not a goal to delegate; agent-to-agent protocols are for another team's opaque autonomous agent.
 - **D** falls short: A CLI suits a scripted step in one place; across many hosts each still wires its own shell tool, credential handling and output parsing.
 
-![Figure: Lab 18 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-18.png)
+![Figure: Lab 18 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-18.png)
 
 *Figure: Lab 18 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1553,7 +1554,7 @@ Reply: I disabled the `checkout.new-tax-engine` flag as the kill switch under RB
 - **B** falls short: Incidents cross servers, so a router must still choose, and each subagent remains monolithic for its own share of the catalogue.
 - **D** falls short: One-line descriptions and runbooks lose the steps and constraints that make tool choice and the response correct.
 
-![Figure: Lab 19 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-19.png)
+![Figure: Lab 19 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-19.png)
 
 *Figure: Lab 19 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1652,7 +1653,7 @@ Q5 · "What is the dress code for the bank's annual dinner and dance?" · retrie
 - **B** falls short: One overall score averages properties together, so a zero on citations or declines disappears inside a good mean.
 - **D** falls short: Latency and cost are covered, but ten spot-checks a week cannot gate a release on accuracy, grounding or declines.
 
-![Figure: Lab 20 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-20.png)
+![Figure: Lab 20 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-20.png)
 
 *Figure: Lab 20 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1725,7 +1726,7 @@ E1 · edge case (conflicting dose)
 - **C** falls short: Sign-off is a final human check, not an evaluation: errors reach clinicians' queues, and nothing tests the change before go-live.
 - **D** falls short: Exact text overlap punishes a correct summary worded differently and cannot tell a leaked phone number from a harmless phrase.
 
-![Figure: Lab 21 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-21.png)
+![Figure: Lab 21 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-21.png)
 
 *Figure: Lab 21 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1798,7 +1799,7 @@ Decision rule (written before any result): Ship v2 only if (1) its mean accuracy
 - **C** falls short: Different items and a quarter-old score compare two datasets, not two prompts, and the author chose the items.
 - **D** falls short: Claude judging which prompt reads better measures the prompt's wording, not how it labels real alerts.
 
-![Figure: Lab 22 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-22.png)
+![Figure: Lab 22 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-22.png)
 
 *Figure: Lab 22 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1871,7 +1872,7 @@ QB · retrieved HR-09#1 (v5, indexed 2026-11-10), HR-09#2 (v6, indexed 2026-11-1
 - **C** falls short: A low temperature makes answers more consistent, not wrong, and the setting did not change with the document refresh.
 - **D** falls short: The context window is a property of the model, which is unchanged; a document refresh does not shrink it.
 
-![Figure: Lab 23 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-23.png)
+![Figure: Lab 23 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-23.png)
 
 *Figure: Lab 23 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -1944,7 +1945,7 @@ Phase 1 per claim: 2612 input / 3444 output tokens · 16296 ms · US$0.00198 on 
 - **B** falls short: Cutting the policy wording removes clauses the decision depends on, such as excess and authority rules, so quality is no longer held.
 - **C** falls short: Batches halve the price but return results within 24 hours, which breaks latency for a live claims desk.
 
-![Figure: Lab 24 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-24.png)
+![Figure: Lab 24 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-24.png)
 
 *Figure: Lab 24 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2017,7 +2018,7 @@ Kestrel · checkout-assistant · 48 Claude calls between 10:00 and 11:00 · cust
 - **C** falls short: Thumbs-down votes arrive late and say that something is wrong, not why; they cannot see cache misses or token growth.
 - **D** falls short: An offline suite tests fixed items, not production traffic, so it can miss a cache miss or a token-cap problem live users hit.
 
-![Figure: Lab 25 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-25.png)
+![Figure: Lab 25 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-25.png)
 
 *Figure: Lab 25 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2113,7 +2114,7 @@ Phase 1 result: approve_permit ran for PRM-3301 on the uploaded certificate alon
 - **B** falls short: A second model is a useful extra layer, but it judges meaning probabilistically and a plain forgery carries no injection to flag.
 - **C** falls short: A morning review is a detective control: the permit has already been issued when the forgery is found.
 
-![Figure: Lab 26 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-26.png)
+![Figure: Lab 26 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-26.png)
 
 *Figure: Lab 26 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2186,7 +2187,7 @@ PASS  Phase 1: both calls agreed on a figure that leaves out unpriced line 14, a
 - **B** falls short: Examples improve the odds but leave the payout resting on the model's arithmetic and its judgement.
 - **D** falls short: More calls of the same model share the same blind spot, so they can agree on the same wrong figure.
 
-![Figure: Lab 27 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-27.png)
+![Figure: Lab 27 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-27.png)
 
 *Figure: Lab 27 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2259,7 +2260,7 @@ PASS  Phase 2: Patient D's referral was held for full review because the echo re
 - **C** falls short: Self-reported confidence alone ignores impact and reversibility, and it isn't calibrated against outcomes.
 - **D** falls short: A weekly audit is detective: a letter with the wrong warfarin dose has already reached the GP.
 
-![Figure: Lab 28 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-28.png)
+![Figure: Lab 28 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-28.png)
 
 *Figure: Lab 28 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2332,7 +2333,7 @@ PASS  Phase 2: the log holds metadata only, and an audit record lists the user, 
 - **C** falls short: By the time the model reads the instruction the PHI has already been disclosed; encrypting the log doesn't reduce what it holds.
 - **D** falls short: FedRAMP authorises cloud services for US federal agencies; it doesn't satisfy HIPAA's minimum-necessary standard or cover a third-party log.
 
-![Figure: Lab 29 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-29.png)
+![Figure: Lab 29 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-29.png)
 
 *Figure: Lab 29 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2405,7 +2406,7 @@ Phase 1 result: the same household is "likely eligible" in English and "need mor
 - **C** falls short: A model's review of its own reasoning is neither a measurement nor reliably faithful to what drove the decision.
 - **D** falls short: Group rates arrive after residents are affected and mix real differences in cases with unfair treatment.
 
-![Figure: Lab 30 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-30.png)
+![Figure: Lab 30 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-30.png)
 
 *Figure: Lab 30 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2500,7 +2501,7 @@ CONFLICT: Store operations wants all chat transcripts kept for 90 days for quali
 - **B** falls short: A proof of concept before success measures and constraints are known has nothing to be judged against, and it can be built on data legal will not allow.
 - **D** falls short: A legal obligation is not outvoted by the majority: conflicts must go to the accountable owner, and a questionnaire cannot probe answers the way an interview can.
 
-![Figure: Lab 31 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-31.png)
+![Figure: Lab 31 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-31.png)
 
 *Figure: Lab 31 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2573,7 +2574,7 @@ Reply: {"decision":"Adopt Option A: Claude Haiku 5.5 with retrieval over the pro
 - **C** falls short: Raw benchmarks and token maths hand the architect's analysis to the leaders without a recommendation, in units neither of them works in.
 - **D** falls short: Holding the alternatives back takes the trade-off decision away from the people accountable for it and invites the doubt it tries to avoid.
 
-![Figure: Lab 32 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-32.png)
+![Figure: Lab 32 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-32.png)
 
 *Figure: Lab 32 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2646,7 +2647,7 @@ Reply: {"slos":[{"sli":"availability_pct","kind":"operational","comparator":">="
 - **B** falls short: More regions may lift availability, but it is engineering to a wish at unknown cost, and a disclaimer removes the quality commitment instead of measuring it.
 - **C** falls short: Six months without agreed targets leaves the board with no expectations and the team with no feedback loop, so the misalignment simply grows.
 
-![Figure: Lab 33 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-33.png)
+![Figure: Lab 33 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-33.png)
 
 *Figure: Lab 33 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2719,7 +2720,7 @@ Reply: # ADR-007: Use Claude Haiku 5.5 with catalogue retrieval for the product-
 - **C** falls short: Recordings cannot be searched or versioned, and they still leave decisions, thresholds and owners for the team to dig out of hours of video.
 - **D** falls short: Code comments explain local behaviour; they cannot hold why alternatives were rejected, the runbook, or who owns the prompt and the eval suite.
 
-![Figure: Lab 34 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-34.png)
+![Figure: Lab 34 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-34.png)
 
 *Figure: Lab 34 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2792,7 +2793,7 @@ turn 1: stop_reason=end_turn
 - **B** falls short: Freezing the system does not freeze its inputs: a new range still arrives, and the frozen index and prompt fall further behind every season.
 - **D** falls short: A monthly review by one person has no defined triggers, cannot catch a drift between reviews, and keeps the receiving team dependent instead of handing off.
 
-![Figure: Lab 35 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-35.png)
+![Figure: Lab 35 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-35.png)
 
 *Figure: Lab 35 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2885,7 +2886,7 @@ Turn 1: POST /v1/messages · model claude-haiku-5-5 · 1 message
 - **C** falls short: CLAUDE.md is guidance Claude reads, not permissions the harness enforces, and tokens written into a committed file are secrets in git.
 - **D** falls short: A quarterly review watches the risk instead of removing it: between reviews Bash(*) and pasted tokens stay live, and new engineers still get nothing.
 
-![Figure: Lab 36 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-36.png)
+![Figure: Lab 36 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-36.png)
 
 *Figure: Lab 36 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -2958,7 +2959,7 @@ PASS  Phase 1: the ad hoc chat review is prose the CI gate cannot parse, so it g
 - **B** falls short: A personal ~/.claude file reaches only its owner, drifts over time, and still produces nothing a pipeline can check.
 - **C** falls short: Running in CI fixes when it happens, but free text cannot gate a merge: a busy reviewer can still miss the finding.
 
-![Figure: Lab 37 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-37.png)
+![Figure: Lab 37 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-37.png)
 
 *Figure: Lab 37 on the simulator site, with the scenario board shown (trap and fix lanes).*
 
@@ -3031,7 +3032,7 @@ Turn 2: POST /v1/messages · model claude-haiku-5-5 · 3 messages (tool results 
 - **C** falls short: The failures began with a config change, not a model change; a larger model costs more and still stops at the same max_tokens limit.
 - **D** falls short: A truncated response is deterministic for that order: every retry hits the same max_tokens limit, so retries add latency and cost without fixing it.
 
-![Figure: Lab 38 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0-images/lab-38.png)
+![Figure: Lab 38 on the simulator site, with the scenario board shown (trap and fix lanes).](LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1-images/lab-38.png)
 
 *Figure: Lab 38 on the simulator site, with the scenario board shown (trap and fix lanes).*
 

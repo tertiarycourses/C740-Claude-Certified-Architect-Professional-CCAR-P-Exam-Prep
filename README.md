@@ -7,13 +7,13 @@ Prepare for Anthropic's CCAR-P exam task statement by task statement: answer eac
 | Course code | `C740` |
 | Programme | Non-WSQ |
 | Duration | 2 days / 15 hours (9:30am – 5:30pm daily) |
-| Courseware release | Trainer slides v1.0, Lesson Plan v1.0, Learner Guide v1.0 (19 Nov 2026) |
+| Courseware release | Trainer slides v1.1, Lesson Plan v1.1, Learner Guide v1.1 (26 Nov 2026) |
 | Official exam guide | [Anthropic's CCAR-P Exam Guide v1.0 (PDF, 11 pages)](exam-guide/Claude-Certified-Architect-Professional-CCAR-P-Exam-Guide-v1.0.pdf) |
 | Exam-question labs | [Run all 38 labs live in your browser](https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/) |
 | Practice exam | [Practice questions, scored by domain](https://exams.tertiaryinfotech.com/practice-exams/anthropic/anthropic-ccar-professional) |
 | Registration | [View course details and register](https://www.tertiarycourses.com.sg/claude-certified-architect-professional-ccar-p-exam-prep.html) |
 
-![Cover slide of the C740 trainer slides v1.0](screenshot.png)
+![Cover slide of the C740 trainer slides v1.1](screenshot.png)
 
 ## The exam at a glance
 
@@ -186,9 +186,9 @@ Sit the [practice exam](https://exams.tertiaryinfotech.com/practice-exams/anthro
 ## In this repository
 
 - [Anthropic's CCAR-P Exam Guide v1.0, PDF](exam-guide/Claude-Certified-Architect-Professional-CCAR-P-Exam-Guide-v1.0.pdf)
-- [Trainer slides, PowerPoint](courseware/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-Trainer-Slides-v1.0.pptx) and [PDF](courseware/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-Trainer-Slides-v1.0.pdf)
-- [Lesson Plan, Word](courseware/LP-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0.docx) and [PDF](courseware/LP-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0.pdf)
-- [Learner Guide, Word](courseware/LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0.docx), [PDF](courseware/LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0.pdf) and [Markdown](courseware/LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.0.md)
+- [Trainer slides, PowerPoint](courseware/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-Trainer-Slides-v1.1.pptx) and [PDF](courseware/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-Trainer-Slides-v1.1.pdf)
+- [Lesson Plan, Word](courseware/LP-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1.docx) and [PDF](courseware/LP-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1.pdf)
+- [Learner Guide, Word](courseware/LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1.docx), [PDF](courseware/LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1.pdf) and [Markdown](courseware/LG-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep-v1.1.md)
 - [The labs folder](labs/): 41 lab folders (38 exam-question labs and 3 Day 2 builds)
 - [`docs/`](docs/): the source of the [lab site](https://tertiarycourses.github.io/C740-Claude-Certified-Architect-Professional-CCAR-P-Exam-Prep/) (GitHub Pages)
 
